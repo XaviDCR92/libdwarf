@@ -1,3 +1,10 @@
+2018-05-18 Carlos Alberto Enciso
+    * Remove some tabs in Changelog.
+    * For the Windows version, turn on the buffering for the stdout stream;
+      being off, caused a dramatic slowdown when sending the output over a
+      network drive.
+    * 32-bits values being printed using the I64 specification. Warning from
+      the MS compiler.
 2018-05-15 David Anderson
     * tmp-tt-table.c,tmp-ta-table.c,tmp-ta-ext-table.c, 
       tmp-tt-ext-table.c: All endings changed from .c to .h 
@@ -33,25 +40,25 @@
       (void) as function argument list, for example
       set_all_sections_on(void) .
 2018-05-14 Carlos Alberto Enciso
-	  * Rename producer_info.[ch] to compiler_info.[ch].
+    * Rename producer_info.[ch] to compiler_info.[ch].
 2018-05-11 Carlos Alberto Enciso
-	  * New files: command_options.c,command_options.h
-	    Command line arguments processing; the original code moved
-	    from dwarfdump.c.
-	  * New files: producer_info.c,producer_info.h
-	    Record statistics about the producers (compilers). The original
-	    code moved from dwarfdump.c.
+    * New files: command_options.c,command_options.h
+      Command line arguments processing; the original code moved
+      from dwarfdump.c.
+    * New files: producer_info.c,producer_info.h
+      Record statistics about the producers (compilers). The original
+      code moved from dwarfdump.c.
     * glflags.c,glflags.h,globals.h:
-	    Moved the remaining individual global flags and what they
-	    control into glflags.h.
-	  * section_bitmaps.c,section_bitmaps.h: process the header and
-	    relocation maps. Original code moved from dwarfdump.c
+      Moved the remaining individual global flags and what they
+      control into glflags.h.
+    * section_bitmaps.c,section_bitmaps.h: process the header and
+      relocation maps. Original code moved from dwarfdump.c
     * dwarfdump.c:
-	    Moved the code for command line arguments processing to
-	    command_options.c and producer_info.c.
-	  * print_reloc.c,sanitized.h,defined_types.h,dwconf.c,print_aranges.c
-	    Minor changes due to refactoring of the command line and
-	    producer refactoring.
+      Moved the code for command line arguments processing to
+      command_options.c and producer_info.c.
+    * print_reloc.c,sanitized.h,defined_types.h,dwconf.c,print_aranges.c
+      Minor changes due to refactoring of the command line and
+      producer refactoring.
 2018-05-09 David Anderson
     * common.c,dwarfdump.c,glflags.c,glflags.h,print_aranges.c,
       print_die.c: Fixed indents to match dicheck requirements
