@@ -27,9 +27,12 @@
 */
 
 #include "config.h"
-#include "dwarf_incl.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include "dwarf_incl.h"
+#include "dwarf_alloc.h"
+#include "dwarf_error.h"
+#include "dwarf_util.h"
 #include "dwarf_line.h"
 
 /* Line Register Set initial conditions. */
@@ -109,7 +112,7 @@ _dwarf_file_name_is_full_path(Dwarf_Small  *fname)
 /* End Windows style */
     return 0;
 }
-#include "dwarf_line_table_reader_common.c"
+#include "dwarf_line_table_reader_common.h"
 
 static void
 special_cat(char *dst,char *src,

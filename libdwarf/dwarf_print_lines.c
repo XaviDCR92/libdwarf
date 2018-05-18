@@ -26,10 +26,14 @@
 */
 
 #include "config.h"
-#include "dwarf_incl.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+
+#include "dwarf_incl.h"
+#include "dwarf_alloc.h"
+#include "dwarf_error.h"
+#include "dwarf_util.h"
 #include "dwarf_line.h"
 
 #define PRINTING_DETAILS 1
@@ -167,7 +171,7 @@ print_line_detail(
 }
 
 
-#include "dwarf_line_table_reader_common.c"
+#include "dwarf_line_table_reader_common.h"
 
 /* Not yet implemented, at least not usefully. FIXME */
 void
@@ -647,5 +651,3 @@ dwarf_check_lineheader(Dwarf_Die die, int *err_count_out)
         only_line_header);
     return;
 }
-
-

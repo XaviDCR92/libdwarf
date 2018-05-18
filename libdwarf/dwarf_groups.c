@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2017-2017 David Anderson. All Rights Reserved.
+  Copyright (C) 2017-2018 David Anderson. All Rights Reserved.
 
   This program is free software; you can redistribute it and/or modify it
   under the terms of version 2.1 of the GNU Lesser General Public License
@@ -24,10 +24,11 @@
 */
 
 #include "config.h"
+#include <stdio.h>
 #include "dwarf_incl.h"
+#include "dwarf_error.h"
 #include "dwarf_tsearch.h"
 #include <stdlib.h>
-#include <stdio.h>
 
 #define TRUE  1
 #define FALSE 0
@@ -380,5 +381,3 @@ _dwarf_destroy_group_map(Dwarf_Debug dbg)
     dwarf_tdestroy(dbg->de_groupnumbers.gd_map,_dwarf_grp_destroy_free_node);
     dbg->de_groupnumbers.gd_map = 0;
 }
-
-

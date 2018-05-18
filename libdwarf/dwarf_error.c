@@ -25,24 +25,21 @@
 
 */
 
-
-
 #include "config.h"
-#include "dwarf_incl.h"
-#ifdef HAVE_ELF_H
-#include <elf.h>
-#endif
-
 #include <stdio.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <stdlib.h>
 
+#include "dwarf_incl.h"
+#include "dwarf_alloc.h"
+#include "dwarf_error.h"
+
 /* Array to hold string representation of errors. Any time a
    define is added to the list in libdwarf.h, a string should be
    added to this Array
 */
-#include "dwarf_errmsg_list.c"
+#include "dwarf_errmsg_list.h"
 
 /*  This function performs error handling as described in the
     libdwarf consumer document section 3.  Dbg is the Dwarf_debug

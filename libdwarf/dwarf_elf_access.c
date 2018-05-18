@@ -30,6 +30,7 @@
 
 #include "config.h"
 #include "dwarf_incl.h"
+#include "dwarf_error.h"
 #include "dwarf_elf_access.h"
 
 /* Include Relocation definitions in the case of Windows */
@@ -1482,5 +1483,3 @@ dwarf_get_elf(Dwarf_Debug dbg, dwarf_elf_handle * elf,
     _dwarf_error(dbg, error, DW_DLE_FNO);
     return DW_DLV_ERROR;
 }
-
-

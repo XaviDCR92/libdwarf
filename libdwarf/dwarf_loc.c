@@ -26,9 +26,12 @@
 */
 
 #include "config.h"
-#include "dwarf_incl.h"
-#include "dwarf_loc.h"
 #include <stdio.h> /* for debugging only. */
+#include "dwarf_incl.h"
+#include "dwarf_alloc.h"
+#include "dwarf_error.h"
+#include "dwarf_util.h"
+#include "dwarf_loc.h"
 
 #define TRUE 1
 #define FALSE 0
@@ -1680,4 +1683,4 @@ dwarf_get_loclist_entry(Dwarf_Debug dbg,
 }
 
 /* Bring in the code for the October 2015 interfaces. */
-#include "dwarf_loc2.c"
+#include "dwarf_loc2.h"

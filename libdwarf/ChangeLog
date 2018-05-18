@@ -1,3 +1,62 @@
+2018-05-15 David Anderson
+    * dwarf_incl.h: Inserted <stddef.h> include here.
+      stddef.h defines really basic useful C90 things like NULL. 
+    * dwarf_opaque.h: Remove nested include stddef.h.
+2018-05-15 David Anderson
+    * dwarf_incl.h: Removed dwarf_alloc.h include
+    * dwarf_abbrev.c,dwarf_alloc.c,dwarf_arange.c,dwarf_die_deliv.c,
+      dwarf_dnames.c,dwarf_dsc.c,dwarf_error.c,dwarf_form.c dwarf_frame.c,
+      dwarf_frame2.c,dwarf_gdbindex.c,dwarf_global.c,dwarf_incl.h,
+      dwarf_init_finish.c,dwarf_line.c,dwarf_loc.c,dwarf_macro.c,
+      dwarf_macro5.c,dwarf_print_lines.c,dwarf_query.c,dwarf_ranges.c,
+      dwarf_str_offsets.c,dwarf_util.c,dwarf_xu_index.c:
+      Added explicit include dwarf_alloc.h.
+2018-05-15 David Anderson
+    * Makefile.in: dwarf_frame3.c now gone from build.
+      It should be removed. Nothing in it is used.
+    * dwarf_incl.h: Removed dwarf_error.h include
+    * dwarf_*: put includes in local normal order
+      and added include dwarf_error.h as needed
+      (in many files).
+2018-05-15 David Anderson
+    * dwarf_incl.h: Removed dwarf_util.h include
+    * dwarf_abbrev.c,dwarf_alloc.c,dwarf_arange.c,dwarf_die_deliv.c,
+      dwarf_dnames.c,dwarf_form.c,dwarf_frame.c,dwarf_frame2.c,
+      dwarf_gdbindex.c,dwarf_global.c,dwarf_init_finish.c,dwarf_line.c,
+      dwarf_loc.c,dwarf_macro5.c,dwarf_print_lines.c,dwarf_query.c,
+      dwarf_ranges.c,dwarf_str_offsets.c,dwarf_util.c,dwarf_xu_index.c,
+      dwarf_string.c,dwarf_macro.c: Added include dwarf_util.h.
+2018-05-15 David Anderson
+    * dwarf_die_deliv.c,dwarf_dsc.c,dwarf_error.c,
+      dwarf_init_finish.c,dwarf_original_elf_init.c,
+      pro_error.c,pro_line.c: Removed the unnecessary
+      inclusion of elf.h. 
+    * dwarf_incl.h: Removed the unnecessary
+      inclusion of elf.h, limits.h, and dwarf_xu_index.h. 
+2018-05-15 David Anderson
+    * dwarf_abbrev.c,dwarf_alloc.c,dwarf_die_deliv.c,
+      dwarf_dsc.c,dwarf_dsc.h,dwarf_elf_access.c,dwarf_error.h,
+      dwarf_gdbindex.h,dwarf_global.h,dwarf_groups.c,
+      dwarf_harmless.c,dwarf_harmless.h,dwarf_leb.c,dwarf_loc.h,
+      dwarf_loc2.h,dwarf_opaque.h,dwarf_print_lines.c,
+      dwarf_ranges.c,dwarf_string.c,dwarf_tsearch.h,
+      dwarf_tsearchhash.c,dwarf_util.c,dwarf_xu_index.c,
+      dwarf_xu_index.h,pro_alloc.c,pro_die.h,pro_finish.c,
+      pro_util.h: Removed trailing blank lines.
+      Updated copyright year.
+2018-05-15 David Anderson
+    * dwarf_loc2.c, dwarf_line_table_reader_common.c,
+      dwarf_errmsg_list.c: Renamed to end in .h, not .c,
+      as these are all targets of #include.
+    * dwarf_test_errmsg_list.c: New file with the test code
+      extracted from dwarf_errmsg_list.c and #including
+      the new dwarf_errmsg_list.h
+    * Makefile.in: Renamings .c to .h and the errmsg checking
+      builds the new dwarf_test_errmsg_list.c
+      The -DTESTING in building dwarf_test_errmsg_list.c
+      is no longer necessary.
+    * dwarf_error.c, dwarf_line.c,dwarf_print_lines.c:  
+      Reflect the .c->h renamings
 2018-05-14 David Anderson
     * libdwarf.h.in: Removed trailing whitespace.
 2018-05-14 David Anderson

@@ -1,7 +1,6 @@
 /*
-
   Copyright (C) 2000-2005 Silicon Graphics, Inc.  All Rights Reserved.
-  Portions Copyright (C) 2009-2011 David Anderson. All Rights Reserved.
+  Portions Copyright (C) 2009-2018 David Anderson. All Rights Reserved.
 
   This program is free software; you can redistribute it and/or modify it
   under the terms of version 2.1 of the GNU Lesser General Public License
@@ -26,9 +25,12 @@
 */
 
 #include "config.h"
-#include "dwarf_incl.h"
 #include <stdio.h>
+#include "dwarf_incl.h"
 #include "dwarf_abbrev.h"
+#include "dwarf_alloc.h"
+#include "dwarf_error.h"
+#include "dwarf_util.h"
 
 /*  This is used to print a .debug_abbrev section without
     knowing about the DIEs that use the abbrevs.
@@ -307,4 +309,3 @@ dwarf_get_abbrev_count(Dwarf_Debug dbg)
     }
     return abbrev_count;
 }
-

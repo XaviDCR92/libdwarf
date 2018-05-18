@@ -26,10 +26,13 @@
 */
 
 #include "config.h"
-#include "dwarf_incl.h"
 #include <stdio.h>
 #include <stdarg.h>
 #include <stdlib.h> /* For free() */
+#include "dwarf_incl.h"
+#include "dwarf_alloc.h"
+#include "dwarf_error.h"
+#include "dwarf_util.h"
 #include "dwarf_die_deliv.h"
 #include "pro_encode_nm.h"
 
@@ -1302,6 +1305,3 @@ _dwarf_what_section_are_we(Dwarf_Debug dbg,
         sec_start_ptr_out, sec_len_out, sec_end_ptr_out);
     return DW_DLV_NO_ENTRY;
 }
-
-
-

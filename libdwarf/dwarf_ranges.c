@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2008-2016 David Anderson. All Rights Reserved.
+  Copyright (C) 2008-2018 David Anderson. All Rights Reserved.
   Portions Copyright 2012 SN Systems Ltd. All rights reserved.
 
   This program is free software; you can redistribute it and/or modify it
@@ -27,6 +27,9 @@
 #include "config.h"
 #include <stdlib.h>
 #include "dwarf_incl.h"
+#include "dwarf_alloc.h"
+#include "dwarf_error.h"
+#include "dwarf_util.h"
 
 struct ranges_entry {
    struct ranges_entry *next;
@@ -219,4 +222,3 @@ dwarf_ranges_dealloc(Dwarf_Debug dbg, Dwarf_Ranges * rangesbuf,
 {
     dwarf_dealloc(dbg,rangesbuf, DW_DLA_RANGES);
 }
-
