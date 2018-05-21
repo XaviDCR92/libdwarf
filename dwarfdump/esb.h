@@ -40,11 +40,29 @@
 #ifdef __cplusplus
 extern "C" {
 #endif /* __cplusplus */
+/*  If esb_allocated_size > 0 then esb_string points to
+    esb_allocated_size bytes and
+    esb_used bytes <= (esb_allocated_size -1)
+    All operations that insert or return strings
+    ensure, first, that esb_allocated_size is non-zero
+    and the requirements here are met.
+
+    In esb_constructor esb_allocated_size and esb_used_bytes
+    and esb_string are set 0. No malloc done.
+
+    Default init alloc  sets  esb_allocated_size=alloc_size
+    and mallocs alloc_size bytes.
+    and esb_used_bytes = 0 and esb_string[0] = NUL.
+*/
 
 struct esb_s {
     char *  esb_string; /* pointer to the data itself, or  NULL. */
-    size_t  esb_allocated_size; /* Size of allocated data or 0 */
-    size_t  esb_used_bytes; /* Amount of space used  or 0 */
+    size_t  esb_allocated_size; /* Size of allocated data or 0
+        The allocated size must include the trailing NUL
+        as we do insert a NUL. */
+    size_t  esb_used_bytes; /* Amount of space used  or 0,
+        which does not include the trailing NUL.
+        Matches what strlen(esb_string) would return. */
 };
 
 /* Open/close the null device used during formatting printing */
@@ -89,12 +107,6 @@ size_t esb_get_allocated_size(struct esb_s *data);
 
 /* Append a formatted string */
 void esb_append_printf(struct esb_s *data,const char *format, ...);
-
-/*  Append a formatted string. The 'ap' must be just-setup with
-    va_start(ap,format)  and
-    when esb_append_printf_ap returns the ap is used up
-    and should not be touched. */
-void esb_append_printf_ap(struct esb_s *data,const char *format,va_list ap);
 
 /* Get a copy of the internal data buffer */
 char * esb_get_copy(struct esb_s *data);
