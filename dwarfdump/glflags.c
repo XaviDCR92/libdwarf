@@ -245,8 +245,11 @@ init_global_flags(void)
     glflags.CU_producer[0] = 0;
 
     /*  Options to enable debug tracing. */
-    for (int i = 0; i <= MAX_TRACE_LEVEL; ++i) {
-        glflags.nTrace[i] = 0;
+    {
+        int i = 0;
+        for ( ; i <= MAX_TRACE_LEVEL; ++i) {
+            glflags.nTrace[i] = 0;
+        }
     }
 
     /*  Output filename */
@@ -286,7 +289,7 @@ reset_global_flags(void)
     we turn off all checking, putting it back to default
     checking state. */
 void
-set_checks_off()
+set_checks_off(void)
 {
     glflags.gf_check_abbrev_code = FALSE;
     glflags.gf_check_pubname_attr = FALSE;
