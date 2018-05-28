@@ -1,3 +1,8 @@
+2018-05-28 Carlos Alberto Enciso
+    * Incorrect use of _MSC_VER. This symbol is used
+      to check for specific VS version. The guarded
+      code is for _WIN32. Runtime exception while
+      building with previous VS versions.
 2018-05-26 David Anderson
     * dwarfdump.c,tag_attr.c,tag_tree.c, common.c:
       Update version string
