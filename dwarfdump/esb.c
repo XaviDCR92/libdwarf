@@ -385,7 +385,7 @@ esb_append_printf(struct esb_s *data,const char *in_string, ...)
     va_list ap;
     int len = 0;
     int len2 = 0;
-    int remaining = 0;
+    size_t remaining = 0;
 
     if (!null_device_handle) {
         if(!esb_open_null_device()) {

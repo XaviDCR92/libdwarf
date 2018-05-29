@@ -274,7 +274,7 @@ HandleOneDieAndChildren(Dwarf_P_Debug dbg,
     // children to it, but add no content yet.
     Dwarf_P_Die ourdie = dwarf_new_die(dbg,inDie.getTag(),NULL,NULL,
         NULL,NULL,&error);
-    if (reinterpret_cast<Dwarf_Signed>(ourdie) == DW_DLV_BADADDR) {
+    if (reinterpret_cast<Dwarf_Addr>(ourdie) == DW_DLV_BADADDR) {
         cerr << "Die creation failure.  "<< endl;
         exit(1);
     }
@@ -295,8 +295,7 @@ HandleOneDieAndChildren(Dwarf_P_Debug dbg,
             // Link as first child.
             res  = dwarf_die_link(chp,ourdie,NULL,NULL, NULL,&error);
         }
-        // Bad cast here, FIXME
-        if (reinterpret_cast<Dwarf_Signed>(res) == DW_DLV_BADADDR) {
+        if (reinterpret_cast<Dwarf_Addr>(res) == DW_DLV_BADADDR) {
             cerr << "Die link failure.  "<< endl;
             exit(1);
         }

@@ -57,17 +57,6 @@
 #include "ireptodbg.h"
 #include "irepattrtodbg.h"
 
-#ifdef HAVE_INTPTR_T
-#include <stdint.h>
-typedef intptr_t myintfromp; // intptr_t is from C99.
-#else
-// We want an integer that is big enough for a pointer so the
-// pointer return value from the libdwarf producer can be
-// tested for -1.  Ugly overloading of integer and pointer in libdwarf.
-// We just hope it will compile for you.
-typedef long myintfromp;
-#endif
-
 using std::string;
 using std::cout;
 using std::cerr;
@@ -127,7 +116,7 @@ AddAttrToDie(Dwarf_P_Debug dbg,
         // Relocation later will fix value.
         Dwarf_P_Attribute a = dwarf_add_AT_targ_address_b(dbg,
             outdie,attrnum,0,sym_index,&error);
-        if( reinterpret_cast<myintfromp>(a) == DW_DLV_BADADDR) {
+        if( reinterpret_cast<Dwarf_Addr>(a) == DW_DLV_BADADDR) {
             cerr << "ERROR dwarf_add_AT_targ_address fails, attrnum "
                 <<attrnum << endl;
 
@@ -187,7 +176,7 @@ AddAttrToDie(Dwarf_P_Debug dbg,
                     uval,&error);
             }
         }
-        if( reinterpret_cast<myintfromp>(a) == DW_DLV_BADADDR) {
+        if( reinterpret_cast<Dwarf_Addr>(a) == DW_DLV_BADADDR) {
             cerr << "ERROR dwarf_add_AT_ class constant fails,"
                 " BADATTR on attrnum "
                 <<attrnum << endl;
@@ -213,7 +202,7 @@ AddAttrToDie(Dwarf_P_Debug dbg,
         // FIXME: rel type ok?
         Dwarf_P_Attribute a =
             dwarf_add_AT_flag(dbg,outdie,attrnum,f->getFlagVal(),&error);
-        if( reinterpret_cast<myintfromp>(a) == DW_DLV_BADADDR) {
+        if( reinterpret_cast<Dwarf_Addr>(a) == DW_DLV_BADADDR) {
             cerr << "ERROR dwarf_add_AT_flag fails, attrnum "
                 <<attrnum << endl;
         }
@@ -297,7 +286,7 @@ AddAttrToDie(Dwarf_P_Debug dbg,
                 Dwarf_P_Attribute a =
                     dwarf_add_AT_reference_b(dbg,outdie,attrnum,
                     /*targetoutdie */NULL,&error);
-                if( reinterpret_cast<myintfromp>(a) == DW_DLV_BADADDR) {
+                if( reinterpret_cast<Dwarf_Addr>(a) == DW_DLV_BADADDR) {
                     cerr << "ERROR dwarf_add_AT_reference fails, "
                         "attrnum with not yet known targetoutdie "
                         << IToHex(attrnum) << endl;
@@ -310,7 +299,7 @@ AddAttrToDie(Dwarf_P_Debug dbg,
             Dwarf_P_Attribute a =
                 dwarf_add_AT_reference(dbg,outdie,attrnum,
                 targetoutdie,&error);
-            if( reinterpret_cast<myintfromp>(a) == DW_DLV_BADADDR) {
+            if( reinterpret_cast<Dwarf_Addr>(a) == DW_DLV_BADADDR) {
                 cerr << "ERROR dwarf_add_AT_reference fails, "
                     "attrnum with known targetoutdie "
                     << IToHex(attrnum) << endl;
@@ -322,7 +311,7 @@ AddAttrToDie(Dwarf_P_Debug dbg,
             Dwarf_P_Attribute a =
                 dwarf_add_AT_with_ref_sig8(outdie,attrnum,
                 r->getSignature(),&error);
-            if( reinterpret_cast<myintfromp>(a) == DW_DLV_BADADDR) {
+            if( reinterpret_cast<Dwarf_Addr>(a) == DW_DLV_BADADDR) {
                 cerr << "ERROR dwarf_add_AT_ref_sig8 fails, attrnum "
                     << IToHex(attrnum) << endl;
             }
@@ -360,7 +349,7 @@ AddAttrToDie(Dwarf_P_Debug dbg,
                 &error);
             break;
         }
-        if( reinterpret_cast<myintfromp>(a) == DW_DLV_BADADDR) {
+        if( reinterpret_cast<Dwarf_Addr>(a) == DW_DLV_BADADDR) {
             cerr << "ERROR dwarf_add_AT_string fails, attrnum "
                 <<attrnum << endl;
         }
