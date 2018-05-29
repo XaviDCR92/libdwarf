@@ -1,8 +1,6 @@
 2018-05-29 Carlos Alberto Enciso
-    * Invalid conversion when building Windows 64-bit
-      version.
-      warning C4267: '=': conversion from 'size_t' to
-      'int', possible loss of data.
+    * esb.c: warning C4267: (64-bits build)
+      '=': conversion from 'size_t' to 'int', possible loss of data
 2018-05-28 Carlos Alberto Enciso
     * Incorrect use of _MSC_VER. This symbol is used
       to check for specific VS version. The guarded

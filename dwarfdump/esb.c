@@ -383,8 +383,8 @@ void
 esb_append_printf(struct esb_s *data,const char *in_string, ...)
 {
     va_list ap;
-    int len = 0;
-    int len2 = 0;
+    size_t len = 0;
+    size_t len2 = 0;
     size_t remaining = 0;
 
     if (!null_device_handle) {
@@ -401,7 +401,7 @@ esb_append_printf(struct esb_s *data,const char *in_string, ...)
     if (data->esb_allocated_size == 0) {
         init_esb_string(data, alloc_size);
     }
-    remaining = data->esb_allocated_size - data->esb_used_bytes -1;
+    remaining = data->esb_allocated_size - data->esb_used_bytes - 1;
     if (remaining < len) {
         if (data->esb_rigid) {
             /* No room, give up. */

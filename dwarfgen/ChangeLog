@@ -1,8 +1,6 @@
 2018-05-29 Carlos Alberto Enciso
-     * Incorrect cast. It causes a warning building Windows
-       64-bit version.
-       warning C4302: 'reinterpret_cast': truncation from
-       'Dwarf_P_Attribute' to 'myintfromp'.
+    * irepattrtodbc.cc, ireptodbc.cc: warning C4302: (64-bits build)
+      'reinterpret_cast': truncation from 'Dwarf_P_Attribute' to 'myintfromp'
 2017-12-17  David Anderson
      * createirepformfrombinary.cc,createirepfrombinary.cc,
        general.h,irepattrtodbg.cc,irepdie.h,
