@@ -33,25 +33,17 @@
     in the case of certain interfaces here a warning
     to stderr).
 
-    Do selftest as follows:
-        gcc -DSELFTEST esb.c
-        ./a.out
-        valgrind --leak-check=full ./a.out
-
     The functions assume that
     pointer arguments of all kinds are not NULL.
 */
 
-#ifdef SELFTEST
-typedef char * string; /* SELFTEST */
-#endif
+#include "config.h"
 #include "esb.h"
 #define TRUE 1
 
 /*  INITIAL_ALLOC value takes no account of space for a trailing NUL,
     the NUL is accounted for in init_esb_string
     and in later tests against esb_allocated_size. */
-#undef MALLOC_COUNT
 #ifdef SELFTEST
 #define INITIAL_ALLOC 1  /* SELFTEST */
 #define MALLOC_COUNT 1
@@ -71,13 +63,14 @@ static FILE *null_device_handle = 0;
 #define NULL_DEVICE_NAME "/dev/null"
 #endif /* _WIN32 */
 
-
 #ifdef MALLOC_COUNT
 long malloc_count = 0;
 long malloc_size = 0;
 #endif
 
-/* Open the null device used during formatting printing */
+/*  m must be a string, like  "ESBERR..."  for this to work */
+#define ESBERR(m) esb_appendn_internal(data,m,sizeof(m)-1)
+
 FILE *esb_open_null_device(void)
 {
     if (!null_device_handle) {
@@ -107,7 +100,7 @@ init_esb_string(struct esb_s *data, size_t min_len)
     }
     /*  Only esb_constructor applied so far.
         Now Allow for string space. */
-    if (min_len <= alloc_size) {
+    if (min_len < alloc_size) {
         min_len = alloc_size;
     } else  {
         min_len++ ; /* Allow for NUL at end */
@@ -159,8 +152,7 @@ esb_allocate_more(struct esb_s *data, size_t len)
         malloc_size += len;
 #endif
         if (newd) {
-            strncpy(newd,data->esb_string,copylen);
-            newd[copylen] = 0;
+            memcpy(newd,data->esb_string,data->esb_used_bytes+1);
         }
     } else {
         newd = realloc(data->esb_string, new_size);
@@ -212,7 +204,7 @@ esb_appendn_internal(struct esb_s *data, const char * in_string, size_t len)
     size_t needed = len;
 
     if (data->esb_allocated_size == 0) {
-        size_t maxlen = (len > alloc_size)? (len):alloc_size;
+        size_t maxlen = (len >= alloc_size)? len:alloc_size;
 
         init_esb_string(data, maxlen);
     }
@@ -230,7 +222,9 @@ esb_appendn_internal(struct esb_s *data, const char * in_string, size_t len)
         /* No room for anything more, or no more requested. */
         return;
     }
-    strncpy(&data->esb_string[data->esb_used_bytes], in_string, len);
+    /*  Might be that len < string len, so do not assume len+1 byte
+        is a NUL byte. */
+    memcpy(&data->esb_string[data->esb_used_bytes],in_string,len);
     data->esb_used_bytes += len;
     /* Insist on explicit NUL terminator */
     data->esb_string[data->esb_used_bytes] = 0;
@@ -243,12 +237,9 @@ esb_appendn(struct esb_s *data, const char * in_string, size_t len)
     size_t full_len = strlen(in_string);
 
     if (full_len < len) {
-        fprintf(stderr, "dwarfdump esb internal error, bad string length "
-            " %lu  < %lu \n",
-            (unsigned long) full_len, (unsigned long) len);
-        len = full_len;
+        ESBERR("ESBERR_appendn bad call");
+        return;
     }
-
     esb_appendn_internal(data, in_string, len);
 }
 
@@ -339,7 +330,7 @@ esb_constructor_fixed(struct esb_s *data,char *buf,size_t buflen)
 }
 
 
-/*  The string is freed, contents of *data set to zeroes. */
+/*  The string is freed, contents of *data set to zeros. */
 void
 esb_destructor(struct esb_s *data)
 {
@@ -376,6 +367,502 @@ size_t
 esb_get_allocated_size(struct esb_s *data)
 {
     return data->esb_allocated_size;
+}
+
+static void
+esb_appendn_internal_spaces(struct esb_s *data,size_t l)
+{
+    static char spacebuf[] = {"                                       "};
+    size_t charct = sizeof(spacebuf)-1;
+    while (l > charct) {
+        esb_appendn_internal(data,spacebuf,charct);
+        l -= charct;
+    }
+    /* ASSERT: l > 0 */
+    esb_appendn_internal(data,spacebuf,l);
+}
+
+static void
+esb_appendn_internal_zeros(struct esb_s *data,size_t l)
+{
+    static char zeros[] = {"0000000000000000000000000000000000000000"};
+    size_t charct = sizeof(zeros)-1;
+    while (l > charct) {
+        esb_appendn_internal(data,zeros,charct);
+        l -= charct;
+    }
+    /* ASSERT: l > 0 */
+    esb_appendn_internal(data,zeros,l);
+}
+
+void
+esb_append_printf_s(struct esb_s *data,const char *format,const char *s)
+{
+    size_t stringlen = strlen(s);
+    size_t next = 0;
+    long val = 0;
+    char *endptr = 0;
+    const char *numptr = 0;
+    /* was %[-]fixedlen.  Zero means no len provided. */
+    size_t fixedlen = 0;
+    /* was %-, nonzero means left-justify */
+    long leftjustify = 0;
+    size_t prefixlen = 0;
+
+    while (format[next] && format[next] != '%') {
+        ++next;
+        ++prefixlen;
+    }
+    if (prefixlen) {
+        esb_appendn_internal(data,format,prefixlen);
+    }
+    next++;
+    if (format[next] == '-') {
+        leftjustify++;
+        next++;
+    }
+    numptr = format+next;
+    val = strtol(numptr,&endptr,10);
+    if ( endptr != numptr) {
+        fixedlen = val;
+    }
+    next = (endptr - format);
+    if (format[next] != 's') {
+        ESBERR("ESBERR_pct_s_missing_in_s");
+        return;
+    }
+    next++;
+
+    if (leftjustify) {
+        if (fixedlen && fixedlen <= stringlen) {
+            /* This lets us have fixedlen < stringlen */
+            esb_appendn_internal(data,s,fixedlen);
+
+        } else {
+
+            esb_appendn_internal(data,s,stringlen);
+            if(fixedlen) {
+                size_t trailingspaces = fixedlen - stringlen;
+
+                esb_appendn_internal_spaces(data,trailingspaces);
+            }
+        }
+    } else {
+        if (fixedlen && fixedlen <= stringlen) {
+            /* This lets us have fixedlen < stringlen */
+            esb_appendn_internal(data,s,fixedlen);
+        } else {
+            if(fixedlen) {
+                size_t leadingspaces = fixedlen - stringlen;
+                size_t k = 0;
+
+                for ( ; k < leadingspaces; ++k) {
+                    esb_appendn_internal(data," ",1);
+                }
+            }
+            esb_appendn_internal(data,s,stringlen);
+        }
+    }
+    if (!format[next]) {
+        return;
+    }
+    {
+        const char * startpt = format+next;
+        size_t suffixlen = strlen(startpt);
+
+        esb_appendn_internal(data,startpt,suffixlen);
+    }
+    return;
+}
+
+static char dtable[10] = {
+'0','1','2','3','4','5','6','7','8','9'
+};
+static char xtable[16] = {
+'0','1','2','3','4','5','6','7','8','9','a','b','c','d','e','f'
+};
+static char Xtable[16] = {
+'0','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F'
+};
+
+/* With gcc version 5.4.0 20160609  a version using
+   const char *formatp instead of format[next]
+   and deleting the 'next' variable
+   is a few hundredths of a second slower, repeatably.
+
+   We deal with formats like:
+   %u   %5u %05u (and ld and lld too).
+   %x   %5x %05x (and ld and lld too).  */
+void
+esb_append_printf_u(struct esb_s *data,const char *format,esb_unsigned v)
+{
+    size_t next = 0;
+    long val = 0;
+    char *endptr = 0;
+    const char *numptr = 0;
+    size_t fixedlen = 0;
+    int leadingzero = 0;
+    int lcount = 0;
+    int ucount = 0;
+    int dcount = 0;
+    int xcount = 0;
+    int Xcount = 0;
+    char *ctable = 0;
+    size_t divisor = 0;
+    size_t prefixlen = 0;
+
+    while (format[next] && format[next] != '%') {
+        ++next;
+        ++prefixlen;
+    }
+    esb_appendn_internal(data,format,prefixlen);
+    if (format[next] != '%') {
+        /*   No % operator found */
+        ESBERR("ESBERR..esb_append_printf_u has no % operator");
+        return;
+    }
+    next++;
+    if (format[next] == '-') {
+        ESBERR("ESBERR_printf_u - format not supported");
+        next++;
+    }
+    if (format[next] == '0') {
+        leadingzero = 1;
+        next++;
+    }
+    numptr = format+next;
+    val = strtol(numptr,&endptr,10);
+    if ( endptr != numptr) {
+        fixedlen = val;
+    }
+    next = (endptr - format);
+    /*  Following is lx lu or u or llx llu , we take
+        all this to mean 64 bits, */
+#ifdef HAVE_NONSTANDARD_PRINTF_64_FORMAT
+    if (format[next] == 'I') {
+        /*lcount++;*/
+        next++;
+    }
+    if (format[next] == '6') {
+        /*lcount++;*/
+        next++;
+    }
+    if (format[next] == '4') {
+        /*lcount++;*/
+        next++;
+    }
+#endif
+    if (format[next] == 'l') {
+        lcount++;
+        next++;
+    }
+    if (format[next] == 'l') {
+        lcount++;
+        next++;
+    }
+    if (format[next] == 'u') {
+        ucount++;
+        next++;
+    }
+    if (format[next] == 'd') {
+        dcount++;
+        next++;
+    }
+    if (format[next] == 'x') {
+        xcount++;
+        next++;
+    }
+    if (format[next] == 'X') {
+        Xcount++;
+        next++;
+    }
+    if (format[next] == 's') {
+        ESBERR("ESBERR_pct_scount_in_u");
+        return;
+    }
+
+    if ( (Xcount +xcount+dcount+ucount) > 1) {
+        ESBERR("ESBERR_pct_xcount_etc_u");
+        /* error */
+        return;
+    }
+    if (lcount > 2) {
+        ESBERR("ESBERR_pct_lcount_error_u");
+        /* error */
+        return;
+    }
+    if (dcount > 0) {
+        ESBERR("ESBERR_pct_dcount_error_u");
+        /* error */
+        return;
+    }
+    if (ucount) {
+        divisor = 10;
+        ctable = dtable;
+    } else {
+        divisor = 16;
+        if (xcount) {
+            ctable = xtable;
+        } else {
+            ctable = Xtable;
+        }
+    }
+    {
+        char digbuf[36];
+        char *digptr = 0;
+        size_t digcharlen = 0;
+        esb_unsigned remaining = v;
+
+        if (divisor == 16) {
+            digptr = digbuf+sizeof(digbuf) -1;
+            for ( ;; ) {
+                esb_unsigned dig;
+                dig = remaining & 0xf;
+                remaining = remaining >> 4;
+                *digptr = ctable[dig];
+                ++digcharlen;
+                if (!remaining) {
+                    break;
+                }
+                --digptr;
+            }
+        } else {
+            digptr = digbuf+sizeof(digbuf) -1;
+            *digptr = 0;
+            --digptr;
+            for ( ;; ) {
+                esb_unsigned dig;
+                dig = remaining % divisor;
+                remaining /= divisor;
+                *digptr = ctable[dig];
+                ++digcharlen;
+                if (!remaining) {
+                    break;
+                }
+                --digptr;
+            }
+        }
+        if (fixedlen <= digcharlen) {
+            esb_appendn_internal(data,digptr,digcharlen);
+        } else {
+            if (!leadingzero) {
+                size_t justcount = fixedlen - digcharlen;
+                esb_appendn_internal_spaces(data,justcount);
+                esb_appendn_internal(data,digptr,digcharlen);
+            } else {
+                size_t prefixcount = fixedlen - digcharlen;
+                esb_appendn_internal_zeros(data,prefixcount);
+                esb_appendn_internal(data,digptr,digcharlen);
+            }
+        }
+    }
+    if (format[next]) {
+        size_t trailinglen = strlen(format+next);
+        esb_appendn_internal(data,format+next,trailinglen);
+    }
+}
+
+static char v32m[] = {"-2147483648"};
+static char v64m[] = {"-9223372036854775808"};
+
+/*  We deal with formats like:
+    %d   %5d %05d %+d %+5d (and ld and lld too). */
+void
+esb_append_printf_i(struct esb_s *data,const char *format,esb_int v)
+{
+    size_t next = 0;
+    long val = 0;
+    char *endptr = 0;
+    const char *numptr = 0;
+    size_t fixedlen = 0;
+    int leadingzero = 0;
+    int pluscount = 0;
+    int lcount = 0;
+    int ucount = 0;
+    int dcount = 0;
+    int xcount = 0;
+    int Xcount = 0;
+    char *ctable = dtable;
+    size_t prefixlen = 0;
+    int done = 0;
+
+    while (format[next] && format[next] != '%') {
+        ++next;
+        ++prefixlen;
+    }
+    esb_appendn_internal(data,format,prefixlen);
+    if (format[next] != '%') {
+        /*   No % operator found */
+        ESBERR("ESBERR..esb_append_printf_i has no % operator");
+        return;
+    }
+    next++;
+    if (format[next] == '-') {
+        ESBERR("ESBERR_printf_i - format not supported");
+        next++;
+    }
+    if (format[next] == '+') {
+        pluscount++;
+        next++;
+    }
+    if (format[next] == '0') {
+        leadingzero = 1;
+        next++;
+    }
+    numptr = format+next;
+    val = strtol(numptr,&endptr,10);
+    if ( endptr != numptr) {
+        fixedlen = val;
+    }
+    next = (endptr - format);
+    /*  Following is lx lu or u or llx llu , we take
+        all this to mean 64 bits, */
+#ifdef HAVE_NONSTANDARD_PRINTF_64_FORMAT
+    if (format[next] == 'I') {
+        /*lcount++;*/
+        next++;
+    }
+    if (format[next] == '6') {
+        /*lcount++;*/
+        next++;
+    }
+    if (format[next] == '4') {
+        /*lcount++;*/
+        next++;
+    }
+#endif
+    if (format[next] == 'l') {
+        lcount++;
+        next++;
+    }
+    if (format[next] == 'l') {
+        lcount++;
+        next++;
+    }
+    if (format[next] == 'u') {
+        ucount++;
+        next++;
+    }
+    if (format[next] == 'd') {
+        dcount++;
+        next++;
+    }
+    if (format[next] == 'x') {
+        xcount++;
+        next++;
+    }
+    if (format[next] == 'X') {
+        Xcount++;
+        next++;
+    }
+    if (format[next] == 's') {
+        ESBERR("ESBERR_pct_scount_in_i");
+        return;
+    }
+    if (!dcount || (lcount >2) ||
+        (Xcount +xcount+dcount+ucount) > 1) {
+        /* error */
+        ESBERR("ESBERR_xcount_etc_i");
+        return;
+    }
+    {
+        char digbuf[36];
+        char *digptr = digbuf+sizeof(digbuf) -1;
+        size_t digcharlen = 0;
+        esb_int remaining = v;
+        int vissigned = 0;
+        esb_int divisor = 10;
+
+        *digptr = 0;
+        --digptr;
+        if (v < 0) {
+            vissigned = 1;
+            /*  This test is for twos-complement
+                machines and would be better done via
+                configure with a compile-time check
+                so we do not need a size test at runtime. */
+            if (sizeof(v) == 8) {
+                esb_unsigned vm = 0x7fffffffffffffffULL;
+                if (vm == (esb_unsigned)~v) {
+                    memcpy(digbuf,v64m,sizeof(v64m));
+                    digcharlen = sizeof(v64m)-1;
+                    digptr = digbuf;
+                    done = 1;
+                } else {
+                    remaining = -v;
+                }
+            } else if (sizeof(v) == 4) {
+                esb_unsigned vm = 0x7fffffffL;
+                if (vm == (esb_unsigned)~v) {
+                    memcpy(digbuf,v32m,sizeof(v32m));
+                    digcharlen = sizeof(v32m)-1;
+                    digptr = digbuf;
+                    done = 1;
+                } else {
+                    remaining = -v;
+                }
+            }else {
+                ESBERR("ESBERR_sizeof_v_i");
+                /* error */
+                return;
+            }
+        }
+        if(!done) {
+            for ( ;; ) {
+                esb_unsigned dig = 0;
+
+                dig = remaining % divisor;
+                remaining /= divisor;
+                *digptr = ctable[dig];
+                digcharlen++;
+                if (!remaining) {
+                    break;
+                }
+                --digptr;
+            }
+            if (vissigned) {
+                --digptr;
+                digcharlen++;
+                *digptr = '-';
+            } else if (pluscount) {
+                --digptr;
+                digcharlen++;
+                *digptr = '+';
+            }
+        }
+        if (fixedlen > 0) {
+            if (fixedlen <= digcharlen) {
+                esb_appendn_internal(data,digptr,digcharlen);
+            } else {
+                size_t prefixcount = fixedlen - digcharlen;
+                if (!leadingzero) {
+                    esb_appendn_internal_spaces(data,prefixcount);
+                    esb_appendn_internal(data,digptr,digcharlen);
+                } else {
+                    if (*digptr == '-') {
+                        esb_appendn_internal(data,"-",1);
+                        esb_appendn_internal_zeros(data,prefixcount);
+                        digptr++;
+                        esb_appendn_internal(data,digptr,digcharlen-1);
+                    } else if (*digptr == '+') {
+                        esb_appendn_internal(data,"+",1);
+                        esb_appendn_internal_zeros(data,prefixcount);
+                        digptr++;
+                        esb_appendn_internal(data,digptr,digcharlen-1);
+                    } else {
+                        esb_appendn_internal_zeros(data,prefixcount);
+                        esb_appendn_internal(data,digptr,digcharlen);
+                    }
+                }
+            }
+        } else {
+            esb_appendn_internal(data,digptr,digcharlen);
+        }
+    }
+    if (format[next]) {
+        size_t trailinglen = strlen(format+next);
+        esb_appendn_internal(data,format+next,trailinglen);
+    }
 }
 
 /*  Append a formatted string */
@@ -443,168 +930,14 @@ esb_get_copy(struct esb_s *data)
     char* copy = NULL;
 
     /* is ok as is if esb_allocated_size is 0 */
-    size_t len = esb_string_len(data);
+    size_t len = data->esb_used_bytes+1;
     if (len) {
-        copy = (char*)malloc(len + 1);
+        copy = (char*)malloc(len);
 #ifdef MALLOC_COUNT
         ++malloc_count;
         malloc_size += len+1;
 #endif
-        strcpy(copy,esb_get_string(data));
+        memcpy(copy,data->esb_string,len);
     }
     return copy;
 }
-
-
-#ifdef SELFTEST
-static int failcount = 0;
-void
-validate_esb(int instance,
-   struct esb_s* d,
-   size_t explen,
-   size_t expalloc,
-   const char *expout,
-   int line )
-{
-    if (esb_string_len(d) != explen) {
-        ++failcount;
-        printf("  FAIL instance %d  esb_string_len() %u explen %u line %d\n",
-            instance,(unsigned)esb_string_len(d),(unsigned)explen,line);
-    }
-    if (d->esb_allocated_size != expalloc) {
-        ++failcount;
-        printf("  FAIL instance %d  esb_allocated_size  %u expalloc %u line %d\n",
-            instance,(unsigned)d->esb_allocated_size,(unsigned)expalloc,line);
-    }
-    if(strcmp(esb_get_string(d),expout)) {
-        ++failcount;
-        printf("  FAIL instance %d esb_get_stringr %s expstr %s line %d\n",
-            instance,esb_get_string(d),expout,line);
-    }
-}
-
-
-
-int main()
-{
-#ifdef _WIN32
-    /* Open the null device used during formatting printing */
-    if (!esb_open_null_device())
-    {
-        fprintf(stderr, "esb: Unable to open null device.\n");
-        exit(1);
-    }
-#endif /* _WIN32 */
-
-   {
-        struct esb_s d;
-        esb_constructor(&d);
-        esb_append(&d,"a");
-        validate_esb(1,&d,1,2,"a",__LINE__);
-        esb_append(&d,"b");
-        validate_esb(2,&d,2,3,"ab",__LINE__);
-        esb_append(&d,"c");
-        validate_esb(3,&d,3,4,"abc",__LINE__);
-        esb_empty_string(&d);
-        validate_esb(4,&d,0,4,"",__LINE__);
-        esb_destructor(&d);
-    }
-    {
-        struct esb_s d;
-
-        esb_constructor(&d);
-        esb_append(&d,"aa");
-        validate_esb(6,&d,2,3,"aa",__LINE__);
-        esb_append(&d,"bbb");
-        validate_esb(7,&d,5,6,"aabbb",__LINE__);
-        esb_append(&d,"c");
-        validate_esb(8,&d,6,7,"aabbbc",__LINE__);
-        esb_empty_string(&d);
-        validate_esb(9,&d,0,7,"",__LINE__);
-        esb_destructor(&d);
-    }
-    {
-        struct esb_s d;
-        static char oddarray[7] = {'a','b',0,'c','c','d',0};
-
-        esb_constructor(&d);
-        fprintf(stderr,"  esb_appendn call error(intentional). Expect msg on stderr\n");
-        /* This provokes a msg on stderr. Bad input. */
-        esb_appendn(&d,oddarray,6);
-        validate_esb(10,&d,2,3,"ab",__LINE__);
-        esb_appendn(&d,"cc",1);
-        validate_esb(11,&d,3,4,"abc",__LINE__);
-        esb_empty_string(&d);
-        validate_esb(12,&d,0,4,"",__LINE__);
-        esb_destructor(&d);
-    }
-    {
-        struct esb_s d;
-
-        esb_constructor(&d);
-        esb_force_allocation(&d,7);
-        esb_append(&d,"aaaa i");
-        validate_esb(13,&d,6,7,"aaaa i",__LINE__);
-        esb_destructor(&d);
-    }
-    {
-        struct esb_s d5;
-        const char * s = "insert me %d";
-
-        esb_constructor(&d5);
-        esb_force_allocation(&d5,50);
-        esb_append(&d5,"aaa ");
-        esb_append_printf(&d5,s,1);
-        esb_append(&d5,"zzz");
-        validate_esb(14,&d5,18,50,"aaa insert me 1zzz",__LINE__);
-        esb_destructor(&d5);
-    }
-    {
-        struct esb_s d;
-        struct esb_s e;
-        esb_constructor(&d);
-        esb_constructor(&e);
-
-        char* result = NULL;
-        esb_append(&d,"abcde fghij klmno pqrst");
-        validate_esb(15,&d,23,24,"abcde fghij klmno pqrst",__LINE__);
-
-        result = esb_get_copy(&d);
-        esb_append(&e,result);
-        validate_esb(16,&e,23,24,"abcde fghij klmno pqrst",__LINE__);
-        esb_destructor(&d);
-        esb_destructor(&e);
-    }
-    {
-        struct esb_s d5;
-        char bufs[4];
-        char bufl[60];
-        const char * s = "insert me %d";
-
-        esb_constructor_fixed(&d5,bufs,sizeof(bufs));
-        esb_append(&d5,"aaa ");
-        esb_append_printf(&d5,s,1);
-        esb_append(&d5,"zzz");
-        validate_esb(17,&d5,18,19,"aaa insert me 1zzz",__LINE__);
-        esb_destructor(&d5);
-
-        esb_constructor_fixed(&d5,bufl,sizeof(bufl));
-        esb_append(&d5,"aaa ");
-        esb_append_printf(&d5,s,1);
-        esb_append(&d5,"zzz");
-        validate_esb(17,&d5,18,60,"aaa insert me 1zzz",__LINE__);
-        esb_destructor(&d5);
-
-    }
-#ifdef _WIN32
-    /* Close the null device used during formatting printing */
-    esb_close_null_device();
-#endif /* _WIN32 */
-    if (failcount) {
-        printf("FAIL esb test\n");
-        exit(1);
-    }
-    printf("PASS esb test\n");
-    exit(0);
-}
-#endif /* SELFTEST */

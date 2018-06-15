@@ -284,7 +284,6 @@ validate_die_stack_siblings(Dwarf_Debug dbg)
 {
     int i = die_stack_indent_level;
     Dwarf_Off innersiboffset = 0;
-    char small_buf[200];
     for( ; i >=0 ; --i)
     {
         Dwarf_Off v = die_stack[i].sibling_die_globaloffset_;
@@ -303,8 +302,11 @@ validate_die_stack_siblings(Dwarf_Debug dbg)
         Dwarf_Off outersiboffset = die_stack[i].sibling_die_globaloffset_;
         if (outersiboffset ) {
             if (outersiboffset < innersiboffset) {
+                char small_buf[150];
                 Dwarf_Error ouerr = 0;
-                snprintf(small_buf, sizeof(small_buf),
+                /* safe: all values known length. */
+#ifdef ORIGINAL_SPRINTF
+                sprintf(small_buf,
                     "Die stack sibling error, outer global offset "
                     "0x%"  DW_PR_XZEROS DW_PR_DUx
                     " less than inner global offset "
@@ -313,6 +315,21 @@ validate_die_stack_siblings(Dwarf_Debug dbg)
                     outersiboffset,
                     innersiboffset);
                 print_error(dbg,small_buf, DW_DLV_OK, ouerr);
+#else
+                struct esb_s pm;
+                esb_constructor_fixed(&pm,small_buf,sizeof(small_buf));
+                esb_append_printf_u(&pm,
+                    "Die stack sibling error, outer global offset "
+                    "0x%"  DW_PR_XZEROS DW_PR_DUx,outersiboffset);
+                esb_append_printf_u(&pm,
+                    " less than inner global offset "
+                    "0x%"  DW_PR_XZEROS DW_PR_DUx
+                    ", the DIE tree is erroneous.",
+                    innersiboffset);
+                print_error(dbg,esb_get_string(&pm),
+                    DW_DLV_OK,ouerr);
+                esb_destructor(&pm);
+#endif
             }
             /*  We only need check one level with an offset
                 at each entry. */
@@ -1132,11 +1149,14 @@ print_die_and_children_internal(Dwarf_Debug dbg,
             Dwarf_Off child_overall_offset = 0;
             int cores = dwarf_dieoffset(child, &child_overall_offset, &dacerr);
             if (cores == DW_DLV_OK) {
-                char small_buf[200];
                 Dwarf_Off parent_sib_val = get_die_stack_sibling();
                 if (parent_sib_val &&
                     (parent_sib_val <= child_overall_offset )) {
-                    snprintf(small_buf,sizeof(small_buf),
+                    char small_buf[180];
+
+#ifdef ORIGINAL_SPRINTF
+                    /* safe: all values known length. */
+                    sprintf(small_buf,
                         "A parent DW_AT_sibling of "
                         "0x%" DW_PR_XZEROS  DW_PR_DUx
                         " points %s the first child "
@@ -1144,9 +1164,32 @@ print_die_and_children_internal(Dwarf_Debug dbg,
                         " so the die tree is corrupt "
                         "(showing section, not CU, offsets). ",
                         parent_sib_val,
-                        (parent_sib_val == child_overall_offset)?"at":"before",
+                        (parent_sib_val == child_overall_offset)?
+                            "at":"before",
                         child_overall_offset);
                     print_error(dbg,small_buf,DW_DLV_OK,dacerr);
+#else
+                    struct esb_s pm;
+
+                    esb_constructor_fixed(&pm,small_buf,
+                        sizeof(small_buf));
+                    esb_append_printf_u(&pm,
+                        "A parent DW_AT_sibling of "
+                        "0x%" DW_PR_XZEROS  DW_PR_DUx,
+                        parent_sib_val);
+                    esb_append_printf_s(&pm,
+                        " points %s the first child ",
+                        (parent_sib_val == child_overall_offset)?
+                            "at":"before");
+                    esb_append_printf_u(&pm,
+                        "0x%"  DW_PR_XZEROS  DW_PR_DUx
+                        " so the die tree is corrupt "
+                        "(showing section, not CU, offsets). ",
+                        child_overall_offset);
+                    print_error(dbg,esb_get_string(&pm),
+                        DW_DLV_OK,dacerr);
+                    esb_destructor(&pm);
+#endif
                 }
             }
 
@@ -1548,7 +1591,6 @@ get_small_encoding_integer_and_name(Dwarf_Debug dbg,
     int show_form)
 {
     Dwarf_Unsigned uval = 0;
-    char buf[100];              /* The strings are small. */
     int vres = dwarf_formudata(attrib, &uval, seierr);
 
     if (vres != DW_DLV_OK) {
@@ -1562,9 +1604,8 @@ get_small_encoding_integer_and_name(Dwarf_Debug dbg,
             vres = dwarf_global_formref(attrib,&uval,seierr);
             if (vres != DW_DLV_OK) {
                 if (string_out != 0) {
-                    snprintf(buf, sizeof(buf),
+                    esb_append_printf_s(string_out,
                         "%s has a bad form.", attr_name);
-                    esb_append(string_out,buf);
                 }
                 return vres;
             }
@@ -1610,7 +1651,9 @@ get_FLAG_BLOCK_string(Dwarf_Debug dbg, Dwarf_Attribute attrib,
     Dwarf_Unsigned array_len = 0;
     __uint32_t * array_ptr;
     Dwarf_Unsigned array_remain = 0;
+#ifdef ORIGINAL_SPRINTF
     char linebuf[100];
+#endif
     Dwarf_Error  fblkerr = 0;
 
     /* first get compressed block data */
@@ -1641,28 +1684,40 @@ get_FLAG_BLOCK_string(Dwarf_Debug dbg, Dwarf_Attribute attrib,
     array_remain = array_len;
     array_ptr = array;
     while (array_remain > 8) {
+        unsigned i = 0;
         /*  Print a full line */
         /*  If you touch this string, update the magic number 8 in
             the  += and -= below! */
+#ifdef ORIGINAL_SPRINTF
         snprintf(linebuf, sizeof(linebuf),
             "\n  0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x",
             array_ptr[0],           array_ptr[1],
             array_ptr[2],           array_ptr[3],
             array_ptr[4],           array_ptr[5],
             array_ptr[6],           array_ptr[7]);
+        esb_append(esbp, linebuf);
+#else
+        esb_append_printf_u(esbp,"\n  0x%08x",array_ptr[0]);
+        for(i = 1 ; i < 8; ++i) {
+            esb_append_printf_u(esbp,"  0x%08x",array_ptr[i]);
+        }
+#endif
         array_ptr += 8;
         array_remain -= 8;
-        esb_append(esbp, linebuf);
     }
 
     /* now do the last line */
     if (array_remain > 0) {
         esb_append(esbp, "\n ");
         while (array_remain > 0) {
+#ifdef ORIGINAL_SPRINTF
             snprintf(linebuf, sizeof(linebuf), " 0x%08x", *array_ptr);
+            esb_append(esbp, linebuf);
+#else
+            esb_append_printf_u(esbp," 0x%08x",*array_ptr);
+#endif
             array_remain--;
             array_ptr++;
-            esb_append(esbp, linebuf);
         }
     }
 
@@ -1693,7 +1748,9 @@ print_ranges_list_to_extra(Dwarf_Debug dbg,
     struct esb_s *stringbuf)
 {
     int res = 0;
+#ifdef ORIGINAL_SPRINTF
     char tmp[200];
+#endif
     const char * sec_name = 0;
     Dwarf_Signed i = 0;
     Dwarf_Error err =0;
@@ -1704,7 +1761,8 @@ print_ranges_list_to_extra(Dwarf_Debug dbg,
         sec_name = ".debug_ranges";
     }
 
-    if (glflags.dense) {
+   if (glflags.dense) {
+#ifdef ORIGINAL_SPRINTF
         snprintf(tmp,sizeof(tmp),
             "< ranges: %" DW_PR_DSd " ranges at %s offset %"
             DW_PR_DUu " (0x%" DW_PR_XZEROS DW_PR_DUx ") "
@@ -1715,7 +1773,15 @@ print_ranges_list_to_extra(Dwarf_Debug dbg,
             off,
             bytecount);
         esb_append(stringbuf,tmp);
+#else
+        esb_append_printf_i(stringbuf,"< ranges: %" DW_PR_DSd,rangecount);
+        esb_append_printf_s(stringbuf," ranges at %s" ,sec_name);
+        esb_append_printf_u(stringbuf," offset %" DW_PR_DUu ,off);
+        esb_append_printf_u(stringbuf," (0x%" DW_PR_XZEROS DW_PR_DUx,off);
+        esb_append_printf_u(stringbuf,") " "(%" DW_PR_DUu " bytes)>",bytecount);
+#endif
     } else {
+#ifdef ORIGINAL_SPRINTF
         snprintf(tmp,sizeof(tmp),
             "\t\tranges: %" DW_PR_DSd " at %s offset %"
             DW_PR_DUu " (0x%" DW_PR_XZEROS DW_PR_DUx ") "
@@ -1726,11 +1792,19 @@ print_ranges_list_to_extra(Dwarf_Debug dbg,
             off,
             bytecount);
         esb_append(stringbuf,tmp);
+#else
+        esb_append_printf_i(stringbuf,"\t\tranges: %" DW_PR_DSd,rangecount);
+        esb_append_printf_s(stringbuf," at %s" ,sec_name);
+        esb_append_printf_u(stringbuf," offset %" DW_PR_DUu ,off);
+        esb_append_printf_u(stringbuf," (0x%" DW_PR_XZEROS DW_PR_DUx,off);
+        esb_append_printf_u(stringbuf,") " "(%" DW_PR_DUu " bytes)\n",bytecount);
+#endif
     }
     for (i = 0; i < rangecount; ++i) {
         Dwarf_Ranges * r = rangeset +i;
         const char *type = get_rangelist_type_descr(r);
         if (glflags.dense) {
+#ifdef ORIGINAL_SPRINTF
             snprintf(tmp,sizeof(tmp),
                 "<[%2" DW_PR_DSd
                 "] %s 0x%" DW_PR_XZEROS  DW_PR_DUx
@@ -1739,7 +1813,15 @@ print_ranges_list_to_extra(Dwarf_Debug dbg,
                 type,
                 (Dwarf_Unsigned)r->dwr_addr1,
                 (Dwarf_Unsigned)r->dwr_addr2);
+            esb_append(stringbuf,tmp);
+#else
+            esb_append_printf_i(stringbuf,"<[%2" DW_PR_DSd,i);
+            esb_append_printf_s(stringbuf,"] %s",type);
+            esb_append_printf_u(stringbuf," 0x%" DW_PR_XZEROS  DW_PR_DUx,r->dwr_addr1);
+            esb_append_printf_u(stringbuf," 0x%" DW_PR_XZEROS  DW_PR_DUx ">",r->dwr_addr2);
+#endif
         } else {
+#ifdef ORIGINAL_SPRINTF
             snprintf(tmp,sizeof(tmp),
                 "\t\t\t[%2" DW_PR_DSd
                 "] %-14s 0x%" DW_PR_XZEROS  DW_PR_DUx
@@ -1748,8 +1830,14 @@ print_ranges_list_to_extra(Dwarf_Debug dbg,
                 type,
                 (Dwarf_Unsigned)r->dwr_addr1,
                 (Dwarf_Unsigned)r->dwr_addr2);
+            esb_append(stringbuf,tmp);
+#else
+            esb_append_printf_i(stringbuf,"\t\t\t[%2" DW_PR_DSd,i);
+            esb_append_printf_s(stringbuf,"] %-14s",type);
+            esb_append_printf_u(stringbuf," 0x%" DW_PR_XZEROS  DW_PR_DUx,r->dwr_addr1);
+            esb_append_printf_u(stringbuf," 0x%" DW_PR_XZEROS  DW_PR_DUx "\n",r->dwr_addr2);
+#endif
         }
-        esb_append(stringbuf,tmp);
     }
 }
 
@@ -1790,13 +1878,19 @@ show_attr_form_error(Dwarf_Debug dbg,unsigned attr,
 {
     const char *n = 0;
     int res = 0;
-    char buf[30];
     Dwarf_Error formerr = 0;
-
+#ifdef ORIGINAL_SPRINTF
+    char buf[30];
+#endif
 
     esb_append(out,"ERROR: Attribute ");
+#ifdef ORIGINAL_SPRINTF
     snprintf(buf,sizeof(buf),"%u",attr);
     esb_append(out,buf);
+#else
+    esb_append_printf_u(out,"%u",attr);
+#endif
+
     esb_append(out," (");
     res = dwarf_get_AT_name(attr,&n);
     if (res != DW_DLV_OK) {
@@ -1805,8 +1899,12 @@ show_attr_form_error(Dwarf_Debug dbg,unsigned attr,
     esb_append(out,n);
     esb_append(out,") ");
     esb_append(out," has form ");
+#ifdef ORIGINAL_SPRINTF
     snprintf(buf,sizeof(buf),"%u",form);
     esb_append(out,buf);
+#else
+    esb_append_printf_u(out,"%u",form);
+#endif
     esb_append(out," (");
     res = dwarf_get_FORM_name(form,&n);
     if (res != DW_DLV_OK) {
@@ -1870,12 +1968,13 @@ traverse_attribute(Dwarf_Debug dbg, Dwarf_Die die,
         struct esb_s specificationstr;
         Dwarf_Half theform = 0;
         Dwarf_Half directform = 0;
+        char buf[100];
 
         get_form_values(dbg,attrib,&theform,&directform);
         if (!form_refers_local_info(theform)) {
             break;
         }
-        esb_constructor(&specificationstr);
+        esb_constructor_fixed(&specificationstr,buf,sizeof(buf));
         ++die_indent_level;
         get_attr_value(dbg, tag, die, dieprint_cu_goffset,
             attrib, srcfiles, cnt,
@@ -2159,6 +2258,7 @@ print_range_attribute(Dwarf_Debug dbg,
         if (glflags.gf_do_print_dwarf) {
             struct esb_s local;
             char tmp[100];
+#ifdef ORIGINAL_SPRINTF
 
             esb_constructor(&local);
             snprintf(tmp,sizeof(tmp)," attr 0x%x form 0x%x ",
@@ -2166,6 +2266,13 @@ print_range_attribute(Dwarf_Debug dbg,
             esb_append(&local,
                 " fails to find DW_AT_ranges offset");
             esb_append(&local,tmp);
+#else
+            esb_constructor_fixed(&local,tmp,sizeof(tmp));
+            esb_append(&local,
+                " fails to find DW_AT_ranges offset");
+            esb_append_printf_u(&local," attr 0x%x",attr);
+            esb_append_printf_u(&local," form 0x%x",theform);
+#endif
             printf(" %s ",esb_get_string(&local));
             esb_destructor(&local);
         } else {
@@ -2316,7 +2423,9 @@ checksignv(
    Dwarf_Signed sv,
    Dwarf_Unsigned uv)
 {
+#ifdef ORIGINAL_SPRINTF
     char tmpstrb[40];
+#endif
 
     /*  The test and output are not entirely meaningful, but
         it can be useful for readers of dwarfdump output. */
@@ -2327,16 +2436,23 @@ checksignv(
     esb_append(strout," <");
     esb_append(strout,title);
     esb_append(strout," ");
-
+#ifdef ORIGINAL_SPRINTF
     snprintf(tmpstrb,sizeof(tmpstrb),
         "%" DW_PR_DSd,sv);
     esb_append(strout,tmpstrb);
-
     esb_append(strout,":");
+#else
+    esb_append_printf_i(strout,"%" DW_PR_DSd ":",sv);
+#endif
+
+#ifdef ORIGINAL_SPRINTF
     snprintf(tmpstrb,sizeof(tmpstrb),
         "%" DW_PR_DUu,uv);
     esb_append(strout,tmpstrb);
     esb_append(strout,">");
+#else
+    esb_append_printf_u(strout,"%" DW_PR_DUu ">",uv);
+#endif
 }
 
 static void
@@ -2347,19 +2463,27 @@ append_discr_array_vals(Dwarf_Debug dbg,
     struct esb_s *strout,
     Dwarf_Error*paerr)
 {
-    char tmpstrb[100];
+#ifdef ORIGINAL_SPRINTF
+    char tmpstrb[200];
+#endif
 
     Dwarf_Unsigned u = 0;
     if (isunsigned == 0) {
         esb_append(strout,
             "<discriminant list signedness unknown>");
     }
+#ifdef ORIGINAL_SPRINTF
     snprintf(tmpstrb,sizeof(tmpstrb),
         "\n        discr list array len: "
         "%" DW_PR_DUu
         "\n",
         arraycount);
     esb_append(strout,tmpstrb);
+#else
+    esb_append_printf_u(strout,
+        "\n        discr list array len: "
+        "%" DW_PR_DUu "\n",arraycount);
+#endif
     for(u = 0; u < arraycount; u++) {
         int u2res = 0;
         Dwarf_Half dtype = 0;
@@ -2369,8 +2493,10 @@ append_discr_array_vals(Dwarf_Debug dbg,
         Dwarf_Unsigned uhigh = 0;
         const char *dsc_name = "";
 
+#ifdef ORIGINAL_SPRINTF
         snprintf(tmpstrb,sizeof(tmpstrb),
             "%" DW_PR_DUu,u);
+#endif
         u2res = dwarf_discr_entry_u(h,u,
             &dtype,&ulow,&uhigh,paerr);
         if (u2res == DW_DLV_ERROR) {
@@ -2386,54 +2512,90 @@ append_discr_array_vals(Dwarf_Debug dbg,
                 u2res, *paerr);
         }
         if (u2res == DW_DLV_NO_ENTRY) {
+#ifdef ORIGINAL_SPRINTF
             esb_append(strout,"\n          "
                 "discr index missing! ");
             esb_append(strout,tmpstrb);
+#else
+            esb_append_printf_u(strout,
+                "\n          "
+                "discr index missing! %"  DW_PR_DUu,u);
+#endif
             break;
         }
+#ifdef ORIGINAL_SPRINTF
         esb_append(strout,"        ");
         esb_append(strout,tmpstrb);
         esb_append(strout,": ");
+#else
+        esb_append_printf_u(strout,
+            "        "
+            "%" DW_PR_DUu ": ",u);
+#endif
 #if 0
         snprintf(tmpstrb,sizeof(tmpstrb),
             "type=%u ",dtype);
 #endif
         dsc_name = get_DSC_name(dtype,pd_dwarf_names_print_on_error);
-        esb_append(strout,dsc_name);
+        esb_append(strout,sanitized(dsc_name));
         esb_append(strout," ");
         if (!dtype) {
             if (isunsigned < 0) {
+#ifdef ORIGINAL_SPRINTF
                 snprintf(tmpstrb,sizeof(tmpstrb),
                     "%" DW_PR_DSd,slow);
                 esb_append(strout,tmpstrb);
+#else
+                esb_append_printf_i(strout,"%" DW_PR_DSd,slow);
+#endif
                 checksignv(strout,"as signed:unsigned",slow,ulow);
             } else {
+#ifdef ORIGINAL_SPRINTF
                 snprintf(tmpstrb,sizeof(tmpstrb),
                     "%" DW_PR_DUu,ulow);
                 esb_append(strout,tmpstrb);
+#else
+                esb_append_printf_u(strout,"%" DW_PR_DUu,ulow);
+#endif
                 checksignv(strout,"as signed:unsigned",slow,ulow);
             }
         } else {
             if (isunsigned < 0) {
+#ifdef ORIGINAL_SPRINTF
                 snprintf(tmpstrb,sizeof(tmpstrb),
                     "%" DW_PR_DSd,slow);
                 esb_append(strout,tmpstrb);
+#else
+                esb_append_printf_i(strout,"%" DW_PR_DSd,slow);
+#endif
                 checksignv(strout,"as signed:unsigned",slow,ulow);
             } else {
+#ifdef ORIGINAL_SPRINTF
                 snprintf(tmpstrb,sizeof(tmpstrb),
                     "%" DW_PR_DUu,ulow);
                 esb_append(strout,tmpstrb);
+#else
+                esb_append_printf_u(strout,"%" DW_PR_DUu,ulow);
+#endif
                 checksignv(strout,"as signed:unsigned",slow,ulow);
             }
             if (isunsigned < 0) {
+#ifdef ORIGINAL_SPRINTF
                 snprintf(tmpstrb,sizeof(tmpstrb),
                     ", %" DW_PR_DSd,shigh);
                 esb_append(strout,tmpstrb);
+#else
+                esb_append_printf_i(strout,", %" DW_PR_DSd,shigh);
+#endif
                 checksignv(strout,"as signed:unsigned",shigh,uhigh);
             } else {
+#ifdef ORIGINAL_SPRINTF
                 snprintf(tmpstrb,sizeof(tmpstrb),
                     ", %" DW_PR_DUu,uhigh);
                 esb_append(strout,tmpstrb);
+#else
+                esb_append_printf_u(strout,", %" DW_PR_DUu,uhigh);
+#endif
                 checksignv(strout,"as signed:unsigned",shigh,uhigh);
             }
         }
@@ -2477,9 +2639,16 @@ print_attribute(Dwarf_Debug dbg, Dwarf_Die die,
     Dwarf_Bool is_info = FALSE;
     Dwarf_Addr elf_max_address = 0;
     Dwarf_Error paerr = 0;
+    char valbuf[500];
+    char xtrabuf[200];
 
+#ifdef ORIGINAL_SPRINTF
     esb_constructor(&esb_extra);
     esb_constructor(&valname);
+#else
+    esb_constructor_fixed(&esb_extra,valbuf,sizeof(valbuf));
+    esb_constructor_fixed(&valname,xtrabuf,sizeof(xtrabuf));
+#endif
     is_info = dwarf_get_die_infotypes_flag(die);
     atname = get_AT_name(attr,pd_dwarf_names_print_on_error);
     get_address_size_and_max(dbg,0,&elf_max_address,&paerr);
@@ -2637,7 +2806,12 @@ print_attribute(Dwarf_Debug dbg, Dwarf_Die die,
                 Dwarf_Unsigned arraycount = 0;
                 int sres = 0;
 
+#ifdef ORIGINAL_SPRINTF
                 esb_constructor(&bformstr);
+#else
+                char fbuf[256];
+                esb_constructor_fixed(&bformstr,fbuf,sizeof(fbuf));
+#endif
                 show_form_itself(glflags.show_form_used, glflags.verbose,
                     theform, directform,&bformstr);
                 isunsigned = determine_discr_signedness(dbg);
@@ -2660,6 +2834,7 @@ print_attribute(Dwarf_Debug dbg, Dwarf_Die die,
 
                 if (glflags.verbose > 1) {
                     unsigned u = 0;
+#ifdef ORIGINAL_SPRINTF
                     char tmpstrb[100];
                     snprintf(tmpstrb,sizeof(tmpstrb),
                         "\n        block byte len:"
@@ -2667,10 +2842,21 @@ print_attribute(Dwarf_Debug dbg, Dwarf_Die die,
                         "\n        ",
                         tempb->bl_len);
                     esb_append(&bformstr, tmpstrb);
+#else
+                    esb_append_printf_u(&bformstr,
+                        "\n        block byte len:"
+                        "0x%" DW_PR_XZEROS DW_PR_DUx
+                        "\n        ",tempb->bl_len);
+#endif
                     for (u = 0; u < tempb->bl_len; u++) {
+#ifdef ORIGINAL_SPRINTF
                         snprintf(tmpstrb, sizeof(tmpstrb), "%02x ",
                             *(u + (unsigned char *)tempb->bl_data));
                         esb_append(&bformstr, tmpstrb);
+#else
+                        esb_append_printf_u(&bformstr, "%02x ",
+                            *(u + (unsigned char *)tempb->bl_data));
+#endif
                     }
                 }
                 esb_append(&valname, esb_get_string(&bformstr));
@@ -2780,9 +2966,10 @@ print_attribute(Dwarf_Debug dbg, Dwarf_Die die,
             /* value is a location description or location list */
             Dwarf_Half theform = 0;
             Dwarf_Half directform = 0;
+            char buf[100];
             struct esb_s funcformstr;
 
-            esb_constructor(&funcformstr);
+            esb_constructor_fixed(&funcformstr,buf,sizeof(buf));
             get_form_values(dbg,attrib,&theform,&directform);
             get_FLAG_BLOCK_string(dbg, attrib,&funcformstr);
             show_form_itself(glflags.show_form_used,glflags.verbose, theform,
@@ -3520,7 +3707,9 @@ show_contents(struct esb_s *string_out,
     unsigned int length,const unsigned char * bp)
 {
     unsigned int i = 0;
+#ifdef ORIGINAL_SPRINTF
     char small_buf[20];
+#endif
 
     if(!length) {
         return;
@@ -3529,9 +3718,13 @@ show_contents(struct esb_s *string_out,
     for (; i < length; ++i,++bp) {
         /*  Do not use DW_PR_DUx here,
             the value  *bp is a const unsigned char. */
+#ifdef ORIGINAL_SPRINTF
         snprintf(small_buf, sizeof(small_buf),
             "%02x", *bp);
         esb_append(string_out,small_buf);
+#else
+        esb_append_printf_u(string_out,"%02x", *bp);
+#endif
     }
 }
 
@@ -3546,7 +3739,9 @@ _dwarf_print_one_expr_op(Dwarf_Debug dbg,
 {
     /*  local_space_needed is intended to be 'more than big enough'
         for a short group of loclist entries.  */
+#ifdef ORIGINAL_SPRINTF
     char small_buf[100];
+#endif
     Dwarf_Small op = 0;
     Dwarf_Unsigned opd1 = 0;
     Dwarf_Unsigned opd2 = 0;
@@ -3580,9 +3775,14 @@ _dwarf_print_one_expr_op(Dwarf_Debug dbg,
     if (op_has_no_operands(op)) {
         /* Nothing to add. */
     } else if (op >= DW_OP_breg0 && op <= DW_OP_breg31) {
+#ifdef ORIGINAL_SPRINTF
         snprintf(small_buf, sizeof(small_buf),
             "%+" DW_PR_DSd , (Dwarf_Signed) opd1);
         esb_append(string_out, small_buf);
+#else
+        esb_append_printf_i(string_out,
+            "%+" DW_PR_DSd , opd1);
+#endif
     } else {
         switch (op) {
         case DW_OP_addr:
@@ -3614,9 +3814,14 @@ _dwarf_print_one_expr_op(Dwarf_Debug dbg,
         case DW_OP_piece:
         case DW_OP_deref_size:
         case DW_OP_xderef_size:
+#ifdef ORIGINAL_SPRINTF
             snprintf(small_buf, sizeof(small_buf),
                 " %" DW_PR_DUu , opd1);
             esb_append(string_out, small_buf);
+#else
+            esb_append_printf_u(string_out,
+                " %" DW_PR_DUu , opd1);
+#endif
             break;
         case DW_OP_bregx:
             bracket_hex(" ",opd1,"",string_out);
@@ -3708,9 +3913,14 @@ _dwarf_print_one_expr_op(Dwarf_Debug dbg,
             bracket_hex(" ",opd1,"",string_out);
             length = opd2;
             esb_append(string_out," const length: ");
+#ifdef ORIGINAL_SPRINTF
             snprintf(small_buf, sizeof(small_buf),
                 "%u" , length);
             esb_append(string_out, small_buf);
+#else
+            esb_append_printf_u(string_out,
+                "%u" , length);
+#endif
 
             /* Now point to the data bytes of the const. */
             bp = (Dwarf_Small *) opd3;
@@ -3724,18 +3934,27 @@ _dwarf_print_one_expr_op(Dwarf_Debug dbg,
             break;
         case DW_OP_regval_type:           /* DWARF5 */
         case DW_OP_GNU_regval_type: {
+#ifdef ORIGINAL_SPRINTF
             snprintf(small_buf, sizeof(small_buf),
                 " 0x%" DW_PR_DUx , opd1);
             esb_append(string_out, small_buf);
+#else
+            esb_append_printf_u(string_out,
+                " 0x%" DW_PR_DUx , opd1);
+#endif
             bracket_hex(" ",opd2,"",string_out);
             }
             break;
         case DW_OP_deref_type: /* DWARF5 */
         case DW_OP_GNU_deref_type: {
+#ifdef ORIGINAL_SPRINTF
             snprintf(small_buf, sizeof(small_buf),
                 " 0x%02" DW_PR_DUx , opd1);
             esb_append(string_out, small_buf);
-
+#else
+            esb_append_printf_u(string_out,
+                " 0x%02" DW_PR_DUx , opd1);
+#endif
             bracket_hex(" ",opd2,"",string_out);
             }
             break;
@@ -3744,15 +3963,25 @@ _dwarf_print_one_expr_op(Dwarf_Debug dbg,
         case DW_OP_reinterpret: /* DWARF5 */
         case DW_OP_GNU_reinterpret:
         case DW_OP_GNU_parameter_ref:
+#ifdef ORIGINAL_SPRINTF
             snprintf(small_buf, sizeof(small_buf),
                 " 0x%02"  DW_PR_DUx , opd1);
             esb_append(string_out, small_buf);
+#else
+            esb_append_printf_u(string_out,
+                " 0x%02"  DW_PR_DUx , opd1);
+#endif
             break;
         default:
             {
+#ifdef ORIGINAL_SPRINTF
                 snprintf(small_buf, sizeof(small_buf),
                     " dwarf_op unknown 0x%x", (unsigned)op);
                 esb_append(string_out,small_buf);
+#else
+                esb_append_printf_u(string_out,
+                    " dwarf_op unknown 0x%x", (unsigned)op);
+#endif
             }
             break;
         }
@@ -3874,7 +4103,9 @@ get_location_list(Dwarf_Debug dbg,
     }
     get_address_size_and_max(dbg,&elf_address_size,&elf_max_address,&llerr);
     for (llent = 0; llent < no_of_elements; ++llent) {
+#ifdef ORIGINAL_SPRINTF
         char small_buf[150];
+#endif
         Dwarf_Unsigned locdesc_offset = 0;
         Dwarf_Locdesc_c locentry = 0; /* 2015 */
         Dwarf_Addr lopcfinal = 0;
@@ -3918,13 +4149,23 @@ get_location_list(Dwarf_Debug dbg,
         if (!glflags.dense && loclist_source) {
             if (llent == 0) {
                 if (loclist_source == 1) {
+#ifdef ORIGINAL_SPRINTF
                     snprintf(small_buf, sizeof(small_buf),
                         "<loclist at offset 0x%"
                         DW_PR_XZEROS DW_PR_DUx
                         " with %ld entries follows>",
                         locdesc_offset,
                         (long) no_of_elements);
+                    esb_append(esbp, small_buf);
+#else
+                    esb_append_printf_u(esbp,
+                        "<loclist at offset 0x%"
+                        DW_PR_XZEROS DW_PR_DUx,locdesc_offset);
+                    esb_append_printf_i(esbp,
+                        " with %ld entries follows>",no_of_elements);
+#endif
                 } else {
+#ifdef ORIGINAL_SPRINTF
                     /* ASSERT: loclist_source == 2 */
                     snprintf(small_buf, sizeof(small_buf),
                         "<dwo loclist at offset 0x%"
@@ -3932,12 +4173,23 @@ get_location_list(Dwarf_Debug dbg,
                         " with %ld entries follows>",
                         locdesc_offset,
                         (long) no_of_elements);
+                    esb_append(esbp, small_buf);
+#else
+                    esb_append_printf_u(esbp,
+                        "<dwo loclist at offset 0x%"
+                        DW_PR_XZEROS DW_PR_DUx,locdesc_offset);
+                    esb_append_printf_i(esbp,
+                        " with %ld entries follows>",no_of_elements);
+#endif
                 }
-                esb_append(esbp, small_buf);
             }
+#ifdef ORIGINAL_SPRINTF
             esb_append(esbp, "\n\t\t\t");
             snprintf(small_buf, sizeof(small_buf), "[%2d]", llent);
             esb_append(esbp, small_buf);
+#else
+            esb_append_printf_i(esbp, "\n\t\t\t"  "[%2d]",llent);
+#endif
         }
 
 
@@ -3965,6 +4217,7 @@ get_location_list(Dwarf_Debug dbg,
                     if(res == DW_DLV_OK) {
                         base_address = realaddr;
                     } else if(res == DW_DLV_ERROR) {
+#ifdef ORIGINAL_SPRINTF
                         snprintf(small_buf,sizeof(small_buf),
                             "<debug_addr index 0x%"
                             DW_PR_XZEROS DW_PR_DUx
@@ -3972,16 +4225,33 @@ get_location_list(Dwarf_Debug dbg,
                             adexplain(dwarf_errno(llerr),
                             "base-address-unavailable"));
                         esb_append(esbp,small_buf);
+#else
+                        esb_append_printf_u(esbp,
+                            "<debug_addr index 0x%"
+                            DW_PR_XZEROS DW_PR_DUx,hipc);
+                        esb_append_printf_s(esbp,
+                            " %s>",
+                            adexplain(dwarf_errno(llerr),
+                            "base-address-unavailable"));
+#endif
                         base_address = 0;
                     } else {
+#ifdef ORIGINAL_SPRINTF
                         snprintf(small_buf,sizeof(small_buf),
                             "<debug_addr index 0x%"
                             DW_PR_XZEROS DW_PR_DUx
                             " no-entry finding index >",hipc);
                         esb_append(esbp,small_buf);
+#else
+                        esb_append_printf_u(esbp,
+                            "<debug_addr index 0x%"
+                            DW_PR_XZEROS DW_PR_DUx
+                            " no-entry finding index >",hipc);
+#endif
                         /* Cannot find .debug_addr */
                         base_address = 0;
                     }
+#ifdef ORIGINAL_SPRINTF
                     snprintf(small_buf,sizeof(small_buf),
                         "<index to debug_addr : 0x%"
                         DW_PR_XZEROS DW_PR_DUx
@@ -3990,14 +4260,31 @@ get_location_list(Dwarf_Debug dbg,
                         ">",
                         hipc,base_address);
                     esb_append(esbp,small_buf);
+#else
+                    esb_append_printf_u(esbp,
+                        "<index to debug_addr : 0x%"
+                        DW_PR_XZEROS DW_PR_DUx,hipc);
+                    esb_append_printf_u(esbp,
+                        " new base address 0x%"
+                        DW_PR_XZEROS DW_PR_DUx
+                        ">", base_address);
+#endif
                 } else {
                     base_address = hipc;
+#ifdef ORIGINAL_SPRINTF
                     snprintf(small_buf,sizeof(small_buf),
                         "<new base address 0x%"
                         DW_PR_XZEROS DW_PR_DUx
                         ">",
                         base_address);
                     esb_append(esbp,small_buf);
+#else
+                    esb_append_printf_u(esbp,
+                        "<new base address 0x%"
+                        DW_PR_XZEROS DW_PR_DUx
+                        ">",
+                        base_address);
+#endif
                 }
             } else if (lle_value == DW_LLEX_end_of_list_entry) {
                 /* Nothing to do. */
@@ -4015,6 +4302,7 @@ get_location_list(Dwarf_Debug dbg,
                         lopc = realaddr;
                         foundaddr = TRUE;
                     } else if(res == DW_DLV_ERROR) {
+#ifdef ORIGINAL_SPRINTF
                         snprintf(small_buf,sizeof(small_buf),
                             "<debug_addr index 0x%"
                             DW_PR_XZEROS DW_PR_DUx
@@ -4022,15 +4310,32 @@ get_location_list(Dwarf_Debug dbg,
                             adexplain(dwarf_errno(llerr),
                             "start-address-unavailable"));
                         esb_append(esbp,small_buf);
+#else
+                        esb_append_printf_u(esbp,
+                            "<debug_addr index 0x%"
+                            DW_PR_XZEROS DW_PR_DUx,lopc);
+                        esb_append_printf_s(esbp,
+                            " %s>",
+                            adexplain(dwarf_errno(llerr),
+                            "start-address-unavailable"));
+#endif
                     } else {
+#ifdef ORIGINAL_SPRINTF
                         snprintf(small_buf,sizeof(small_buf),
                             "<debug_addr index 0x%"
                             DW_PR_XZEROS DW_PR_DUx
                             " no-entry finding start index >",lopc);
                         esb_append(esbp,small_buf);
+#else
+                        esb_append_printf_u(esbp,
+                            "<debug_addr index 0x%"
+                            DW_PR_XZEROS DW_PR_DUx
+                            " no-entry finding start index >",lopc);
+#endif
                         /* Cannot find .debug_addr */
                         lopc = 0;
                     }
+#ifdef ORIGINAL_SPRINTF
                     snprintf(small_buf,sizeof(small_buf),
                         "<start-length index to debug_addr : 0x%"
                         DW_PR_XZEROS DW_PR_DUx
@@ -4041,6 +4346,18 @@ get_location_list(Dwarf_Debug dbg,
                         "> ",
                         slotindex,realaddr,hipc);
                     esb_append(esbp,small_buf);
+#else
+                    esb_append_printf_u(esbp,
+                        "<start-length index to debug_addr : 0x%"
+                        DW_PR_XZEROS DW_PR_DUx,slotindex);
+                    esb_append_printf_u(esbp,
+                        " addr  0x%"
+                        DW_PR_XZEROS DW_PR_DUx,realaddr);
+                    esb_append_printf_u(esbp,
+                        " length 0x%"
+                        DW_PR_XZEROS DW_PR_DUx
+                        "> ",hipc);
+#endif
                 } else {
                     esb_append(esbp,"<Impossible start-length entry>");
                     /* Impossible */
@@ -4057,6 +4374,7 @@ get_location_list(Dwarf_Debug dbg,
                 /* Same for both loclist_source. */
                 lopcfinal = lopc + base_address;
                 hipcfinal = hipc + base_address;
+#ifdef ORIGINAL_SPRINTF
                 snprintf(small_buf,sizeof(small_buf),
                     "< offset pair low-off : 0x%"
                         DW_PR_XZEROS DW_PR_DUx
@@ -4069,6 +4387,21 @@ get_location_list(Dwarf_Debug dbg,
                         ">",
                         lopc,lopcfinal,hipc,hipcfinal);
                 esb_append(esbp,small_buf);
+#else
+                esb_append_printf_u(esbp,
+                    "< offset pair low-off : 0x%"
+                    DW_PR_XZEROS DW_PR_DUx,lopc);
+                esb_append_printf_u(esbp,
+                    " addr  0x%"
+                    DW_PR_XZEROS DW_PR_DUx,lopcfinal);
+                esb_append_printf_u(esbp,
+                    " high-off  0x%"
+                    DW_PR_XZEROS DW_PR_DUx,hipc);
+                esb_append_printf_u(esbp,
+                    " addr 0x%"
+                    DW_PR_XZEROS DW_PR_DUx
+                    ">",hipcfinal);
+#endif
                 if(checking) {
                     loc_error_check(dbg,lopcfinal, lopc,
                         hipcfinal, hipc, locdesc_offset, base_address,
@@ -4089,6 +4422,7 @@ get_location_list(Dwarf_Debug dbg,
                         lopcfinal = reallo;
                         foundaddr = TRUE;
                     } else if(res == DW_DLV_ERROR) {
+#ifdef ORIGINAL_SPRINT
                         snprintf(small_buf,sizeof(small_buf),
                             "<debug_addr index 0x%"
                             DW_PR_XZEROS DW_PR_DUx
@@ -4096,12 +4430,28 @@ get_location_list(Dwarf_Debug dbg,
                             adexplain(dwarf_errno(llerr),
                             "start-address-unavailable"));
                         esb_append(esbp,small_buf);
+#else
+                        esb_append_printf_u(esbp,
+                            "<debug_addr index 0x%"
+                            DW_PR_XZEROS DW_PR_DUx,lopc);
+                        esb_append_printf_s(esbp,
+                            " %s>",
+                            adexplain(dwarf_errno(llerr),
+                            "start-address-unavailable"));
+#endif
                     } else {
+#ifdef ORIGINAL_SPRINTF
                         snprintf(small_buf,sizeof(small_buf),
                             "<debug_addr index 0x%"
                             DW_PR_XZEROS DW_PR_DUx
                             " error finding start index >",lopc);
                         esb_append(esbp,small_buf);
+#else
+                        esb_append_printf_u(esbp,
+                            "<debug_addr index 0x%"
+                            DW_PR_XZEROS DW_PR_DUx
+                            " error finding start index >",lopc);
+#endif
                         /* Cannot find .debug_addr */
                         lopcfinal = 0;
                     }
@@ -4110,6 +4460,7 @@ get_location_list(Dwarf_Debug dbg,
                     if(res == DW_DLV_OK) {
                         hipcfinal = realhi;
                     } else if(res == DW_DLV_ERROR) {
+#ifdef ORIGINAL_SPRINTF
                         snprintf(small_buf,sizeof(small_buf),
                             "<debug_addr index 0x%"
                             DW_PR_XZEROS DW_PR_DUx
@@ -4117,29 +4468,61 @@ get_location_list(Dwarf_Debug dbg,
                             adexplain(dwarf_errno(llerr),
                             "end-address-unavailable"));
                         esb_append(esbp,small_buf);
+#else
+                        esb_append_printf_u(esbp,
+                            "<debug_addr index 0x%"
+                            DW_PR_XZEROS DW_PR_DUx,hipc);
+                        esb_append_printf_s(esbp,
+                            " %s>",
+                            adexplain(dwarf_errno(llerr),
+                            "end-address-unavailable"));
+#endif
                         foundaddr = FALSE;
                     } else {
+#ifdef ORIGINAL_SPRINTF
                         snprintf(small_buf,sizeof(small_buf),
                             "<debug_addr index 0x%"
                             DW_PR_XZEROS DW_PR_DUx
                             " problem-finding-end-address >",hipc);
                         esb_append(esbp,small_buf);
+#else
+                        esb_append_printf_u(esbp,
+                            "<debug_addr index 0x%"
+                            DW_PR_XZEROS DW_PR_DUx
+                            " problem-finding-end-address >",hipc);
+#endif
                         /* Cannot find .debug_addr */
                         hipcfinal = 0;
                         foundaddr = FALSE;
                     }
+#ifdef ORIGINAL_SPRINTF
                     snprintf(small_buf,sizeof(small_buf),
                         "< start-end low-index : 0x%"
-                            DW_PR_XZEROS DW_PR_DUx
-                            " addr  0x%"
-                            DW_PR_XZEROS DW_PR_DUx
-                            " high-index  0x%"
-                            DW_PR_XZEROS DW_PR_DUx
-                            " addr 0x%"
-                            DW_PR_XZEROS DW_PR_DUx
-                            ">",
-                            lopc,lopcfinal,hipc,hipcfinal);
+                        DW_PR_XZEROS DW_PR_DUx
+                        " addr  0x%"
+                        DW_PR_XZEROS DW_PR_DUx
+                        " high-index  0x%"
+                        DW_PR_XZEROS DW_PR_DUx
+                        " addr 0x%"
+                        DW_PR_XZEROS DW_PR_DUx
+                        ">",
+                        lopc,lopcfinal,hipc,hipcfinal);
                     esb_append(esbp,small_buf);
+#else
+                    esb_append_printf_u(esbp,
+                        "< start-end low-index : 0x%"
+                        DW_PR_XZEROS DW_PR_DUx,lopc);
+                    esb_append_printf_u(esbp,
+                        " addr  0x%"
+                        DW_PR_XZEROS DW_PR_DUx,lopcfinal);
+                    esb_append_printf_u(esbp,
+                        " high-index  0x%"
+                        DW_PR_XZEROS DW_PR_DUx,hipc);
+                    esb_append_printf_u(esbp,
+                        " addr 0x%"
+                        DW_PR_XZEROS DW_PR_DUx
+                        ">",hipcfinal);
+#endif
                 } else {
                     esb_append(esbp,"<Impossible start-end entry>");
                     /* Impossible */
@@ -4150,9 +4533,10 @@ get_location_list(Dwarf_Debug dbg,
                         &bError);
                 }
             } else {
-                snprintf(small_buf,sizeof(small_buf),
+                char sbuf2[50];
+                sprintf(sbuf2,
                     "Unexpected LLEX code 0x%x, ERROR",lle_value);
-                print_error(dbg, small_buf, DW_DLV_OK, llerr);
+                print_error(dbg, sbuf2, DW_DLV_OK, llerr);
             }
             if (glflags.gf_display_offsets && glflags.verbose) {
                 char *secname = ".debug_info";
@@ -4164,12 +4548,18 @@ get_location_list(Dwarf_Debug dbg,
                     secname = "<unknown location entry code. ERROR.>";
                 }
 
+#ifdef ORIGINAL_SPRINTF
                 snprintf(small_buf, sizeof(small_buf),
                     "<from %s offset 0x%" DW_PR_XZEROS  DW_PR_DUx ">",
                     secname,
                     locdesc_offset);
                 esb_append(esbp, small_buf);
-
+#else
+                esb_append_printf_s(esbp,"<from %s",secname);
+                esb_append_printf_u(esbp,
+                    " offset 0x%" DW_PR_XZEROS  DW_PR_DUx ">",
+                    locdesc_offset);
+#endif
             }
         }
         dwarfdump_print_one_locdesc(dbg,
@@ -4205,42 +4595,72 @@ static void
 formx_data16(Dwarf_Form_Data16 * u,
     struct esb_s *esbp, Dwarf_Bool hex_format)
 {
+#ifdef ORIGINAL_SPRINTF
     char small_buf[20];
-
+#endif
     unsigned i = 0;
+
     for( ; i < sizeof(Dwarf_Form_Data16); ++i){
         esb_append(esbp, "0x");
         if (hex_format) {
+#ifdef ORIGINAL_SPRINTF
             snprintf(small_buf, sizeof(small_buf),"%02x ",
                 u->fd_data[i]);
+            esb_append(esbp, small_buf);
+#else
+            esb_append_printf_u(esbp,
+                "%02x ", u->fd_data[i]);
+#endif
         } else {
+#ifdef ORIGINAL_SPRINTF
             snprintf(small_buf, sizeof(small_buf),"%02d ",
                 u->fd_data[i]);
+            esb_append(esbp, small_buf);
+#else
+            esb_append_printf_i(esbp, "%02d ", u->fd_data[i]);
+#endif
         }
-        esb_append(esbp, small_buf);
     }
 }
 
 static void
 formx_unsigned(Dwarf_Unsigned u, struct esb_s *esbp, Dwarf_Bool hex_format)
 {
+#ifdef ORIGINAL_SPRINTF
     char small_buf[40];
+#endif
     if (hex_format) {
-        snprintf(small_buf, sizeof(small_buf),"0x%"  DW_PR_XZEROS DW_PR_DUx , u);
+#ifdef ORIGINAL_SPRINTF
+        snprintf(small_buf, sizeof(small_buf),
+            "0x%"  DW_PR_XZEROS DW_PR_DUx , u);
+        esb_append(esbp, small_buf);
+#else
+        esb_append_printf_u(esbp,
+            "0x%"  DW_PR_XZEROS DW_PR_DUx , u);
+#endif
     } else {
+#ifdef ORIGINAL_SPRINTF
         snprintf(small_buf, sizeof(small_buf),
             "%" DW_PR_DUu , u);
+        esb_append(esbp, small_buf);
+#else
+        esb_append_printf_u(esbp,
+            "%" DW_PR_DUu , u);
+#endif
     }
-    esb_append(esbp, small_buf);
 }
 
 static void
 formx_signed(Dwarf_Signed s, struct esb_s *esbp)
 {
+#ifdef ORIGINAL_SPRINTF
     char small_buf[40];
     snprintf(small_buf, sizeof(small_buf),
         "%" DW_PR_DSd ,s);
     esb_append(esbp, small_buf);
+#else
+    esb_append_printf_i(esbp, "%" DW_PR_DSd ,s);
+#endif
 }
 static void
 formx_unsigned_and_signed_if_neg(Dwarf_Unsigned tempud,
@@ -4521,12 +4941,14 @@ bracket_hex(const char *s1,
     esb_append(esbp,s2);
 }
 
+#ifdef ORIGINAL_SPRINT
 static char *
 get_form_number_as_string(int form, char *buf, unsigned bufsize)
 {
     snprintf(buf,bufsize," %d",form);
     return buf;
 }
+#endif
 
 static void
 print_exprloc_content(Dwarf_Debug dbg,Dwarf_Die die,
@@ -5531,15 +5953,21 @@ show_form_itself(int local_show_form,
     int theform,
     int directform, struct esb_s *esbp)
 {
+#ifdef ORIGINAL_SPRINTF
     char small_buf[100];
+#endif
     if (local_show_form
         && directform && directform == DW_FORM_indirect) {
         char *form_indir = " (used DW_FORM_indirect";
         char *form_indir2 = ") ";
         esb_append(esbp, form_indir);
         if (local_verbose) {
+#ifdef ORIGINAL_SPRINT
             esb_append(esbp, get_form_number_as_string(DW_FORM_indirect,
                 small_buf,sizeof(small_buf)));
+#else
+            esb_append_printf_i(esbp," %d",DW_FORM_indirect);
+#endif
         }
         esb_append(esbp, form_indir2);
     }
@@ -5548,8 +5976,12 @@ show_form_itself(int local_show_form,
         esb_append(esbp,get_FORM_name(theform,
             pd_dwarf_names_print_on_error));
         if (local_verbose) {
+#ifdef ORIGINAL_SPRINT
             esb_append(esbp, get_form_number_as_string(theform,
                 small_buf, sizeof(small_buf)));
+#else
+            esb_append_printf_i(esbp," %d",theform);
+#endif
         }
         esb_append(esbp,">");
     }

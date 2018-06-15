@@ -1,7 +1,23 @@
-2018-05-29 Carlos Alberto Enciso
-    * irepattrtodbc.cc, ireptodbc.cc: warning C4302: (64-bits build)
-      'reinterpret_cast': truncation from 'Dwarf_P_Attribute' to 'myintfromp'
-2017-12-17  David Anderson
+2018-06-14  David Anderson
+     * Added #ifdef for Windows environment
+       builds. _O_WRONLY etc for creating a file.
+2018-06-13  David Anderson
+     * configure.ac: New option --enable-elf-open
+       setting HAVE_ELF_OPEN
+     * config.h.in: HAVE_ELF_OPEN
+     * configure.ac: Regenerated.
+     * dwarfgen.cc.c: Now uses open() unless HAVE_ELF_OPEN
+       is explicitly set.
+2018-06-05  David Anderson
+     * dwarfdump.c:  Change WIN32 to _WIN32.
+2018-06-05  David Anderson
+     * configure.ac: Now configure.in gone, using configure.ac.
+     * configure: regenerated.
+     * config.h.in: Regenerated, HAVE_LIBELF_LIBELF gone.
+2018-06-05  David Anderson
+     * dwarfgen.cc: Remove erroneous _MSC_VER
+       per Carlos Alberto Enciso.
+2018-05-28  David Anderson
      * createirepformfrombinary.cc,createirepfrombinary.cc,
        general.h,irepattrtodbg.cc,irepdie.h,
        irepform.h,ireppubnames.h: Removed trailing

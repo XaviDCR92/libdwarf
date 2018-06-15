@@ -1,11 +1,54 @@
-2018-05-29 Carlos Alberto Enciso
-    * esb.c: warning C4267: (64-bits build)
-      '=': conversion from 'size_t' to 'int', possible loss of data
-2018-05-28 Carlos Alberto Enciso
-    * Incorrect use of _MSC_VER. This symbol is used
-      to check for specific VS version. The guarded
-      code is for _WIN32. Runtime exception while
-      building with previous VS versions.
+2018-06-13 David Anderson
+    * configure.ac: New option --enable-elf-open 
+      setting HAVE_ELF_OPEN 
+    * config.h.in: HAVE_ELF_OPEN
+    * configure.ac: Regenerated.
+    * dwarfdump.c: Now uses open() unless HAVE_ELF_OPEN
+      is explicitly set.
+2018-06-10 David Anderson
+    * checkutil.c: Fixed indentation mistake.
+    * common.c: Removed trailing blank.
+2018-06-10 David Anderson
+    * checkutil.c: snprintf-> esb
+    * common.c: snprint -> printf
+    * dwarf_tsearchbal.c: snprintf -> sprintf, it is safe.
+    * naming.c: snprintf-> esb.
+    * print_die.c: Trimmed the size of a buffer in a safe
+      sprintf use.
+    * esb.c: Modified to remove an implementation-defined
+      conversion issue.
+2018-06-10 David Anderson
+    * esb.c: Added checks so passing %s to _d or _u gets
+      a useful output (an ESBERR string).
+    * print_abbrevs.c,print_die.c,print_lines.c: Converted
+      all sprintf to the new esb_append_printf_s,i,u.
+2018-06-09 David Anderson
+    * esb.c: Fixed an issue printing the most-negative integer.
+    * print_die.c: Now all the relevant places avoid s[n]printf.
+2018-06-09 David Anderson
+    * esb.c, testesb.c: These now support and test %+d.
+    * print_die.c: Used esb_constructor_fixed() and
+      esb_append_printf_s,_i,_u(), replacing 
+      many s[n]printf.
+2018-06-08 David Anderson
+    * Makefile.in: Altered the esb testing lines.
+    * testesb.c: Now this is the esb test code.
+    * esb.c: Removed test code, moved to testesb.c.
+      Added esb_append_printf_s(), esb_append_printf_i() and
+      esb_append_printf_u() to get faster formatting without
+      any varargs.
+2018-06-07 David Anderson
+    * print_frames.c: Vincent T. noticed unnecessary and/or
+      incorrect casts, here fixed. Also fixed some too-long
+      lines -- changed the existing line break to a better place. 
+2018-06-05 David Anderson
+    * dwarfdump.c: Remove erroneous _MSC_VER
+      per Carlos Alberto Enciso. 
+      Change WIN32 to _WIN32.
+2018-05-26 David Anderson
+    * common.c,dwarfdump.c,tag_attr.c,tag_tree.c:
+      Remove DW_VERSION_DATE_STR
+      and #include ../libdwarf/libdwarf_version.h to provide it.
 2018-05-26 David Anderson
     * dwarfdump.c,tag_attr.c,tag_tree.c, common.c:
       Update version string
