@@ -28,10 +28,11 @@
 
 #ifdef HAVE_STDAFX_H
 #include "stdafx.h"
-#elif defined(_WIN32) || defined(HAVE_WINDOWS_H)
-#include <windows.h>
-#define BOOLEAN_TYPEDEFED 1
 #endif /* HAVE_STDAFX_H */
+#ifdef HAVE_WINDOWS_H
+#include <Windows.h>
+#define BOOLEAN_TYPEDEFED 1
+#endif /* HAVE_WINDOWS_H */
 
 #include "globals.h"
 #include "dwarf.h"
