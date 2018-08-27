@@ -1,3 +1,55 @@
+2018-08-02 David Anderson
+    * irepattrtodbg.cc: Fixed a typo and removed/#if 0
+      some debugging code
+    * Makefile.am: Removed unused variables and references
+      to them.
+2018-07-31 David Anderson
+    * Makefile.am: Moved ChangeLog etc out of /usr/share
+      but have them in the distribution. Now make install
+      puts nothing of dwarfgen in /usr/local/share.
+2018-07-31 David Anderson
+    * createirepfrombinary.cc: Delete blank line.
+    * dwarfgen.cc: Adding new option --force-empty-dnames
+      to force out .debug_names section (even if empty).
+      Added dwarf_transform_to_disk_form_a() which
+      does the same as dwarf_transform_to_disk_form() but
+      has a status as the return value and returns its
+      value via a pointer arg.
+    * irepattrtodbg.cc: Removing some useless whitespace.
+2018-07-24 David Anderson
+    * dwarfgen.cc: CallbackFunc() was awkwardly declared
+      (now more sensibly declared as static function, 
+      still extern "C" as it is called from C (libdwarf)) 
+      ErrorHandler() was unused (now deleted).
+2018-07-23 David Anderson
+    * createirepformfrombinary.cc: Removed unused local variable.
+      #define UNUSEDARG appropriately
+    * createirepfrombinary.cc: Removed extra ';'.
+      #define UNUSEDARG appropriately
+      mark static functions as such to avoid warnings.
+      Mark arguments UNUSEDARG where appropriate.
+      Test the correct libdwarf return value.
+      Delete unused local variables.
+    * dwarfgen.cc: Declared functions for C callbacks
+      as extern C.
+      #define UNUSEDARG appropriately
+    * general.h: Reformat the header comments to avoid
+      too-long lines.
+      Delete duplicative comments.
+    * irepattrtodbg.cc: Fixed reinterpret casts to be
+      the correct type which made the typedef myintptrt
+      unused (and now deleted).
+      #define UNUSEDARG appropriately
+      Mark arguments UNUSEDARG where appropriate.
+    * irepdie.h, irepform.h: Mark arguments 
+      UNUSEDARG where appropriate.
+    * ireptodbg.cc:Fixed reinterpret casts to be
+      the correct type, fixing signed/unsigned
+      comparison warnings.  Removed some unused
+      local variables. Fixed a couple declarations
+      to avoid signed/unsigned comparison warnings.
+      #define UNUSEDARG appropriately
+      Mark arguments UNUSEDARG where appropriate.
 2018-07-22 David Anderson
     * dwarfgen.cc: The relocations processing was assuming
       alignment of 32bit and 64bit values. Now no longer

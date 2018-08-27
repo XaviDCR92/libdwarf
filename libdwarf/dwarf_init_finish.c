@@ -166,8 +166,11 @@ get_basic_section_data(Dwarf_Debug dbg,
         DWARF_DBG_ERROR(dbg, duperr, DW_DLV_ERROR);
     }
     if (doas->size == 0) {
+        /*  As of 2018 it seems impossible to detect
+            (via dwarfdump) whether emptyerr has any
+            practical effect, whether TRUE or FALSE.  */
         if (emptyerr == 0 ) {
-            /* Allow empty section. */
+            /*  Allow empty section. */
             return DW_DLV_OK;
         }
         /* Know no reason to allow section */
@@ -204,8 +207,10 @@ get_basic_section_data(Dwarf_Debug dbg,
         secdata->dss_flags = flags;
         secdata->dss_addralign = addralign;
         if (flags & SHF_COMPRESSED) {
-            secdata->dss_requires_decompress = TRUE;
+            secdata->dss_shf_compressed = TRUE;
         }
+        /*  We are not looking at section bytes so we
+            do not know if the first 4 bytes are ZLIB */
     }
     return DW_DLV_OK;
 }
@@ -236,6 +241,7 @@ static int
 add_debug_section_info(Dwarf_Debug dbg,
     /* Name as seen in object file. */
     const char *name,
+    const char *standard_section_name,
     unsigned obj_sec_num,
     struct Dwarf_Section_s *secdata,
     unsigned groupnum,
@@ -261,9 +267,11 @@ add_debug_section_info(Dwarf_Debug dbg,
         debug_section->ds_number = obj_sec_num;
         debug_section->ds_secdata = secdata;
         debug_section->ds_groupnumber =  groupnum;
-        secdata->dss_name = name;
+        secdata->dss_name = name; /* Actual name from object file. */
+        secdata->dss_standard_name = standard_section_name;
         secdata->dss_number = obj_sec_num;
-        secdata->dss_requires_decompress = havezdebug;
+        secdata->dss_zdebug_requires_decompress = havezdebug;
+        /* We don't yet know about SHF_COMPRESSED */
         debug_section->ds_duperr = duperr;
         debug_section->ds_emptyerr = emptyerr;
         debug_section->ds_have_dwarf = have_dwarf;
@@ -311,87 +319,76 @@ all_sig8_bits_zero(Dwarf_Sig8 *val)
 /* Return DW_DLV_OK etc. */
 static int
 set_up_section(Dwarf_Debug dbg,
-   /* Section name from object format. */
-   const char *secname,
-   /* Section number from object format  */
-   unsigned obj_sec_num,
-   /* The name associated with this secdata in libdwarf */
-   const char *targname,
-   /* DW_GROUPNUMBER_ANY or BASE or DWO or some other group num */
-   unsigned  groupnum_of_sec,
-   struct Dwarf_Section_s *secdata,
-   int duperr,int emptyerr,int have_dwarf,
-   int *err)
+    /*  Section name from object format.
+        Might start with .zdebug not .debug if compressed section. */
+    const char *secname,
+    /*  Standard section name, such as .debug_info */
+    const char *sec_standard_name,
+    /*  Section number from object format  */
+    unsigned obj_sec_num,
+    /*  The name associated with this secdata in libdwarf */
+    const char *targname,
+    /*  DW_GROUPNUMBER_ANY or BASE or DWO or some other group num */
+    unsigned  groupnum_of_sec,
+    struct Dwarf_Section_s *secdata,
+    int duperr,int emptyerr,int have_dwarf,
+    int *err)
 {
     /*  Here accomodate the .debug or .zdebug version, (and of
         course non- .debug too, but those never zlib) .
         SECNAMEMAX should be a little bigger than any section
-        name we care about as possibly compressed. */
-#define SECNAMEMAX 36
-    char buildsecname[SECNAMEMAX];
-    unsigned secnamelen = strlen(secname);
-    static const char *dprefix = ".debug_";
+        name we care about as possibly compressed, which
+        is to say bigger than any standard section name. */
+#define SECNAMEMAX 30
+    int secnamelen = strlen(secname);
+    /* static const char *dprefix = ".debug_"; */
 #define DPREFIXLEN 7
     static const char *zprefix = ".zdebug_";
 #define ZPREFIXLEN 8
     int havezdebug = FALSE;
-    unsigned targnamelen = strlen(targname);
-    const char *finaltargname = targname;
+    int namesmatch = FALSE;
 
     /*  For example, if the secname is .zdebug_info
         we update the finaltargname to .debug_info
         to match with the particular (known, predefined)
         object section name.
+        We add one character, so check
+        to see if it will, in the end, fit.
         See the SET_UP_SECTION macro.  */
 
-    if(secnamelen < SECNAMEMAX && 
-        !strncmp(secname,zprefix,ZPREFIXLEN)) {
-        /*  zprefix matches the object section name
-            so the section is compressed 
-            targname never shows .z<anything>. */
-        _dwarf_safe_strcpy(buildsecname,SECNAMEMAX,zprefix,ZPREFIXLEN);
-
-        /*  Now lets see if a targname updated with z matches
-            secname. */
-        /*  2 ensures NUL and added 'z' are ok */
-        if (!strncmp(targname,dprefix,DPREFIXLEN)) {
-            char *buildendspace = buildsecname + ZPREFIXLEN;
-            unsigned buildendspaceleft = SECNAMEMAX - ZPREFIXLEN;
-            const char *tailsec = targname + DPREFIXLEN;
-            unsigned finaltlen = targnamelen - DPREFIXLEN;
-            
-            if (finaltlen < SECNAMEMAX){
-                _dwarf_safe_strcpy(buildendspace,buildendspaceleft,
-                    tailsec,finaltlen);
-                    
-                /*  We turned targname .debug_info to
-                    .zdebug_info, for example.
-                    We accept the input as an example
-                    of the original targname so fake
-                    the finaltargname. */
-                finaltargname = buildsecname;
-                if (!strcmp(finaltargname,secname)) {
-                    havezdebug = TRUE;
-                }
-                /*  If we did not match secname and finaltargname
-                    here we will wind up skipping this
-                    libdwarf target section below as it is
-                    apparently not the right target for this
-                    secname. */
-            }
-        }
+    if(secnamelen >= SECNAMEMAX) {
+        /*  This is not the target section.
+            our caller will keep looking. */
+        return DW_DLV_NO_ENTRY;
+    }
+    if((secnamelen+1) < SECNAMEMAX &&
+        !strncmp(secname,zprefix,ZPREFIXLEN) &&
+        !strcmp(secname+ZPREFIXLEN,targname+DPREFIXLEN)) {
+            /*  zprefix version matches the object section
+                name so the section is compressed and is
+                the section this targname applies to. */
+            havezdebug = TRUE;
+            namesmatch = TRUE;
+    } else if (!strcmp(secname,targname)) {
+        namesmatch = TRUE;
     }
 #undef ZPREFIXLEN
 #undef DPREFIXLEN
 #undef SECNAMEMAX
+    if(!namesmatch) {
+        /*  This is not the target section.
+            our caller will keep looking. */
+            return DW_DLV_NO_ENTRY;
+    }
 
     /* SETUP_SECTION. See also BUILDING_SECTIONS, BUILDING_MAP  */
-    if(!strcmp(secname,finaltargname)) {
+    {
         /*  The section name is a match with targname, or
             the .zdebug version of targname. */
         int sectionerr = 0;
 
         sectionerr = add_debug_section_info(dbg,secname,
+            sec_standard_name,
             obj_sec_num,
             secdata,
             groupnum_of_sec,
@@ -401,17 +398,16 @@ set_up_section(Dwarf_Debug dbg,
             /* *err is set already */
             return sectionerr;
         }
-        return DW_DLV_OK;
     }
-    /*  This is not the target section.
-        our caller will keep looking. */
-    return DW_DLV_NO_ENTRY;
+    return DW_DLV_OK;
 }
 
 #define SET_UP_SECTION(mdbg,mname,mtarg,mgrp,minfo,me1,me2,mdw,mer) \
     {                                           \
     int lerr = 0;                               \
-    lerr =  set_up_section(mdbg, mname,         \
+    lerr =  set_up_section(mdbg,                \
+        mname,  /* actual section name */       \
+        mtarg,    /* std section name */        \
         /* scn_number from macro use context */ \
         scn_number,mtarg,mgrp,                  \
         minfo,                                  \
@@ -812,6 +808,7 @@ insert_sht_list_in_group_map(Dwarf_Debug dbg,
     secdata.dss_group_number = 1; /* arbitrary. */
     secdata.dss_index = section_number;
     secdata.dss_name = ".group";
+    secdata.dss_standard_name = ".group";
     secdata.dss_number = section_number;
     res = _dwarf_load_section(dbg,&secdata,error);
     if (res != DW_DLV_OK) {
@@ -1563,6 +1560,7 @@ do_decompress_zlib(Dwarf_Debug dbg,
     if ((src + 12) >endsection) {
         DWARF_DBG_ERROR(dbg, DW_DLE_ZLIB_SECTION_SHORT, DW_DLV_ERROR);
     }
+    section->dss_compressed_length = section->dss_size;
     if(!strncmp("ZLIB",(const char *)src,4)) {
         unsigned i = 0;
         unsigned l = 8;
@@ -1573,6 +1571,8 @@ do_decompress_zlib(Dwarf_Debug dbg,
         }
         src = src + 12;
         srclen -= 12;
+        section->dss_uncompressed_length = uncompressed_len;
+        section->dss_ZLIB_compressed = TRUE;
     } else  if (flags & SHF_COMPRESSED) {
         /*  The prefix is a struct:
             unsigned int type; followed by pad if following are 64bit!
@@ -1598,11 +1598,10 @@ do_decompress_zlib(Dwarf_Debug dbg,
                 DW_DLV_ERROR);
         }
         uncompressed_len = size;
-        /*  Not using addralign.
-            READ_UNALIGNED(dbg,addralign,Dwarf_Unsigned,ptr,fldsize); */
-
+        section->dss_uncompressed_length = uncompressed_len;
         src    += structsize;
         srclen -= structsize;
+        section->dss_shf_compressed = TRUE;
     } else {
         DWARF_DBG_ERROR(dbg, DW_DLE_ZDEBUG_INPUT_FORMAT_ODD,
             DW_DLV_ERROR);
@@ -1657,7 +1656,7 @@ do_decompress_zlib(Dwarf_Debug dbg,
     section->dss_data = dest;
     section->dss_size = destlen;
     section->dss_data_was_malloc = TRUE;
-    section->dss_requires_decompress = FALSE;
+    section->dss_did_decompress = TRUE;
     return DW_DLV_OK;
 }
 #endif /* HAVE_ZLIB */
@@ -1704,7 +1703,10 @@ _dwarf_load_section(Dwarf_Debug dbg,
             no DWARF related section could possbly be bss. */
         return res;
     }
-    if (section->dss_requires_decompress) {
+    if ((section->dss_zdebug_requires_decompress ||
+        section->dss_shf_compressed ||
+        section->dss_ZLIB_compressed) &&
+        !section->dss_did_decompress) {
         if (!section->dss_data) {
             /*  Impossible. This makes no sense.
                 Corrupt object. */
@@ -1715,6 +1717,7 @@ _dwarf_load_section(Dwarf_Debug dbg,
         if (res != DW_DLV_OK) {
             return res;
         }
+        section->dss_did_decompress = TRUE;
 #else
         DWARF_DBG_ERROR(dbg,DW_DLE_ZDEBUG_REQUIRES_ZLIB, DW_DLV_ERROR);
 #endif

@@ -56,6 +56,13 @@
 
 #include "config.h"
 
+#ifdef HAVE_UNUSED_ATTRIBUTE
+#define  UNUSEDARG __attribute__ ((unused))
+#else
+#define  UNUSEDARG
+#endif
+
+
 /* Windows specific header files */
 #if defined(_WIN32) && defined(HAVE_STDAFX_H)
 #include "stdafx.h"
@@ -146,6 +153,19 @@ using std::cout;
 using std::cerr;
 using std::endl;
 using std::vector;
+extern "C" {
+static int CallbackFunc(
+    const char* name,
+    int                 size,
+    Dwarf_Unsigned      type,
+    Dwarf_Unsigned      flags,
+    Dwarf_Unsigned      link,
+    Dwarf_Unsigned      info,
+    Dwarf_Unsigned*     sect_name_symbol_index,
+    void *              user_data,
+    int*                error);
+} 
+// End extern "C"
 
 static void write_object_file(Dwarf_P_Debug dbg, IRepresentation &irep);
 static void write_text_section(Elf * elf);
@@ -303,13 +323,14 @@ createnamestr(unsigned strtabstroff)
     return  elf_ndxscn(strscn);
 }
 
+
 // This functional interface is defined by libdwarf.
 // Please see the comments in libdwarf2p.1.pdf
 // (libdwarf2p.1.mm)  on this callback interface.
 // Returns (to libdwarf) an Elf section number, so
 // since 0 is always empty and dwarfgen sets 1 to be a fake
 // text section on the first call this returns 2, second 3, etc.
-int CallbackFunc(
+static int CallbackFunc(
     const char* name,
     int                 size,
     Dwarf_Unsigned      type,
@@ -317,8 +338,8 @@ int CallbackFunc(
     Dwarf_Unsigned      link,
     Dwarf_Unsigned      info,
     Dwarf_Unsigned*     sect_name_symbol_index,
-    void *              user_data,
-    int*                error)
+    void *              user_data UNUSEDARG,
+    int*                error UNUSEDARG)
 {
     // Create an elf section.
     // If the data is relocations, we suppress the generation
@@ -354,6 +375,7 @@ int CallbackFunc(
     // The number returned is elf section, not dwsectab[] index
     return createdsec.getSectIndex();
 }
+
 
 // Here we create a new Elf section
 // This never happens for relocations in dwarfgen,
@@ -393,14 +415,6 @@ create_dw_elf(SectionFromDwarf  &ds)
     return  si;
 }
 
-// Default error handler of libdwarf producer code.
-void ErrorHandler(Dwarf_Error err,Dwarf_Ptr errarg)
-{
-    // FIXME do better error handling
-    cerr <<"dwarfgen: Giving up, encountered an error" << endl;
-    exit(1);
-}
-
 
 static void
 setinput(enum  WhichInputSource *src,
@@ -434,11 +448,13 @@ main(int argc, char **argv)
         int ptrsizeflagbit = DW_DLC_POINTER32;
         int offsetsizeflagbit = DW_DLC_OFFSET32;
         const char * isa_name = "x86";
+        bool force_empty_dnames = false;
         const char *dwarf_version = "V2";
         int endian =  DW_DLC_TARGET_LITTLEENDIAN;
         int longindex;
         static struct dwoption longopts[] = {
-            {"adddata16",dwno_argument,0,0},
+            {"adddata16",dwno_argument,0,1000},
+            {"force-empty-dnames",dwno_argument,0,1001},
             {0,0,0,0},
         };
 
@@ -446,7 +462,7 @@ main(int argc, char **argv)
             "o:t:c:hsrv:p:f:",
             longopts,&longindex)) != -1) {
             switch(opt) {
-            case 0:
+            case 1000:
                 if(longindex == 0) {
                     cmdoptions.adddata16 = true;
                 } else {
@@ -454,6 +470,9 @@ main(int argc, char **argv)
                         longindex << endl;
                     exit(1);
                 }
+                break;
+            case 1001:
+                force_empty_dnames = true;
                 break;
             case 'c':
                 // At present we can only create a single
@@ -576,6 +595,15 @@ main(int argc, char **argv)
                 << endl;
             exit(EXIT_FAILURE);
         }
+        if (force_empty_dnames) {
+            res = dwarf_force_debug_names(dbg,&err);
+            if (res != DW_DLV_OK) {
+                cerr << "dwarfgen: "
+                    "Failed dwarf_force_debug_names"
+                    << endl;
+                exit(EXIT_FAILURE);
+            }
+        }
         transform_irep_to_dbg(dbg,Irep,cu_of_input_we_output);
         write_object_file(dbg,Irep);
         // Example calls ErrorHandler if there is an error
@@ -618,7 +646,7 @@ main(int argc, char **argv)
 }
 
 static void
-write_object_file(Dwarf_P_Debug dbg, IRepresentation &irep)
+write_object_file(Dwarf_P_Debug dbg, IRepresentation &irep UNUSEDARG)
 {
     int fd = create_a_file(outfile.c_str());
     if(fd < 0 ) {
@@ -788,7 +816,8 @@ FindSymbolValue(ElfSymIndex symi,IRepresentation &irep)
 /* Lets not assume that the quantities are aligned. */
 static void
 bitreplace(char *buf, Dwarf_Unsigned newval,
-    size_t newvalsize,int length)
+    size_t newvalsize UNUSEDARG,
+    int length)
 {
     if(length == 4) {
         uint32_t my4 = newval;
@@ -811,7 +840,9 @@ bitreplace(char *buf, Dwarf_Unsigned newval,
 
 // This remembers nothing, so is dreadfully slow.
 static char *
-findelfbuf(Elf *elf_f,Elf_Scn *scn,Dwarf_Unsigned offset, unsigned length)
+findelfbuf(Elf *elf_f UNUSEDARG ,Elf_Scn *scn,
+    Dwarf_Unsigned offset,
+    unsigned length)
 {
     Elf_Data * edbase = 0;
     Elf_Data * ed = elf_getdata(scn,edbase);
@@ -848,9 +879,20 @@ write_generated_dbg(Dwarf_P_Debug dbg,Elf * elf_w,
     IRepresentation &irep)
 {
     Dwarf_Error err = 0;
-    Dwarf_Signed sectioncount =
-        dwarf_transform_to_disk_form(dbg,0);
+    Dwarf_Signed sectioncount = 0;
 
+
+    int res = dwarf_transform_to_disk_form_a(dbg,&sectioncount,&err);
+    if (res != DW_DLV_OK) {
+       if (res == DW_DLV_ERROR) {
+           string msg(dwarf_errmsg(err));
+           cerr << "Dwarfgen fails: " << msg << endl;
+           exit(1);
+       }
+       /* ASSERT: rex == DW_DLV_NO_ENTRY */
+       cerr << "Dwarfgen fails, some internal error " << endl;
+       exit(1);
+    }
     Dwarf_Signed d = 0;
     for(d = 0; d < sectioncount ; ++d) {
         InsertDataIntoElf(d,dbg,elf_w);
@@ -863,7 +905,7 @@ write_generated_dbg(Dwarf_P_Debug dbg,Elf * elf_w,
 
     Dwarf_Unsigned reloc_sections_count = 0;
     int drd_version = 0;
-    int res = dwarf_get_relocation_info_count(dbg,&reloc_sections_count,
+    res = dwarf_get_relocation_info_count(dbg,&reloc_sections_count,
         &drd_version,&err);
     if( res != DW_DLV_OK) {
         cerr << "dwarfgen: Error getting relocation info count." << endl;

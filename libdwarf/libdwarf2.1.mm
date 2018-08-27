@@ -8,7 +8,7 @@
 .nr Hb 5
 \." ==============================================
 \." Put current date in the following at each rev
-.ds vE rev 2.64, May 12, 2018
+.ds vE rev 2.67, August 7, 2018
 \." ==============================================
 \." ==============================================
 .ds | |
@@ -1977,6 +1977,95 @@ except
 is missing the groupnumber argument so
 DWARF5 split dwarf objects cannot be
 fully handled.
+
+.H 3 "dwarf_get_real_section_name()"
+.DS
+\f(CWint dwarf_get_real_section_name( Dwarf_Debug dbg,
+    const char  * std_section_name,
+    const char ** actual_sec_name_out,
+    Dwarf_Small * marked_compressed,
+    Dwarf_Small * marked_zlib_compressed,
+    Dwarf_Small * marked_shf_compressed,
+    Dwarf_Unsigned * compressed_length,
+    Dwarf_Unsigned * uncompressed_length,
+    Dwarf_Error * error);
+.DE
+FIXME
+Elf sections are sometimes compressed to reduce the disk
+footprint of the sections.
+It's sometimes interesting to library users
+what the real name was in the object file and whether it
+was compressed.  Libdwarf uncompresses such sections
+automatically.
+It's not usually necessary to know the true name or
+anything about compression.
+.P
+\f(CW
+\fP 
+The caller passes in a  
+\f(CWDwarf_Debug\fP 
+pointer
+and a standard section name such as ".debug_info" .
+On success the function returns (through the
+other arguments) the true section name and a
+flag which, if non-zero means the section was compressed
+and a flag which, if non-zero means the section had
+the Elf section flag SHF_COMPRESSED set.
+The caller must ensure that the memory pointed to
+by 
+\f(CWactual_sec_name_out\fP, 
+\f(CWmarked_zcompressed\fP, and 
+\f(CWmarked_zlib_compressed\fP,
+\f(CWmarked_shf_compressed\fP,
+\f(CWcompressed_length\fP,
+\f(CWuncompressed_length\fP, 
+is zero at the point of call.
+.P
+The flag
+\f(CW*marked_compressed\fP,
+if non-zero,
+means the section name started
+with .zdebug (indicating compression
+was done). 
+.P
+The flag
+\f(CWmarked_zlib_compressed\fP, 
+if non-zero means the
+initial bytes of the section starte
+with the ASCII characters ZLIB
+and the section was compressed.
+.P
+The flag
+\f(CWmarked_shf_compressed\fP 
+if non-zero means the Elf section
+sh_flag SHF_COMPRESSED is set
+and the section was compressed..
+The flag value in an elf section
+header is (1<<11) (0x800).
+.P
+The value
+\f(CWcompressed_length\fP 
+is passed back through the pointer
+if and only if the section is compressed
+and the pointer is non-null.
+.P
+The value
+\f(CWuncompressed_length\fP 
+is passed back through the pointer
+if and only if the section is compressed
+and the pointer is non-null.
+.P
+If the section name passed in is not used by libdwarf
+for this object file
+the function returns
+\f(CWDW_DLV_NO_ENTRY\fP 
+.P
+On error the function returns 
+\f(CWDW_DLV_ERROR\fP.
+.P
+The string pointed to by 
+\f(CW*actual_sec_name_out\fP
+must not be free()d.
 
 .H 2 "Section Group Operations"
 The section group data is essential information

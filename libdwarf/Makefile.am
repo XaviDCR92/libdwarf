@@ -12,7 +12,7 @@ gennames.c \
 dwgetopt.c \
 dwgetopt.h
 
-gennames_CFLAGS =  @DWARF_CFLAGS@ @DWARF_CFLAGS_WARN@
+gennames_CFLAGS = $(DWARF_CFLAGS_WARN) -I$(top_builddir)/libdwarf -I$(top_builddir) -I$(top_srcdir)/libdwarf
 
 BUILT_SOURCES = \
 dwarf_names.c
@@ -31,7 +31,7 @@ dwarf_names.c: gennames$(BUILD_EXEEXT)
 	$(gn_verbose)./gennames$(BUILD_EXEEXT) @dwarf_namestable@ -i $(srcdir) -o .
 
 gennames$(BUILD_EXEEXT): $(top_srcdir)/libdwarf/gennames.c $(top_srcdir)/libdwarf/dwgetopt.c $(top_srcdir)/libdwarf/dwgetopt.h
-	$(cc_verbose)$(CC_FOR_BUILD) $(top_srcdir)/libdwarf/gennames.c $(top_srcdir)/libdwarf/dwgetopt.c -o $@
+	$(cc_verbose)$(CC_FOR_BUILD) $(gennames_CFLAGS) $(CFLAGS_FOR_BUILD) $(CPPFLAGS_FOR_BUILD) $(top_srcdir)/libdwarf/gennames.c $(top_srcdir)/libdwarf/dwgetopt.c -o $@
 
 ### errmsg_check
 
@@ -40,13 +40,16 @@ dwarf_test_errmsg_list.c \
 dwarf_errmsg_list.h
 
 # config.h is in top_builddir  
-errmsg_check_CFLAGS = -I$(top_builddir)/libdwarf -I$(top_builddir) -I$(top_srcdir)/libdwarf
+errmsg_check_CFLAGS =  $(DWARF_CFLAGS_WARN) \
+-I$(top_builddir)/libdwarf \
+-I$(top_builddir) \
+-I$(top_srcdir)/libdwarf
 
 BUILT_SOURCES += \
 errmsg_check_list
 
 errmsg_check$(BUILD_EXEEXT): $(top_srcdir)/libdwarf/dwarf_test_errmsg_list.c $(top_srcdir)/libdwarf/dwarf_errmsg_list.h
-	$(CC_FOR_BUILD) $(errmsg_check_CFLAGS) $(top_srcdir)/libdwarf/dwarf_test_errmsg_list.c  -o $@
+	$(CC_FOR_BUILD) $(errmsg_check_CFLAGS) $(CFLAGS_FOR_BUILD) $(CPPFLAGS_FOR_BUILD) $(top_srcdir)/libdwarf/dwarf_test_errmsg_list.c  -o $@
 
 errmsg_check_list: errmsg_check$(BUILD_EXEEXT)
 	$(AM_V_at)grep DW_DLE libdwarf.h >errmsg_check_list
@@ -145,6 +148,8 @@ pro_arange.c \
 pro_arange.h \
 pro_die.c \
 pro_die.h \
+pro_dnames.h \
+pro_dnames.c \
 pro_encode_nm.c \
 pro_encode_nm.h \
 pro_error.c \
@@ -178,7 +183,7 @@ pro_util.h \
 pro_vars.c \
 pro_weaks.c
 
-libdwarf_la_CFLAGS = @DWARF_CFLAGS@ @DWARF_CFLAGS_WARN@
+libdwarf_la_CFLAGS = $(DWARF_CFLAGS_WARN) 
 
 libdwarf_la_LIBADD = @DWARF_LIBS@
 
@@ -187,8 +192,20 @@ libdwarf_la_LDFLAGS = -fPIC -no-undefined -version-info @version_info@ @release_
 # checkexamples.c
 # dwarf_stubs.c
 
-libdwarfdir = $(datadir)/libdwarf/libdwarf
-libdwarf_DATA = \
+TESTS = runtests.sh
+AM_TESTS_ENVIRONMENT = DWTOPSRCDIR='$(top_srcdir)'; export DWTOPSRCDIR;
+
+include_HEADERS = $(top_srcdir)/libdwarf/dwarf.h libdwarf.h
+
+libdwarfdevdir = $(datadir)/libdwarf/libdwarf-devel
+libdwarfdev_DATA = \
+libdwarf2.1.pdf \
+libdwarf2p.1.pdf 
+
+EXTRA_DIST = \
+COPYING \
+LGPL.txt \
+LIBDWARFCOPYRIGHT \
 CHANGES \
 ChangeLog \
 ChangeLog2006 \
@@ -203,55 +220,15 @@ ChangeLog2014 \
 ChangeLog2015 \
 ChangeLog2016 \
 ChangeLog2017 \
-CMakeLists.txt \
-COPYING \
-LGPL.txt \
-LIBDWARFCOPYRIGHT
-
-
-TESTS=./runtests.sh
-
-docbld:pdfbld
-pdf: pdfbld
-bldpdf: pdfbld
-pdfbld: libdwarf2.1.pdf libdwarf2p.1.pdf
-#Oriented to using gsroff now.
-TROFF=/usr/bin/groff
-#TROFFDEV="-T ps"
-TROFFDEV=
-PSTOPDF=/usr/bin/ps2pdf
-# pr expands tabs to spaces: this avoids problems with tab
-# interpretation
-
-# The warning about 'cant break line' is a too-long line used
-# in the table of contents.
-# All pr does here is change each tab to spaces.
-# Ignore the warning (and those like it).
-libdwarf2.1.pdf:  $(top_srcdir)/libdwarf/libdwarf2.1.mm
-	-pr -t -e $(top_srcdir)/libdwarf/libdwarf2.1.mm \
-                  | tbl | $(TROFF) $(TROFFDEV) -mm >libdwarf2.1.ps
-	$(PSTOPDF) libdwarf2.1.ps libdwarf2.1.pdf
-
-libdwarf2p.1.pdf:  $(top_srcdir)/libdwarf/libdwarf2p.1.mm
-	-pr -t -e  $(top_srcdir)/libdwarf/libdwarf2p.1.mm \
-                  | tbl | $(TROFF) $(TROFFDEV) -mm >libdwarf2p.1.ps
-	$(PSTOPDF) libdwarf2p.1.ps libdwarf2p.1.pdf
-
-
-libdwarfdevdir = $(datadir)/libdwarf/libdwarf-devel
-libdwarfdev_DATA = \
 CODINGSTYLE \
+dwarf_test_errmsg_list.c \
 libdwarf2.1.mm \
-libdwarf2.1.pdf \
 libdwarf2p.1.mm \
-libdwarf2p.1.pdf \
 mips_extensions.mm \
-mips_extensions.pdf
-
-include_HEADERS = $(top_srcdir)/libdwarf/dwarf.h libdwarf.h
-
-EXTRA_DIST = \
+mips_extensions.pdf  \
 CMakeLists.txt \
+libdwarf.h.in \
+pdfbld.sh \
 NEWS \
 README \
 configure.cmake \

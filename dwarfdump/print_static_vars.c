@@ -32,6 +32,7 @@
 
 #include "print_sections.h"
 #include "print_frames.h"
+#include "sanitized.h"
 
 /* Get all the data in .debug_static_vars */
 extern void
@@ -51,10 +52,17 @@ print_static_vars(Dwarf_Debug dbg)
     if (!glflags.gf_do_print_dwarf) {
         return;
     }
-    /*  No need to get the real section name, this
-        section not used in modern compilers. */
-    printf("\n.debug_static_vars\n");
     gvres = dwarf_get_vars(dbg, &varbuf, &count, &err);
+    {
+        struct esb_s truename;
+        char buf[DWARF_SECNAME_BUFFER_SIZE];
+
+        esb_constructor_fixed(&truename,buf,sizeof(buf));
+        get_true_section_name(dbg,".debug_static_vars",
+            &truename,TRUE);
+        printf("\n%s\n",sanitized(esb_get_string(&truename)));
+        esb_destructor(&truename);
+    }
     if (gvres == DW_DLV_ERROR) {
         print_error(dbg, "dwarf_get_vars", gvres, err);
     } else if (gvres == DW_DLV_NO_ENTRY) {

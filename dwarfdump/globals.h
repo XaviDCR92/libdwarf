@@ -76,6 +76,7 @@ typedef unsigned long long  __uint64_t;
 #define HAVE___UINT64_T 1
 #endif
 
+#define DWARF_SECNAME_BUFFER_SIZE 50
 
 #include <stdio.h>
 #include <stdarg.h>   /* For va_start va_arg va_list */
@@ -283,8 +284,14 @@ void groups_restore_subsidiary_flags(void);
 void print_str_offsets_section(Dwarf_Debug dbg);
 
 void print_any_harmless_errors(Dwarf_Debug dbg);
+void get_true_section_name(Dwarf_Debug dbg,
+    const char *standard_name,
+    struct esb_s *name_out,
+    Dwarf_Bool add_compr);
+
 
 #include "section_bitmaps.h"
+
 
 #ifdef HAVE_UNUSED_ATTRIBUTE
 #define  UNUSEDARG __attribute__ ((unused))

@@ -113,6 +113,7 @@ static const char *usage_text[] = {
 "\t\t-o[liaprfoR]\tprint relocation info",
 "\t\t  \tl=line,i=info,a=abbrev,p=pubnames,r=aranges,f=frames,o=loc,R=Ranges",
 "\t\t-p\tprint pubnames section",
+"\t\t--print-debug-names\tprint details from the .debug_names section",
 "\t\t--print-str-offsets\tprint details from the .debug_str_offsets section",
 "\t\t-P\tprint list of compile units per producer", /* List of CUs per compiler */
 "\t\t-Q\tsuppress printing section data",
@@ -173,6 +174,13 @@ static const char *usage_debug_text[] = {
     The HOME strings here are transformed in
     dwconf.c to reference the environment
     variable $HOME .
+
+    As of August 2018 CONFPREFIX is always set as it
+    comes from autoconf --prefix, aka  $prefix
+    which defaults to /usr/local
+
+    The install puts the .conf file in
+    CONFPREFIX/dwarfdump/
 */
 static char *config_file_defaults[] = {
     "dwarfdump.conf",
@@ -180,14 +188,16 @@ static char *config_file_defaults[] = {
     "HOME/.dwarfdump.conf",
     "HOME/dwarfdump.conf",
 #ifdef CONFPREFIX
-/* See Makefile.in  "libdir"  and CFLAGS  */
+/* See Makefile.am dwarfdump_CFLAGS. This prefix
+    is the --prefix option (defaults to /usr/local
+    and Makefile.am adds /share/dwarfdump ) */
 /* We need 2 levels of macro to get the name turned into
    the string we want. */
 #define STR2(s) # s
 #define STR(s)  STR2(s)
-    STR(CONFPREFIX)
-        "/dwarfdump.conf",
+    STR(CONFPREFIX) "/dwarfdump.conf",
 #else
+    /*  This no longer used as of August 2018. */
     "/usr/lib/dwarfdump.conf",
 #endif
     0
@@ -370,13 +380,13 @@ do_uri_translation(const char *s,const char *context)
 const char *
 process_args(int argc, char *argv[])
 {
-    extern int dwoptind;
     int c = 0;
     boolean usage_error = FALSE;
     int oarg = 0;
     int longindex = 0;
     static struct dwoption  longopts[] =  {
-        {"print-str-offsets",  dwno_argument,  0,1},
+        {"print-str-offsets",  dwno_argument,  0,1000},
+        {"print-debug-names",  dwno_argument,  0,1001},
         {0,0,0,0}
     };
 
@@ -393,8 +403,11 @@ process_args(int argc, char *argv[])
         longopts,&longindex)) != EOF) {
 
         switch (c) {
-        case  1:
+        case  1000:
             glflags.gf_print_str_offsets = TRUE;
+            break;
+        case  1001:
+            glflags.gf_debug_names_flag = TRUE;
             break;
         case '#':
         {
@@ -878,6 +891,9 @@ process_args(int argc, char *argv[])
                 glflags.gf_check_abbreviations = TRUE;
                 glflags.gf_info_flag = TRUE;
                 glflags.gf_types_flag = TRUE;
+                /*  For some checks is worth trying the plain
+                    .debug_abbrev section on its own. */
+                glflags.gf_abbrev_flag = TRUE;
                 break;
             /* DWARF constants */
             case 'c':
@@ -894,6 +910,9 @@ process_args(int argc, char *argv[])
                 glflags.gf_check_duplicated_attributes = TRUE;
                 glflags.gf_info_flag = TRUE;
                 glflags.gf_types_flag = TRUE;
+                /*  For some checks is worth trying the plain
+                    .debug_abbrev section on its own. */
+                glflags.gf_abbrev_flag = TRUE;
                 break;
             case 'e':
                 glflags.gf_check_pubname_attr = TRUE;
@@ -1123,7 +1142,8 @@ process_args(int argc, char *argv[])
     }
     if (config_file_abi &&
         (glflags.gf_frame_flag || glflags.gf_eh_frame_flag)) {
-        int res = find_conf_file_and_read_config(
+        int res = 0;
+        res = find_conf_file_and_read_config(
             esb_get_string(glflags.config_file_path),
             config_file_abi,
             config_file_defaults,

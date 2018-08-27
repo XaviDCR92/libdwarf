@@ -632,6 +632,27 @@ get_macinfo_offset(Dwarf_Debug dbg,
     return vres;
 }
 
+static void
+print_secname(Dwarf_Debug dbg,int is_info)
+{
+    if (print_as_info_or_cu() && glflags.gf_do_print_dwarf) {
+        const char * section_name = 0;
+        struct esb_s truename;
+        char buf[DWARF_SECNAME_BUFFER_SIZE];
+
+        if (is_info) {
+            section_name = ".debug_info";
+        } else  {
+            section_name = ".debug_types";
+        }
+        esb_constructor_fixed(&truename,buf,sizeof(buf));
+        get_true_section_name(dbg,section_name,
+            &truename,TRUE);
+        printf("\n%s\n",sanitized(esb_get_string(&truename)));
+        esb_destructor(&truename);
+    }
+}
+
 
 /*   */
 static int
@@ -652,33 +673,22 @@ print_one_die_section(Dwarf_Debug dbg,Dwarf_Bool is_info,
     int   cu_count = 0;
     char * cu_short_name = NULL;
     char * cu_long_name = NULL;
-    const char * section_name = 0;
     int res = 0;
     Dwarf_Off dieprint_cu_goffset = 0;
 
     glflags.current_section_id = is_info?DEBUG_INFO:DEBUG_TYPES;
-    res = dwarf_get_die_section_name(dbg, is_info,
-        &section_name,pod_err);
-    if (res == DW_DLV_NO_ENTRY) {
-        /*  The section is absent. Print nothing for now  FIXME
-            unless is_info (just to match previous practice) FIXME . */
-        if (!is_info) {
-            return DW_DLV_NO_ENTRY;
-        }
-    }
-    if (res != DW_DLV_OK) {
-        if(!section_name || !strlen(section_name)) {
-            if (is_info) {
-                section_name = ".debug_info";
-            } else  {
-                section_name = ".debug_types";
+    {
+        const char * test_section_name = 0;
+        res = dwarf_get_die_section_name(dbg,is_info,
+            &test_section_name,pod_err);
+        if (res == DW_DLV_NO_ENTRY) {
+            if(!is_info) {
+                /*  No .debug_types. Do not print .debug_types
+                    name */
+                return DW_DLV_NO_ENTRY;
             }
         }
     }
-    if (print_as_info_or_cu() && glflags.gf_do_print_dwarf) {
-        printf("\n%s\n",sanitized(section_name));
-    }
-
     /* Loop until it fails.  */
     for (;;++loop_count) {
         int sres = DW_DLV_OK;
@@ -696,6 +706,11 @@ print_one_die_section(Dwarf_Debug dbg,Dwarf_Bool is_info,
             &signature, &typeoffset,
             &next_cu_offset,
             &cu_type, pod_err);
+        if (!loop_count) {
+            /*  So compress flags show, we waited till
+                section loaded. */
+            print_secname(dbg,is_info);
+        }
         if (nres == DW_DLV_NO_ENTRY) {
             return nres;
         }
@@ -1747,21 +1762,20 @@ print_ranges_list_to_extra(Dwarf_Debug dbg,
     Dwarf_Unsigned bytecount,
     struct esb_s *stringbuf)
 {
-    int res = 0;
 #ifdef ORIGINAL_SPRINTF
     char tmp[200];
 #endif
     const char * sec_name = 0;
     Dwarf_Signed i = 0;
-    Dwarf_Error err =0;
+    struct esb_s truename;
+    char buf[DWARF_SECNAME_BUFFER_SIZE];
 
-
-    res = dwarf_get_ranges_section_name(dbg,&sec_name,&err);
-    if(res != DW_DLV_OK ||  !sec_name || !strlen(sec_name)) {
-        sec_name = ".debug_ranges";
-    }
-
-   if (glflags.dense) {
+    esb_constructor_fixed(&truename,buf,sizeof(buf));
+    /* We don't want to set the compress data into the secname here. */
+    get_true_section_name(dbg,".debug_ranges",
+        &truename,FALSE);
+    sec_name = esb_get_string(&truename);
+    if (glflags.dense) {
 #ifdef ORIGINAL_SPRINTF
         snprintf(tmp,sizeof(tmp),
             "< ranges: %" DW_PR_DSd " ranges at %s offset %"
@@ -1839,6 +1853,7 @@ print_ranges_list_to_extra(Dwarf_Debug dbg,
 #endif
         }
     }
+    esb_destructor(&truename);
 }
 
 static void
@@ -2531,10 +2546,6 @@ append_discr_array_vals(Dwarf_Debug dbg,
         esb_append_printf_u(strout,
             "        "
             "%" DW_PR_DUu ": ",u);
-#endif
-#if 0
-        snprintf(tmpstrb,sizeof(tmpstrb),
-            "type=%u ",dtype);
 #endif
         dsc_name = get_DSC_name(dtype,pd_dwarf_names_print_on_error);
         esb_append(strout,sanitized(dsc_name));

@@ -46,25 +46,29 @@ print_ranges(Dwarf_Debug dbg)
     Dwarf_Unsigned off = 0;
     int group_number = 0;
     int wasdense = 0;
-    int res  = 0;
-    const char *sec_name = 0;
     Dwarf_Error pr_err = 0;
+    struct esb_s truename;
+    char buf[DWARF_SECNAME_BUFFER_SIZE];
+    unsigned loopct = 0;
 
     glflags.current_section_id = DEBUG_RANGES;
     if (!glflags.gf_do_print_dwarf) {
         return;
     }
-    res = dwarf_get_ranges_section_name(dbg,&sec_name,&pr_err);
-    if (res != DW_DLV_OK ||  !sec_name || !strlen(sec_name)) {
-        sec_name = ".debug_ranges";
+#if 0
+    {
+        esb_constructor_fixed(&truename,buf,sizeof(buf));
+        get_true_section_name(dbg,".debug_ranges",
+            &truename,TRUE);
+        printf("\n%s\n",sanitized(esb_get_string(&truename)));
     }
-    printf("\n%s\n",sanitized(sec_name));
+#endif
 
     /*  Turn off dense, we do not want  print_ranges_list_to_extra
         to use dense form here. */
     wasdense = glflags.dense;
     glflags.dense = 0;
-    for (;;) {
+    for (;;++loopct) {
         Dwarf_Ranges *rangeset = 0;
         Dwarf_Signed rangecount = 0;
         Dwarf_Unsigned bytecount = 0;
@@ -73,6 +77,12 @@ print_ranges(Dwarf_Debug dbg)
             the older call here. */
         int rres = dwarf_get_ranges(dbg,off,&rangeset,
             &rangecount,&bytecount,&pr_err);
+        if (!loopct) {
+            esb_constructor_fixed(&truename,buf,sizeof(buf));
+            get_true_section_name(dbg,".debug_ranges",
+                &truename,TRUE);
+            printf("\n%s\n",sanitized(esb_get_string(&truename)));
+        }
         if (rres == DW_DLV_OK) {
             char *val = 0;
             printf(" Ranges group %d:\n",group_number);
@@ -85,18 +95,19 @@ print_ranges(Dwarf_Debug dbg)
             printf("%s",sanitized(val));
             ++group_number;
         } else if (rres == DW_DLV_NO_ENTRY) {
-            printf("End of %s.\n",sanitized(sec_name));
+            printf("End of %s.\n",sanitized(esb_get_string(&truename)));
             break;
         } else {
             /*  ERROR, which does not quite mean a real error,
                 as we might just be misaligned reading things without
                 a DW_AT_ranges offset.*/
-            printf("End of %s..\n",sanitized(sec_name));
+            printf("End of %s..\n",sanitized(esb_get_string(&truename)));
             break;
         }
         off += bytecount;
     }
     glflags.dense = wasdense;
+    esb_destructor(&truename);
 }
 
 /*  Extracted this from print_range_attribute() to isolate the check of
@@ -112,7 +123,6 @@ check_ranges_list(Dwarf_Debug dbg,
     Dwarf_Unsigned bytecount)
 {
     Dwarf_Unsigned off = original_off;
-
     Dwarf_Signed index = 0;
     Dwarf_Addr base_address = glflags.CU_base_address;
     Dwarf_Addr lopc = 0;
@@ -121,14 +131,15 @@ check_ranges_list(Dwarf_Debug dbg,
     Dwarf_Half elf_address_size = 0;
     Dwarf_Addr elf_max_address = 0;
     Dwarf_Error rlerr = 0;
-
     static boolean do_print = TRUE;
-    int res = 0;
     const char *sec_name = 0;
-    res = dwarf_get_ranges_section_name(dbg,&sec_name,&rlerr);
-    if (res != DW_DLV_OK ||  !sec_name || !strlen(sec_name)) {
-        sec_name = ".debug_ranges";
-    }
+    struct esb_s truename;
+    char buf[DWARF_SECNAME_BUFFER_SIZE];
+
+    esb_constructor_fixed(&truename,buf,sizeof(buf));
+    get_true_section_name(dbg,".debug_ranges",
+        &truename,FALSE);
+    sec_name = esb_get_string(&truename);
     get_address_size_and_max(dbg,&elf_address_size,&elf_max_address,&rlerr);
 
 #if 0
@@ -236,6 +247,7 @@ printf("**** END ****\n");
         glflags.gf_print_unique_errors) {
         do_print = FALSE;
     }
+    esb_destructor(&truename);
 }
 
 /*  Records information about compilers (producers) found in the

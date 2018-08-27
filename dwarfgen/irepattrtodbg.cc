@@ -28,6 +28,12 @@
 // irepattrtodbg.cc
 
 #include "config.h"
+#ifdef HAVE_UNUSED_ATTRIBUTE
+#define  UNUSEDARG __attribute__ ((unused))
+#else
+#define  UNUSEDARG
+#endif
+
 
 /* Windows specific header files */
 #if defined(_WIN32) && defined(HAVE_STDAFX_H)
@@ -77,7 +83,8 @@ AddAttrToDie(Dwarf_P_Debug dbg,
     IRepresentation & Irep,
     IRCUdata  &cu,
     Dwarf_P_Die outdie,
-    IRDie & irdie,IRAttr &irattr)
+    IRDie & irdie, //UNUSEDARG
+    IRAttr &irattr)
 {
     int attrnum = irattr.getAttrNum();
     enum Dwarf_Form_Class formclass = irattr.getFormClass();
@@ -174,7 +181,7 @@ AddAttrToDie(Dwarf_P_Debug dbg,
         if( reinterpret_cast<Dwarf_Addr>(a) == DW_DLV_BADADDR) {
             cerr << "ERROR dwarf_add_AT_ class constant fails,"
                 " BADATTR on attrnum "
-                <<attrnum << endl;
+                << attrnum << " Continuing" << endl;
 
         }
         }
@@ -244,8 +251,6 @@ AddAttrToDie(Dwarf_P_Debug dbg,
                 <<attrnum << endl;
             break;
         }
-
-        Dwarf_Half finalform = r->getFinalForm();
 
         IRFormReference::RefType reftype = r->getReferenceType();
         switch (reftype) {

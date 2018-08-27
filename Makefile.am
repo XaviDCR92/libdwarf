@@ -40,6 +40,8 @@ EXTRA_DIST = \
 CMakeLists.txt \
 README.md \
 appveyor.yml \
+dwarfdump/runtests.sh \
+libdwarf/runtests.sh \
 bugxml \
 cmake \
 codingstyle.txt \
@@ -47,7 +49,7 @@ scripts/BLDLIBDWARF \
 scripts/BLDLIBDWARFTAR \
 scripts/BLDTESTDIR \
 scripts/CLEANUP \
-scripts/CPLIBDWARFTAR \
+scripts/CPTARTOWEBDIR \
 scripts/CPTOPUBLIC \
 scripts/CREATINGARELEASE \
 scripts/GETTOTOP \
