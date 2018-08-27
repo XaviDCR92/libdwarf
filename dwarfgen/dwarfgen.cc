@@ -57,7 +57,7 @@
 #include "config.h"
 
 /* Windows specific header files */
-#ifdef HAVE_STDAFX_H
+#if defined(_WIN32) && defined(HAVE_STDAFX_H)
 #include "stdafx.h"
 #endif /* HAVE_STDAFX_H */
 #if HAVE_UNISTD_H
@@ -683,10 +683,10 @@ write_object_file(Dwarf_P_Debug dbg, IRepresentation &irep)
 
 // an object section with fake .text data (just as an example).
 static void
-write_text_section(Elf * elf)
+write_text_section(Elf * elf_w)
 {
     unsigned  osecnameoff = secstrtab.addString(".text");
-    Elf_Scn * scn1 =elf_newscn(elf);
+    Elf_Scn * scn1 =elf_newscn(elf_w);
     if(!scn1) {
         cerr << "dwarfgen: Unable to elf_newscn() on " << outfile << endl;
         exit(1);
@@ -721,14 +721,14 @@ write_text_section(Elf * elf)
     shdr1->sh_entsize = 0;
 }
 static void
-InsertDataIntoElf(Dwarf_Signed d,Dwarf_P_Debug dbg,Elf *elf)
+InsertDataIntoElf(Dwarf_Signed d,Dwarf_P_Debug dbg,Elf *elf_i)
 {
     Dwarf_Signed elf_section_index = 0;
     Dwarf_Unsigned length = 0;
     Dwarf_Ptr bytes = dwarf_get_section_bytes(dbg,d,
         &elf_section_index,&length,0);
 
-    Elf_Scn *scn =  elf_getscn(elf,elf_section_index);
+    Elf_Scn *scn =  elf_getscn(elf_i,elf_section_index);
     if(!scn) {
         cerr << "dwarfgen: Unable to elf_getscn on disk transform # " << d << endl;
         exit(1);
@@ -785,20 +785,23 @@ FindSymbolValue(ElfSymIndex symi,IRepresentation &irep)
     return symv;
 }
 
+/* Lets not assume that the quantities are aligned. */
 static void
 bitreplace(char *buf, Dwarf_Unsigned newval,
     size_t newvalsize,int length)
 {
     if(length == 4) {
         uint32_t my4 = newval;
-        uint32_t * p = reinterpret_cast<uint32_t *>(buf );
-        uint32_t oldval = *p;
-        *p = oldval + my4;
+        uint32_t oldval = 0;
+        memcpy(&oldval,buf,length);
+        oldval += my4;
+        memcpy(buf,&oldval,length);
     } else if (length == 8) {
         uint64_t my8 = newval;
-        uint64_t * p = reinterpret_cast<uint64_t *>(buf );
-        uint64_t oldval = *p;
-        *p = oldval + my8;
+        uint64_t oldval = 0;
+        memcpy(&oldval,buf,length);
+        oldval += my8;
+        memcpy(buf,&oldval,length);
     } else {
         cerr << "dwarfgen:  Relocation is length " << length <<
             " which we do not yet handle." << endl;
@@ -808,7 +811,7 @@ bitreplace(char *buf, Dwarf_Unsigned newval,
 
 // This remembers nothing, so is dreadfully slow.
 static char *
-findelfbuf(Elf *elf,Elf_Scn *scn,Dwarf_Unsigned offset, unsigned length)
+findelfbuf(Elf *elf_f,Elf_Scn *scn,Dwarf_Unsigned offset, unsigned length)
 {
     Elf_Data * edbase = 0;
     Elf_Data * ed = elf_getdata(scn,edbase);
@@ -841,7 +844,8 @@ findelfbuf(Elf *elf,Elf_Scn *scn,Dwarf_Unsigned offset, unsigned length)
 }
 
 static void
-write_generated_dbg(Dwarf_P_Debug dbg,Elf * elf,IRepresentation &irep)
+write_generated_dbg(Dwarf_P_Debug dbg,Elf * elf_w,
+    IRepresentation &irep)
 {
     Dwarf_Error err = 0;
     Dwarf_Signed sectioncount =
@@ -849,7 +853,7 @@ write_generated_dbg(Dwarf_P_Debug dbg,Elf * elf,IRepresentation &irep)
 
     Dwarf_Signed d = 0;
     for(d = 0; d < sectioncount ; ++d) {
-        InsertDataIntoElf(d,dbg,elf);
+        InsertDataIntoElf(d,dbg,elf_w);
     }
 
     // Since we are emitting in final form sometimes, we may
@@ -907,7 +911,7 @@ write_generated_dbg(Dwarf_P_Debug dbg,Elf * elf,IRepresentation &irep)
             " linktoobjsecnum=" << targsec <<
             " name="            << linktarg <<
             " reloc-count="     << relocation_buffer_count << endl;
-        Elf_Scn *scn =  elf_getscn(elf,elf_section_index_link);
+        Elf_Scn *scn =  elf_getscn(elf_w,elf_section_index_link);
         if(!scn) {
             cerr << "dwarfgen: Unable to elf_getscn  # " <<
                 elf_section_index_link << endl;
@@ -918,7 +922,7 @@ write_generated_dbg(Dwarf_P_Debug dbg,Elf * elf,IRepresentation &irep)
             Dwarf_Relocation_Data rec = reld+r;
             ElfSymIndex symi(rec->drd_symbol_index);
             Dwarf_Unsigned newval = FindSymbolValue(symi,irep);
-            char *buf_to_update = findelfbuf(elf,scn,
+            char *buf_to_update = findelfbuf(elf_w,scn,
                 rec->drd_offset,rec->drd_length);
 
             if(buf_to_update) {

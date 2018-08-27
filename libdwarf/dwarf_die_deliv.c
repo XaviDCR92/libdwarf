@@ -493,6 +493,13 @@ _dwarf_make_CU_Context(Dwarf_Debug dbg,
         We need to add in the base from the .debug_cu_index
         or .debug_tu_index . Done below */
 
+    /*  There is some duplication of setting is_type_tu
+        and types_extra_len due to variations
+        across DWARF versions. */
+    if (!is_info) {
+        /* DWARF4 */
+        is_type_tu = TRUE;
+    }
     if (version ==  DW_CU_VERSION5) {
         /*  DW5 introduces new header fields, depending on UT type.
             See DW5 section 7.5.1.x */
@@ -519,12 +526,16 @@ _dwarf_make_CU_Context(Dwarf_Debug dbg,
         }
 
     }
+    if (is_type_tu) {
+        /*  types CU headers have extra header bytes.
+            DWARF4 or DWARF5 */
+        types_extra_len = sizeof(signaturedata) + local_length_size;
+    }
 
     if (cu_ptr > section_end_ptr) {
         dwarf_dealloc(dbg, cu_context, DW_DLA_CU_CONTEXT);
         _dwarf_error(dbg, error, DW_DLE_INFO_HEADER_ERROR);
     }
-
     if (!address_size) {
         dwarf_dealloc(dbg, cu_context, DW_DLA_CU_CONTEXT);
         _dwarf_error(dbg,error,DW_DLE_ADDRESS_SIZE_ZERO);
@@ -536,24 +547,12 @@ _dwarf_make_CU_Context(Dwarf_Debug dbg,
         _dwarf_error(dbg,error,DW_DLE_ADDRESS_SIZE_ERROR);
         return DW_DLV_ERROR;
     }
-
-
-
     if (cu_context->cc_address_size  > sizeof(Dwarf_Addr)) {
         dwarf_dealloc(dbg, cu_context, DW_DLA_CU_CONTEXT);
         _dwarf_error(dbg, error, DW_DLE_CU_ADDRESS_SIZE_BAD);
         return DW_DLV_ERROR;
     }
 
-    is_type_tu = FALSE;
-    if (!is_info ||
-        (version == DW_CU_VERSION5 && unit_type == DW_UT_type )) {
-        is_type_tu = TRUE;
-    }
-    if (is_type_tu) {
-        /* types CU headers have extra header bytes. */
-        types_extra_len = sizeof(signaturedata) + local_length_size;
-    }
 
 
     /*  Compare the space following the length field
@@ -587,7 +586,6 @@ _dwarf_make_CU_Context(Dwarf_Debug dbg,
     case DW_UT_type: {
         types_extra_len = sizeof(Dwarf_Sig8)/* 8 */ +
             local_length_size /*type_offset size*/;
-        is_type_tu = TRUE;
 
         /*  Now read the debug_types extra header fields of
             the signature (8 bytes) and the typeoffset.
@@ -1734,15 +1732,19 @@ dwarf_siblingof_b(Dwarf_Debug dbg,
     Dwarf_Unsigned utmp = 0;
     int lres = 0;
     /* Since die may be NULL, we rely on the input argument. */
-    Dwarf_Debug_InfoTypes dis = is_info? &dbg->de_info_reading:
+    Dwarf_Debug_InfoTypes dis = 0;
         &dbg->de_types_reading;
-    Dwarf_Small *dataptr = is_info? dbg->de_debug_info.dss_data:
-        dbg->de_debug_types.dss_data;
+    Dwarf_Small *dataptr =  0;
 
     if (dbg == NULL) {
         _dwarf_error(NULL, error, DW_DLE_DBG_NULL);
         return (DW_DLV_ERROR);
     }
+    dis = is_info? &dbg->de_info_reading:
+        &dbg->de_types_reading;
+    dataptr = is_info? dbg->de_debug_info.dss_data:
+        dbg->de_debug_types.dss_data;
+
 
     if (die == NULL) {
         /*  Find root die of cu */

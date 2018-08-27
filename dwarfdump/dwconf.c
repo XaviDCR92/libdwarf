@@ -26,11 +26,12 @@
 /* Windows specific */
 #include "config.h"
 
-#ifdef HAVE_STDAFX_H
+#if defined(_WIN32) && defined(_HAVE_STDAFX_H)
 #include "stdafx.h"
-#endif /* HAVE_STDAFX_H */
-#ifdef HAVE_WINDOWS_H
-#include <Windows.h>
+#endif 
+
+#if defined(_WIN32) && defined(HAVE_WINDOWS_H)
+#include <windows.h>
 #define BOOLEAN_TYPEDEFED 1
 #endif /* HAVE_WINDOWS_H */
 

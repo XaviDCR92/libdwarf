@@ -85,10 +85,10 @@ dwarf_add_frame_cie(Dwarf_P_Debug dbg,
         curcie->cie_version = 1;
     }
     tmpaug = (char *)_dwarf_p_get_alloc(dbg,strlen(augmenter)+1);
-    strcpy(tmpaug,augmenter);
     if (!tmpaug) {
         DWARF_P_DBG_ERROR(dbg, DW_DLE_CIE_ALLOC, DW_DLV_NOCOUNT);
     }
+    strcpy(tmpaug,augmenter);
     curcie->cie_aug = tmpaug;
     curcie->cie_code_align = code_align;
     curcie->cie_data_align = data_align;
@@ -497,6 +497,10 @@ dwarf_add_fde_inst(Dwarf_P_Fde fde,
             Dwarf_Signed val2s = val2;
             res = _dwarf_pro_encode_signed_leb128_nm(val2s, &nbytes2,
                 buff2, sizeof(buff2));
+        }
+        if (res != DW_DLV_OK) {
+            _dwarf_p_error(dbg, error, DW_DLE_STRING_ALLOC);
+            return ((Dwarf_P_Fde) DW_DLV_BADADDR);
         }
 
         res = _dwarf_pro_encode_leb128_nm(val2, &nbytes2,

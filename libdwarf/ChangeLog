@@ -1,5 +1,127 @@
+2018-07-22 David Anderson
+     * dwarf_init_finish.c: Now calls _dwarf_safe_strcpy()
+       so we are sure there is no string overrun.
+     * dwarf_util.c: Implements _dwarf_safe_strcpy().
+     * dwarf_util.h: Declares _dwarf_safe_strcpy().
+2018-07-22 David Anderson
+    * pro_reloc_symbolic.c(_dwarf_symbolic_relocs_to_disk): 
+      Coverity CID 186884. A much cleaner and more
+      readable fix.
+2018-07-21 David Anderson
+    * libdwarf_version.h: Updated version string.
+    * dwarf_init_finish.c: Coverity CID 186884.
+      Revised the logic for clarity and added comments
+      too.
+    * libdwarf_version.h: Update version string.
+    * dwarf_dnames.c: Coverity CID 186887.
+      Encapsulating
+      DECODE_LEB128_UWORD_CK in a function
+      so we can catch an error
+      and free appropriate resources.
+      Fixed cases of error where DW_DLV_OK returned.
+    * dwarf_abbrev.c,dwarf_arange.c,dwarf_die_deliv.c,
+      dwarf_ranges.c,dwarf_tsearchhash.c: 
+      Removed trailing whitespace.
+    * dwarf_xu_index.c: Coverity CID 186894.
+      We know the string length (2) so we just assign the
+      bytes directly avoiding any possibility of overrun.
+    * pro_reloc_symbolic.c(_dwarf_symbolic_relocs_to_disk): 
+      Coverity CID 186978.
+      Was dereferencing a pointer after zeroing the
+      pointer, now fixed and the obfuscating single-call
+      function code moved to where used, deleted function.  
+    * dwarf_macro.c: Coverity CID 186980.
+      Removed code testing for zero count as it is impossible
+      to get to that spot with count==0.
+    * pro_forms.c: The new return of error is now
+      return ((Dwarf_P_Attribute) DW_DLV_BADADDR);
+      to at least avoid a warning about this
+      necessary uglyness of pointer/integer confusion.
+      The dwarf reader (consumer) interfaces have none
+      of this.
+2018-07-20 David Anderson
+    * dwarf_line_table_reader_common.h: Encapsulating
+      DECODE_LEB128_UWORD_CK in a function
+      so we can catch an error
+      and free appropriate resources.
+2018-07-20 David Anderson
+    * dwarf_frame.c: Coverity CID 186901.
+      Removed duplicate check for dbg null.
+    * dwarf_macro5.c: Coverity CID 186890.
+      Was testing wrong status value. resattr -> lres
+2018-07-20 David Anderson
+    * dwarf_arange.c(dwarf_get_aranges_list): Coverity CID 186976. 
+      This function has a serious problem, it reads agranges
+      without knowing the CU version number so anything
+      with segment_selector != 0 could be read wrong.
+      Unless the compiler authors did in early versions
+      what DWARF4 called for in aranges: a segment selector
+      value.
+    * dwarf_elf_access.c(update_entry): Coverity CID 187700. 
+      If we do not have
+      ELF64 symbol type available avoid letting us fall through
+      to dereference a null pointer.
+    * dwarf_print_lines.c(dwarf_print_lines): Coverity CID 186985.
+      Coverity CID 186973
+      Remove if(){} as it is not needed.
+    * dwarf_macro.c(dwarf_get_macro_details): Coverity CID 186980.
+      Removed dead code for count==0 as count will be at least 1.
+    * pro_arange.c: Coverity CID 186974.
+      Delete redundant check for null.
+    * pro_section.c(dwarf_pro_getabbrev): Coverity CID 186983.
+      Avoid dereferencing forms/attrs if they are null.
+    * pro_forms.c(dwarf_add_AT_location_expr): Coverity CID 186984.
+      Was potentially reading more from input than could
+      possibly exist in the fixed-maximum-length input.
+      Coverity CID 186975. Make block_size Dwarf_Unsigned
+      to (possibly) avoid this warning.
+    * pro_expr.c(dwarf_add_expr_gen): Coverity CID 186987.
+      Add break; to the last case in the switch.
+    * pro_macinfo.c(dwarf_vendor_ext): Coverity CID 186988.
+      Coverity CIE 186981
+      Deleting dead code.
+    * pro_types.c(_dwarf_transform_simplename_to_disk)): 
+      Coverity CID 186977. Delete dead code.
+    * pro_init.c(common_init): Coverity CID 187001. Now we avoid
+      dereferencing a potentially NULL pointer abiname.
+    * pro_frame.c(dwarf_add_fde_inst): Coverity CID 186979.
+      Added missing check of 'res' variable.
+2018-07-20 David Anderson
+    * libdwarf_version.h: Updated version string.
+    * pro_frame.c: Coverity CID 186989. Dereferenced tmpaug
+      before NULL check. Fixed.
+    * pro_section.c: Coverity CID 186990. copy-paste error
+      changed val_len to val_len2.
+    * dwarf_abbrev.c: Coverity CID 186982. dwarf_get_abbrev_count()
+      could leak Dwarf_Error. No longer can.
+    * dwarf_print_lines.c: Coverity CID 186973. Remove useless code.
+    * dwarf_ranges.c: Coverity CID 186909. Ensure null not
+      dereferenced.
+    * dwarf_dnames.c: Coverity CID 186899. If needed !firstdab, 
+      not firstdab. Also, free local allocations on error.
+    * dwarf_dsc.c: Coverity CID 186898. Null check on wrong variable.
+    * dwarf_tsearchhash.c: Coverity CID 186893. Leak on error fixed.
+    * dwarf_query.c: Coverity CID 186892. Testing res, now res3.
+    * dwarf_macro5.c: Coverity CID 186891. Dead code moved to 
+      correct place.
+      Coverity CID 186906. Only increment curopsonly if non-null.
+    * dwarf_dnames.c: Coverity CID 186889. Fixed leak on error.
+    * dwarf_die_deliv.c: Coverity CID 186888. Fixed: Removed
+      assignment overridden later.
+      Coverity CID 186904: deref before: null check, dataptr,dis.
+    * dwarf_frame2.c: Coverity CID 186885. Fixed: loop inappropriate.
+      Coverity CID 186908. Fixed test res->resf.
+    * dwarf_line_table_reader_common.h: Coverity CID 186886. 
+      Fixed leak.
+2018-07-16 David Anderson
+    * dwarf_incl.h: Refine ifdef of HAVE_STDAFX_H.
+    * dwarf_tsearch.h: Correcting web references in comments.
+    * pro_incl.h: Refine ifdef of HAVE_STDAFX_H.
+2018-07-16 David Anderson
+    * Makefile.am: New, used by autotools to create configure.
+    * configure.ac, Makefile.in, config.h.in: Deleted.
 2018-07-09 David Anderson
-    * dwarf_dnames.c: free(tmp) -> free(dab) in freedabs().
+    * dwarf_dnames.c: free(tmp) -> free(dab)
 2018-06-19 David Anderson
     * configure.ac, config.h.in: Removed
       HAVE_NONSTANDARD_PRINTF_64_FORMAT.

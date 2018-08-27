@@ -1,0 +1,7 @@
+2018-07-22  David Anderson
+    * configure.ac: Complete the handling of --enable-sanitize.
+2018-07-19  David Anderson
+    * NEWS, README: Updated to match the new configure code.
+    * configure.ac: Now configure is created by autoreconf -vif
+      and the only configure.ac is here in the same
+      directory as this ChangeLog.

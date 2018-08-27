@@ -82,7 +82,12 @@ typedef unsigned char      Dwarf_Small;  /* 1 byte unsigned value */
     we intend libdwarf should work anyway, but
     as of June 14, 2018 it only mostly works. */
 
-#ifdef _WIN32
+#ifdef HAVE_NONSTANDARD_PRINTF_64_FORMAT
+/* Windows does not use std C formatting, so allow it. */
+#undef DW_PR_DUx
+#undef DW_PR_DSx
+#undef DW_PR_DUu
+#undef DW_PR_DSd
 #define DW_PR_DUx "I64x"
 #define DW_PR_DSx "I64x"
 #define DW_PR_DUu "I64u"
@@ -92,7 +97,7 @@ typedef unsigned char      Dwarf_Small;  /* 1 byte unsigned value */
 #define DW_PR_DSx "llx"
 #define DW_PR_DUu "llu"
 #define DW_PR_DSd "lld"
-#endif /* DW_PR defines */
+#endif /* HAVE_NONSTANDARD_PRINTF_64_FORMAT */
 
 typedef void*        Dwarf_Ptr;          /* host machine pointer */
 
