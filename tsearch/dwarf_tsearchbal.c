@@ -65,6 +65,8 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 #include "stdlib.h" /* for free() */
 #include <stdio.h> /* for printf */
+#include <inttypes.h> /* for PRIxPTR macros */
+
 #include "dwarf_tsearch.h"
 
 #define IMPLEMENTD15 1
@@ -145,13 +147,16 @@ tdump_inner(struct ts_entry *t,
     if(t->keyptr) {
         keyv = keyprint(t->keyptr);
     }
-    printf("0x%08lx <keyptr 0x%08lx> <%s %s> <bal %3d> <l 0x%08lx> <r 0x%08lx> %s\n",
-        (unsigned long)t,
-        (unsigned long)t->keyptr,
+    printf("0x%08" PRIxPTR " <keyptr 0x%08" PRIxPTR "> "
+           "<%s %s> <bal %3d> "
+           "<l 0x%08" PRIxPTR "> <r 0x%08" PRIxPTR "> "
+           "%s\n",
+        (uintptr_t)t,
+        (uintptr_t)t->keyptr,
         t->keyptr?"key ":"null",
         keyv,
         t->balance,
-        (unsigned long)t->llink,(unsigned long)t->rlink,
+        (uintptr_t)t->llink,(uintptr_t)t->rlink,
         descr);
     tdump_inner(t->llink,keyprint,"left ",level+1);
 }
@@ -228,7 +233,7 @@ dwarf_check_balance(struct ts_entry *head,int finalprefix)
 {
     const char *prefix = 0;
     int maxdepth = 0;
-    int headdepth = 0;
+    size_t headdepth = 0;
     int errcount = 0;
     int depth = 0;
     struct ts_entry*root = 0;
@@ -274,15 +279,15 @@ dwarf_tdump(const void*headp_in,
 {
     struct ts_entry *head = (struct ts_entry *)headp_in;
     struct ts_entry *root = 0;
-    int headdepth = 0;
+    size_t headdepth = 0;
     if(!head) {
         printf("dumptree null tree ptr : %s\n",msg);
         return;
     }
     headdepth = head->llink - (struct ts_entry *)0;
-    printf("dumptree head ptr : 0x%08lx tree-depth %d: %s\n",
-        (unsigned long)head,
-        headdepth,
+    printf("dumptree head ptr : 0x%08" PRIxPTR " tree-depth %d: %s\n",
+        (uintptr_t)head,
+        (int)headdepth,
         msg);
     root = head->rlink;
     if(!root) {
@@ -681,7 +686,7 @@ tdelete_inner(const void *key,
     struct ts_entry *p        = 0;
     struct ts_entry *pp       = 0;
     struct pkrecord * pkarray = 0;
-    int depth                 = head->llink - (struct ts_entry *)0;
+    size_t depth              = head->llink - (struct ts_entry *)0;
     unsigned k                = 0;
 
     /*  Allocate extra, head is on the stack we create

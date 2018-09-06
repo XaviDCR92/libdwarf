@@ -1,3 +1,9 @@
+2018-09-06  Carlos Alberto Enciso
+     * dwarf_tsearchhash.c: Use the C99 PRIxPTR macro to print zero padded
+       pointers, to remove warning C4477 on Windows platform.
+     * dwgetopt: Use size_t to remove conversion warning on Windows platform.
+     * getnames.c: Generate '#ifdef __cplusplus/#endif' include guards to
+       allow the inclusion of header files by C++ code.
 2018-09-02 David Anderson
     * Makefile.am: Changed the way to build gennames
       executable to the automake way, eliminating make warnings

@@ -80,6 +80,8 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 #include "stdlib.h" /* for free() */
 #include <stdio.h> /* for printf */
+#include <inttypes.h> /* for PRIxPTR macros */
+
 #include "dwarf_tsearch.h"
 
 #define TRUE 1
@@ -210,14 +212,17 @@ dumptree_inner(const struct ts_entry *t,
         v = keyprint(t->keyptr);
     }
     printlevel(level);
-    printf("0x%08lx <keyptr 0x%08lx> <%s %s> <2-node %d red %u> <l 0x%08lx> <r 0x%08lx> %s\n",
-        (unsigned long)t,
-        (unsigned long)t->keyptr,
+    printf("0x%08" PRIxPTR " <keyptr 0x%08" PRIxPTR "> "
+           "<%s %s> <2-node %d red %u> "
+           "<l 0x%08" PRIxPTR "> <r 0x%08" PRIxPTR "> "
+           "%s\n",
+        (uintptr_t)t,
+        (uintptr_t)t->keyptr,
         t->keyptr?"key ":"null",
         v,
         is_twonode(t),
         t->color,
-        (unsigned long)t->llink,(unsigned long)t->rlink,
+        (uintptr_t)t->llink,(uintptr_t)t->rlink,
         descr);
     dumptree_inner(t->llink,keyprint,"left ",level+1);
 }
@@ -239,8 +244,8 @@ dwarf_tdump(const void*rootin,
         printf("dwarf_tdump empty tree : %s\n",msg);
         return;
     }
-    printf("dwarf_tdump tree head : 0x%08lx %s\n",(unsigned long)head,msg);
-    printf("dwarf_tdump tree root : 0x%08lx %s\n",(unsigned long)root,msg);
+    printf("dwarf_tdump tree head : 0x%08" PRIxPTR " %s\n",(uintptr_t)head,msg);
+    printf("dwarf_tdump tree root : 0x%08" PRIxPTR " %s\n",(uintptr_t)root,msg);
     dumptree_inner(root,keyprint,"top",0);
     fflush(stdout);
 }

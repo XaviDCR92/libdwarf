@@ -1,3 +1,6 @@
+2018-09-06  Carlos Alberto Enciso
+     * dwarf_tsearchbal.c: Use the C99 PRIxPTR macro to print zero padded
+       pointers, to remove warning C4477 on Windows platform.
 2018-09-02 David Anderson
     * Makefile.am: Changed the way to build tag_tree and tag_attr
       executables to the automake way, eliminating make warnings
