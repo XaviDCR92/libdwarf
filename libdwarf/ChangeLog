@@ -447,7 +447,7 @@
 2018-05-14 David Anderson
     * libdwarf.h.in: Declare new frame function,
       next commit will have the code in dwarf_frame.c.
-2018-05-01 Carlos Enciso
+2018-05-01 Carlos Alberto Enciso
     * gennames.c: Reversed the order of calling process_args()
       vs print_args(). There is no visible difference for
       linux/unix, and is just to match the convention

@@ -1,3 +1,9 @@
+2018-09-19 Carlos Alberto Enciso
+    * command_options.c: Move the code associated with each
+      option, to an individual function. Preliminary work for
+      the implementation of long name options.
+    * glflags.h, glflags.c: New field to record the full program
+      name. It is used by the '-V' option.
 2018-09-12  David Anderson
     * esb.c: Corrected the use of HAVE_NONSTANDARD_PRINTF_64_FORMAT.
 2018-09-11 David Anderson & Carlos Alberto Enciso
