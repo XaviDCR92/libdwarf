@@ -66,6 +66,8 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 #include "stdlib.h" /* for free() etc */
 #include <stdio.h>  /* for printf() */
+#include <inttypes.h> /* for PRIxPTR macros */
+
 #include "dwarf_tsearch.h"
 
 /*  A table of primes used to size  and resize the hash table.
@@ -234,10 +236,10 @@ static void print_entry(struct ts_entry *t,const char *descr,
     }
     v = keyprint(t->keyptr);
     printf(
-        "[%4lu.%02lu] 0x%08lx <keyptr 0x%08lx> <key %s> %s\n",
+        "[%4lu.%02lu] 0x%08" PRIxPTR " <keyptr 0x%08" PRIxPTR "> <key %s> %s\n",
         hashpos,chainpos,
-        (unsigned long)t,
-        (unsigned long)t->keyptr,
+        (uintptr_t)t,
+        (uintptr_t)t->keyptr,
         v,
         descr);
 }
@@ -254,8 +256,10 @@ dumptree_inner(const struct hs_base *h,
     unsigned long hashused = 0;
     unsigned long maxchainlength = 0;
     unsigned long chainsgt1 = 0;
-    printf("dumptree head ptr : 0x%08lx size %lu entries %lu allowed %lu %s\n",
-        (unsigned long)h,
+    printf(
+        "dumptree head ptr : 0x%08" PRIxPTR 
+        " size %lu entries %lu allowed %lu %s\n",
+        (uintptr_t)h,
         (unsigned long)h->tablesize_,
         (unsigned long)h->record_count_,
         (unsigned long)h->allowed_fill_,

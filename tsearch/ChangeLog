@@ -3,6 +3,11 @@
        Now matches version in libdwarf.
      * dwarf_tsearchbal.c: Change int to size_t where applicable.
        Fix too-long lines in a couple places
+2018-09-06  Carlos Alberto Enciso
+     * dwarf_tsearchbal.c,dwarf_tsearch.c, dwarf_tsearchhash.c,
+       dwarf_tsearchbin.c,dwarf_tsearchepp.c,dwarf_tsearchred.c:
+       Use the C99 PRIxPTR macro to print zero padded pointers,
+       to remove warning C4477 on Windows platform.
 2018-07-20  David Anderson
      * dwarf_tsearchhash.c: Added UNUSEDARG
        where appropriate.
