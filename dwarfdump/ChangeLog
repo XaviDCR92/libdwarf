@@ -1,3 +1,7 @@
+2018-09-20 Carlos Alberto Enciso
+    * command_options.c: Move the code associated with each
+      sub-option, to an individual function. Preliminary work for
+      the implementation of long name options.
 2018-09-19 Carlos Alberto Enciso
     * command_options.c: Move the code associated with each
       option, to an individual function. Preliminary work for
