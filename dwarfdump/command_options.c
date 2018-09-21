@@ -34,7 +34,6 @@
 
 #include "command_options.h"
 #include "compiler_info.h"
-#include <assert.h>
 
 static const char *remove_quotes_pair(const char *text);
 static char *special_program_name(char *n);
@@ -377,19 +376,31 @@ do_uri_translation(const char *s,const char *context)
     return finalstr;
 }
 
+/*  These functions implement the individual options. They are called from
+    short names and long names options. */
+
+/*  Handlers for the long names options. */
 static void option_1000(void);
 static void option_1001(void);
+
 static void option_trace(void);
 
 static void option_a(void);
 static void option_b(void);
+
+/*  option '-c[...]' */
+static void option_c_0(void);
 static void option_c(void);
 static void option_cs(void);
 static void option_cg(void);
+
 static void option_C(void);
 static void option_d(void);
 static void option_D(void);
 static void option_e(void);
+
+/*  option '-E[...]' */
+static void option_E_0(void);
 static void option_E(void);
 static void option_Ea(void);
 static void option_Ed(void);
@@ -406,6 +417,7 @@ static void option_ER(void);
 static void option_Es(void);
 static void option_Et(void);
 static void option_Ex(void);
+
 static void option_f(void);
 static void option_F(void);
 static void option_g(void);
@@ -414,7 +426,9 @@ static void option_h(void);
 static void option_H(void);
 static void option_i(void);
 static void option_I(void);
-static void option_k(void);
+
+/*  option '-k[...]' */
+static void option_k_0(void);
 static void option_ka(void);
 static void option_kb(void);
 static void option_kc(void);
@@ -436,20 +450,35 @@ static void option_kR(void);
 static void option_ks(void);
 static void option_kS(void);
 static void option_kt(void);
+
 #ifdef HAVE_USAGE_TAG_ATTR
+/*  option '-ku[...]' */
+static void option_ku_0(void);
 static void option_ku(void);
 static void option_kuf(void);
 #endif /* HAVE_USAGE_TAG_ATTR */
+
 static void option_kw(void);
+
+/*  option '-kx[...]' */
+static void option_kx_0(void);
 static void option_kx(void);
 static void option_kxe(void);
+
 static void option_ky(void);
+
+/*  option '-l[...]' */
+static void option_l_0(void);
 static void option_l(void);
 static void option_ls(void);
+
 static void option_m(void);
 static void option_M(void);
 static void option_n(void);
 static void option_N(void);
+
+/*  option '-o[...]' */
+static void option_o_0(void);
 static void option_o(void);
 static void option_oa(void);
 static void option_of(void);
@@ -459,6 +488,7 @@ static void option_oo(void);
 static void option_op(void);
 static void option_or(void);
 static void option_oR(void);
+
 static void option_O(void);
 static void option_p(void);
 static void option_P(void);
@@ -467,7 +497,14 @@ static void option_Q(void);
 static void option_r(void);
 static void option_R(void);
 static void option_s(void);
+
+/*  option '-S[...]' */
 static void option_S(void);
+static void option_S_any(void);
+static void option_S_match(void);
+static void option_S_regex(void);
+static void option_S_badopt(void);
+
 static void option_t(void);
 static void option_ta(void);
 static void option_tf(void);
@@ -477,10 +514,24 @@ static void option_U(void);
 static void option_v(void);
 static void option_V(void);
 static void option_w(void);
+
+/*  option '-W[...]' */
+static void option_W_0(void);
 static void option_W(void);
 static void option_Wc(void);
 static void option_Wp(void);
-static void option_x(void);
+
+/*  option '-x[...]' */
+static void option_x_0(void);
+static void option_x_badopt(void);
+static void option_x_abi();
+static void option_x_groupnumber();
+static void option_x_line5();
+static void option_x_name();
+static void option_x_nosanitizestrings();
+static void option_x_noprintsectiongroups();
+static void option_x_tied();
+
 static void option_y(void);
 static void option_z(void);
 
@@ -519,12 +570,12 @@ process_args(int argc, char *argv[])
         case '#': option_trace(); break;
         case 'a': option_a();     break;
         case 'b': option_b();     break;
-        case 'c': option_c();     break;
+        case 'c': option_c_0();   break;
         case 'C': option_C();     break;
         case 'd': option_d();     break;
         case 'D': option_D();     break;
         case 'e': option_e();     break;
-        case 'E': option_E();     break;
+        case 'E': option_E_0();   break;
         case 'f': option_f();     break;
         case 'F': option_F();     break;
         case 'g': option_g();     break;
@@ -533,13 +584,13 @@ process_args(int argc, char *argv[])
         case 'H': option_H();     break;
         case 'i': option_i();     break;
         case 'I': option_I();     break;
-        case 'k': option_k();     break;
-        case 'l': option_l();     break;
+        case 'k': option_k_0();   break;
+        case 'l': option_l_0();   break;
         case 'm': option_m();     break;
         case 'M': option_M();     break;
         case 'n': option_n();     break;
         case 'N': option_N();     break;
-        case 'o': option_o();     break;
+        case 'o': option_o_0();   break;
         case 'O': option_O();     break;
         case 'p': option_p();     break;
         case 'P': option_P();     break;
@@ -555,8 +606,8 @@ process_args(int argc, char *argv[])
         case 'v': option_v();     break;
         case 'V': option_V();     break;
         case 'w': option_w();     break;
-        case 'W': option_W();     break;
-        case 'x': option_x();     break;
+        case 'W': option_W_0();   break;
+        case 'x': option_x_0();   break;
         case 'y': option_y();     break;
         case 'z': option_z();     break;
         default: usage_error = TRUE; break;
@@ -635,23 +686,17 @@ process_args(int argc, char *argv[])
 
 void option_1000(void)
 {
-    assert(option == 1000);
-
     glflags.gf_print_str_offsets = TRUE;
 }
 
 void option_1001(void)
 {
-    assert(option == 1001);
-
     glflags.gf_debug_names_flag = TRUE;
 }
 
 /*  option '-#' */
 void option_trace(void)
 {
-    assert(option == '#');
-
     int nTraceLevel =  atoi(dwoptarg);
     if (nTraceLevel >= 0 && nTraceLevel <= MAX_TRACE_LEVEL) {
         glflags.nTrace[nTraceLevel] = 1;
@@ -666,8 +711,6 @@ void option_trace(void)
 /*  option '-a' */
 void option_a(void)
 {
-    assert(option == 'a');
-
     suppress_check_dwarf();
     do_all();
 }
@@ -675,17 +718,13 @@ void option_a(void)
 /*  option '-b' */
 void option_b(void)
 {
-    assert(option == 'b');
-
     glflags.gf_abbrev_flag = TRUE;
     suppress_check_dwarf();
 }
 
-/*  option '-c' */
-void option_c(void)
+/*  option '-c[...]' */
+void option_c_0(void)
 {
-    assert(option == 'c');
-
     /* Specify compiler name. */
     if (dwoptarg) {
         switch (dwoptarg[0]) {
@@ -702,9 +741,15 @@ void option_c(void)
             break;
         }
     } else {
-        glflags.gf_loc_flag = TRUE;
-        suppress_check_dwarf();
+        option_c();
     }
+}
+
+/*  option '-c' */
+void option_c(void)
+{
+    glflags.gf_loc_flag = TRUE;
+    suppress_check_dwarf();
 }
 
 /*  option '-cs' */
@@ -726,16 +771,12 @@ void option_cg(void)
 /*  option '-C' */
 void option_C(void)
 {
-    assert(option == 'C');
-
     glflags.gf_suppress_check_extensions_tables = TRUE;
 }
 
 /*  option '-d' */
 void option_d(void)
 {
-    assert(option == 'd');
-
     glflags.gf_do_print_dwarf = TRUE;
     /*  This is sort of useless unless printing,
         but harmless, so we do not insist we
@@ -746,8 +787,6 @@ void option_d(void)
 /*  option '-D' */
 void option_D(void)
 {
-    assert(option == 'D');
-
     /* Do not emit offset in output */
     glflags.gf_display_offsets = FALSE;
 }
@@ -755,19 +794,14 @@ void option_D(void)
 /*  option '-e' */
 void option_e(void)
 {
-    assert(option == 'e');
-
     suppress_check_dwarf();
     glflags.ellipsis = TRUE;
 }
 
-/*  option '-E' */
-void option_E(void)
+/*  option '-E[...]' */
+void option_E_0(void)
 {
-    assert(option == 'E');
-
     /* Object Header information (but maybe really print) */
-    glflags.gf_header_flag = TRUE;
     /* Selected printing of section info */
     if (dwoptarg) {
         switch (dwoptarg[0]) {
@@ -789,14 +823,22 @@ void option_E(void)
         default: usage_error = TRUE; break;
         }
     } else {
-        /* Display header and all sections info */
-        set_all_sections_on();
+        option_E();
     }
+}
+
+/*  option '-E' */
+void option_E(void)
+{
+    /* Display header and all sections info */
+    glflags.gf_header_flag = TRUE;
+    set_all_sections_on();
 }
 
 /*  option '-Ea' */
 void option_Ea(void)
 {
+    glflags.gf_header_flag = TRUE;
     enable_section_map_entry(DW_HDR_DEBUG_ABBREV);
 }
 
@@ -804,24 +846,28 @@ void option_Ea(void)
 void option_Ed(void)
 {
     /* case 'd', use the default section set */
+    glflags.gf_header_flag = TRUE;
     set_all_section_defaults();
 }
 
 /*  option '-Ef' */
 void option_Ef(void)
 {
+    glflags.gf_header_flag = TRUE;
     enable_section_map_entry(DW_HDR_DEBUG_FRAME);
 }
 
 /*  option '-Eh' */
 void option_Eh(void)
 {
+    glflags.gf_header_flag = TRUE;
     enable_section_map_entry(DW_HDR_HEADER);
 }
 
 /*  option '-Ei' */
 void option_Ei(void)
 {
+    glflags.gf_header_flag = TRUE;
     enable_section_map_entry(DW_HDR_DEBUG_INFO);
     enable_section_map_entry(DW_HDR_DEBUG_TYPES);
 }
@@ -829,6 +875,7 @@ void option_Ei(void)
 /*  option '-EI' */
 void option_EI(void)
 {
+    glflags.gf_header_flag = TRUE;
     enable_section_map_entry(DW_HDR_GDB_INDEX);
     enable_section_map_entry(DW_HDR_DEBUG_CU_INDEX);
     enable_section_map_entry(DW_HDR_DEBUG_TU_INDEX);
@@ -838,6 +885,7 @@ void option_EI(void)
 /*  option '-El' */
 void option_El(void)
 {
+    glflags.gf_header_flag = TRUE;
     enable_section_map_entry(DW_HDR_DEBUG_LINE);
 }
 
@@ -845,30 +893,35 @@ void option_El(void)
 void option_Em(void)
 {
     /*  For both old macinfo and dwarf5  macro */
+    glflags.gf_header_flag = TRUE;
     enable_section_map_entry(DW_HDR_DEBUG_MACINFO);
 }
 
 /*  option '-Eo' */
 void option_Eo(void)
 {
+    glflags.gf_header_flag = TRUE;
     enable_section_map_entry(DW_HDR_DEBUG_LOC);
 }
 
 /*  option '-Ep' */
 void option_Ep(void)
 {
+    glflags.gf_header_flag = TRUE;
     enable_section_map_entry(DW_HDR_DEBUG_PUBNAMES);
 }
 
 /*  option '-Er' */
 void option_Er(void)
 {
+    glflags.gf_header_flag = TRUE;
     enable_section_map_entry(DW_HDR_DEBUG_ARANGES);
 }
 
 /*  option '-ER' */
 void option_ER(void)
 {
+    glflags.gf_header_flag = TRUE;
     enable_section_map_entry(DW_HDR_DEBUG_RANGES);
     enable_section_map_entry(DW_HDR_DEBUG_RNGLISTS);
 }
@@ -876,26 +929,27 @@ void option_ER(void)
 /*  option '-Es' */
 void option_Es(void)
 {
+    glflags.gf_header_flag = TRUE;
     enable_section_map_entry(DW_HDR_DEBUG_STR);
 }
 
 /*  option '-Et' */
 void option_Et(void)
 {
+    glflags.gf_header_flag = TRUE;
     enable_section_map_entry(DW_HDR_DEBUG_PUBTYPES);
 }
 
 /*  option '-Ex' */
 void option_Ex(void)
 {
+    glflags.gf_header_flag = TRUE;
     enable_section_map_entry(DW_HDR_TEXT);
 }
 
 /*  option '-f' */
 void option_f(void)
 {
-    assert(option == 'f');
-
     glflags.gf_frame_flag = TRUE;
     suppress_check_dwarf();
 }
@@ -903,8 +957,6 @@ void option_f(void)
 /*  option '-F' */
 void option_F(void)
 {
-    assert(option == 'F');
-
     glflags.gf_eh_frame_flag = TRUE;
     suppress_check_dwarf();
 }
@@ -912,26 +964,20 @@ void option_F(void)
 /*  option '-g' */
 void option_g(void)
 {
-    assert(option == 'g');
-
-    glflags.gf_use_old_dwarf_loclist = TRUE;
     /*info_flag = TRUE;  removed  from -g. Nov 2015 */
+    glflags.gf_use_old_dwarf_loclist = TRUE;
     suppress_check_dwarf();
 }
 
 /*  option '-G' */
 void option_G(void)
 {
-    assert(option == 'G');
-
     glflags.gf_show_global_offsets = TRUE;
 }
 
 /*  option '-h' */
 void option_h(void)
 {
-    assert(option == 'h');
-
     print_usage_message(glflags.program_name,usage_text);
     exit(OKAY);
 }
@@ -939,8 +985,6 @@ void option_h(void)
 /*  option '-H' */
 void option_H(void)
 {
-    assert(option == 'H');
-
     int break_val =  atoi(dwoptarg);
     if (break_val > 0) {
         glflags.break_after_n_units = break_val;
@@ -950,8 +994,6 @@ void option_H(void)
 /*  option '-i' */
 void option_i(void)
 {
-    assert(option == 'i');
-
     glflags.gf_info_flag = TRUE;
     glflags.gf_types_flag = TRUE;
     suppress_check_dwarf();
@@ -960,18 +1002,13 @@ void option_i(void)
 /*  option '-I' */
 void option_I(void)
 {
-    assert(option == 'I');
-
     glflags.gf_gdbindex_flag = TRUE;
     suppress_check_dwarf();
 }
 
-/*  option '-k' */
-void option_k(void)
+/*  option '-k[...]' */
+void option_k_0(void)
 {
-    assert(option == 'k');
-
-    suppress_print_dwarf();
     switch (dwoptarg[0]) {
     case 'a': option_ka(); break;
     case 'b': option_kb(); break;
@@ -995,10 +1032,10 @@ void option_k(void)
     case 'S': option_kS(); break;
     case 't': option_kt(); break;
 #ifdef HAVE_USAGE_TAG_ATTR
-    case 'u': option_ku(); break;
+    case 'u': option_ku_0(); break;
 #endif /* HAVE_USAGE_TAG_ATTR */
     case 'w': option_kw(); break;
-    case 'x': option_kx(); break;
+    case 'x': option_kx_0(); break;
     case 'y': option_ky(); break;
     default: usage_error = TRUE; break;
     }
@@ -1007,6 +1044,7 @@ void option_k(void)
 /*  option '-ka' */
 void option_ka(void)
 {
+    suppress_print_dwarf();
     glflags.gf_check_pubname_attr = TRUE;
     glflags.gf_check_attr_tag = TRUE;
     glflags.gf_check_tag_tree = TRUE;
@@ -1043,6 +1081,7 @@ void option_ka(void)
 void option_kb(void)
 {
     /* Abbreviations */
+    suppress_print_dwarf();
     glflags.gf_check_abbreviations = TRUE;
     glflags.gf_info_flag = TRUE;
     glflags.gf_types_flag = TRUE;
@@ -1055,6 +1094,7 @@ void option_kb(void)
 void option_kc(void)
 {
     /* DWARF constants */
+    suppress_print_dwarf();
     glflags.gf_check_dwarf_constants = TRUE;
     glflags.gf_info_flag = TRUE;
     glflags.gf_types_flag = TRUE;
@@ -1064,6 +1104,7 @@ void option_kc(void)
 void option_kd(void)
 {
     /* Display check results */
+    suppress_print_dwarf();
     glflags.gf_check_show_results = TRUE;
 }
 
@@ -1071,6 +1112,7 @@ void option_kd(void)
 void option_kD(void)
 {
     /* Check duplicated attributes */
+    suppress_print_dwarf();
     glflags.gf_check_duplicated_attributes = TRUE;
     glflags.gf_info_flag = TRUE;
     glflags.gf_types_flag = TRUE;
@@ -1082,6 +1124,7 @@ void option_kD(void)
 /*  option '-ke' */
 void option_ke(void)
 {
+    suppress_print_dwarf();
     glflags.gf_check_pubname_attr = TRUE;
     glflags.gf_pubnames_flag = TRUE;
     glflags.gf_check_harmless = TRUE;
@@ -1092,6 +1135,7 @@ void option_ke(void)
 void option_kE(void)
 {
     /* Attributes encoding usage */
+    suppress_print_dwarf();
     glflags.gf_check_attr_encoding = TRUE;
     glflags.gf_info_flag = TRUE;
     glflags.gf_types_flag = TRUE;
@@ -1100,6 +1144,7 @@ void option_kE(void)
 /*  option '-kf' */
 void option_kf(void)
 {
+    suppress_print_dwarf();
     glflags.gf_check_harmless = TRUE;
     glflags.gf_check_fdes = TRUE;
 }
@@ -1108,6 +1153,7 @@ void option_kf(void)
 void option_kF(void)
 {
     /* files-lines */
+    suppress_print_dwarf();
     glflags.gf_check_decl_file = TRUE;
     glflags.gf_check_lines = TRUE;
     glflags.gf_info_flag = TRUE;
@@ -1118,6 +1164,7 @@ void option_kF(void)
 void option_kg(void)
 {
     /* Check debug info gaps */
+    suppress_print_dwarf();
     glflags.gf_check_di_gaps = TRUE;
     glflags.gf_info_flag = TRUE;
     glflags.gf_types_flag = TRUE;
@@ -1127,6 +1174,7 @@ void option_kg(void)
 void option_kG(void)
 {
     /* Print just global (unique) errors */
+    suppress_print_dwarf();
     glflags.gf_print_unique_errors = TRUE;
 }
 
@@ -1134,6 +1182,7 @@ void option_kG(void)
 void option_ki(void)
 {
     /* Summary for each compiler */
+    suppress_print_dwarf();
     glflags.gf_print_summary_all = TRUE;
 }
 
@@ -1141,6 +1190,7 @@ void option_ki(void)
 void option_kl(void)
 {
     /* Locations list */
+    suppress_print_dwarf();
     glflags.gf_check_locations = TRUE;
     glflags.gf_info_flag = TRUE;
     glflags.gf_types_flag = TRUE;
@@ -1151,6 +1201,7 @@ void option_kl(void)
 void option_km(void)
 {
     /* Ranges */
+    suppress_print_dwarf();
     glflags.gf_check_ranges = TRUE;
     glflags.gf_info_flag = TRUE;
     glflags.gf_types_flag = TRUE;
@@ -1160,6 +1211,7 @@ void option_km(void)
 void option_kM(void)
 {
     /* Aranges */
+    suppress_print_dwarf();
     glflags.gf_check_aranges = TRUE;
     glflags.gf_aranges_flag = TRUE;
 }
@@ -1168,6 +1220,7 @@ void option_kM(void)
 void option_kn(void)
 {
     /* invalid names */
+    suppress_print_dwarf();
     glflags.gf_check_names = TRUE;
     glflags.gf_info_flag = TRUE;
     glflags.gf_types_flag = TRUE;
@@ -1176,6 +1229,7 @@ void option_kn(void)
 /*  option '-kr' */
 void option_kr(void)
 {
+    suppress_print_dwarf();
     glflags.gf_check_attr_tag = TRUE;
     glflags.gf_info_flag = TRUE;
     glflags.gf_types_flag = TRUE;
@@ -1186,6 +1240,7 @@ void option_kr(void)
 void option_kR(void)
 {
     /* forward declarations in DW_AT_specification */
+    suppress_print_dwarf();
     glflags.gf_check_forward_decl = TRUE;
     glflags.gf_info_flag = TRUE;
     glflags.gf_types_flag = TRUE;
@@ -1195,6 +1250,7 @@ void option_kR(void)
 void option_ks(void)
 {
     /* Check verbose mode */
+    suppress_print_dwarf();
     glflags.gf_check_verbose_mode = FALSE;
 }
 
@@ -1203,6 +1259,7 @@ void option_kS(void)
 {
     /*  self references in:
         DW_AT_specification, DW_AT_type, DW_AT_abstract_origin */
+    suppress_print_dwarf();
     glflags.gf_check_self_references = TRUE;
     glflags.gf_info_flag = TRUE;
     glflags.gf_types_flag = TRUE;
@@ -1211,6 +1268,7 @@ void option_kS(void)
 /*  option '-kt' */
 void option_kt(void)
 {
+    suppress_print_dwarf();
     glflags.gf_check_tag_tree = TRUE;
     glflags.gf_check_harmless = TRUE;
     glflags.gf_info_flag = TRUE;
@@ -1218,24 +1276,34 @@ void option_kt(void)
 }
 
 #ifdef HAVE_USAGE_TAG_ATTR
-/*  option '-ku' */
-void option_ku(void)
+/*  option '-ku[...]' */
+void option_ku_0(void)
 {
     /* Tag-Tree and Tag-Attr usage */
-    glflags.gf_print_usage_tag_attr = TRUE;
-    glflags.gf_info_flag = TRUE;
-    glflags.gf_types_flag = TRUE;
     if (dwoptarg[1]) {
         switch (dwoptarg[1]) {
         case 'f': option_kuf(); break;
         default: usage_error = TRUE; break;
         }
+    } else {
+      option_ku();
     }
+}
+
+/*  option '-ku' */
+void option_ku(void)
+{
+    suppress_print_dwarf();
+    glflags.gf_print_usage_tag_attr = TRUE;
+    glflags.gf_info_flag = TRUE;
+    glflags.gf_types_flag = TRUE;
 }
 
 /*  option '-kuf' */
 void option_kuf(void)
 {
+    option_ku();
+
     /* -kuf : Full report */
     glflags.gf_print_usage_tag_attr_full = TRUE;
 }
@@ -1244,29 +1312,40 @@ void option_kuf(void)
 /*  option '-kw' */
 void option_kw(void)
 {
+    suppress_print_dwarf();
     glflags.gf_check_macros = TRUE;
     glflags.gf_macro_flag = TRUE;
     glflags.gf_macinfo_flag = TRUE;
 }
 
-/*  option '-kx' */
-void option_kx(void)
+/*  option '-kx[...]' */
+void option_kx_0(void)
 {
     /* Frames check */
-    glflags.gf_check_frames = TRUE;
-    glflags.gf_frame_flag = TRUE;
-    glflags.gf_eh_frame_flag = TRUE;
     if (dwoptarg[1]) {
         switch (dwoptarg[1]) {
         case 'e': option_kxe(); break;
         default: usage_error = TRUE; break;
         }
+    } else {
+      option_kx();
     }
+}
+
+/*  option '-kx' */
+void option_kx(void)
+{
+    suppress_print_dwarf();
+    glflags.gf_check_frames = TRUE;
+    glflags.gf_frame_flag = TRUE;
+    glflags.gf_eh_frame_flag = TRUE;
 }
 
 /*  option '-kxe' */
 void option_kxe(void)
 {
+    option_kx();
+
     /* -xe : Extended frames check */
     glflags.gf_check_frames = FALSE;
     glflags.gf_check_frames_extended = TRUE;
@@ -1275,6 +1354,7 @@ void option_kxe(void)
 /*  option '-ky' */
 void option_ky(void)
 {
+    suppress_print_dwarf();
     glflags.gf_check_type_offset = TRUE;
     glflags.gf_check_harmless = TRUE;
     glflags.gf_check_decl_file = TRUE;
@@ -1284,25 +1364,32 @@ void option_ky(void)
     glflags.gf_check_aranges = TRUE;
 }
 
-/*  option '-l' */
-void option_l(void)
+/*  option '-l[...]' */
+void option_l_0(void)
 {
-    assert(option == 'l');
-
-    glflags.gf_line_flag = TRUE;
-    suppress_check_dwarf();
-    /* Enable to suppress offsets printing */
     if (dwoptarg) {
         switch (dwoptarg[0]) {
         case 's': option_ls(); break;
         default: usage_error = TRUE; break;
         }
+    } else {
+      option_l();
     }
+}
+
+/*  option '-l' */
+void option_l(void)
+{
+    /* Enable to suppress offsets printing */
+    glflags.gf_line_flag = TRUE;
+    suppress_check_dwarf();
 }
 
 /*  option '-ls' */
 void option_ls(void)
 {
+  option_l();
+
   /* -ls : suppress <pc> addresses */
   glflags.gf_line_print_pc = FALSE;
 }
@@ -1310,8 +1397,6 @@ void option_ls(void)
 /*  option '-m' */
 void option_m(void)
 {
-    assert(option == 'm');
-
     glflags.gf_macinfo_flag = TRUE; /* DWARF2,3,4 */
     glflags.gf_macro_flag   = TRUE; /* DWARF5 */
     suppress_check_dwarf();
@@ -1320,34 +1405,25 @@ void option_m(void)
 /*  option '-M' */
 void option_M(void)
 {
-    assert(option == 'M');
-
     glflags.show_form_used =  TRUE;
 }
 
 /*  option '-n' */
 void option_n(void)
 {
-    assert(option == 'n');
-
     glflags.gf_suppress_nested_name_search = TRUE;
 }
 
 /*  option '-N' */
 void option_N(void)
 {
-    assert(option == 'N');
-
     glflags.gf_ranges_flag = TRUE;
     suppress_check_dwarf();
 }
 
-/*  option '-o' */
-void option_o(void)
+/*  option '-o[...]' */
+void option_o_0(void)
 {
-    assert(option == 'o');
-
-    glflags.gf_reloc_flag = TRUE;
     if (dwoptarg) {
         switch (dwoptarg[0]) {
         case 'a': option_oa(); break;
@@ -1361,8 +1437,15 @@ void option_o(void)
         default: usage_error = TRUE; break;
         }
     } else {
-        set_all_reloc_sections_on();
+        option_o();
     }
+}
+
+/*  option '-o' */
+void option_o(void)
+{
+    glflags.gf_reloc_flag = TRUE;
+    set_all_reloc_sections_on();
 }
 
 /*  option '-oa' */
@@ -1370,18 +1453,21 @@ void option_oa(void)
 {
     /*  Case a has no effect, no relocations can point out
         of the abbrev section. */
+    glflags.gf_reloc_flag = TRUE;
     enable_reloc_map_entry(DW_SECTION_REL_DEBUG_ABBREV);
 }
 
 /*  option '-of' */
 void option_of(void)
 {
+    glflags.gf_reloc_flag = TRUE;
     enable_reloc_map_entry(DW_SECTION_REL_DEBUG_FRAME);
 }
 
 /*  option '-oi' */
 void option_oi(void)
 {
+    glflags.gf_reloc_flag = TRUE;
     enable_reloc_map_entry(DW_SECTION_REL_DEBUG_INFO);
     enable_reloc_map_entry(DW_SECTION_REL_DEBUG_TYPES);
 }
@@ -1389,12 +1475,14 @@ void option_oi(void)
 /*  option '-ol' */
 void option_ol(void)
 {
+    glflags.gf_reloc_flag = TRUE;
     enable_reloc_map_entry(DW_SECTION_REL_DEBUG_LINE);
 }
 
 /*  option '-oo' */
 void option_oo(void)
 {
+    glflags.gf_reloc_flag = TRUE;
     enable_reloc_map_entry(DW_SECTION_REL_DEBUG_LOC);
     enable_reloc_map_entry(DW_SECTION_REL_DEBUG_LOCLISTS);
 }
@@ -1402,18 +1490,21 @@ void option_oo(void)
 /*  option '-op' */
 void option_op(void)
 {
+    glflags.gf_reloc_flag = TRUE;
     enable_reloc_map_entry(DW_SECTION_REL_DEBUG_PUBNAMES);
 }
 
 /*  option '-or' */
 void option_or(void)
 {
+    glflags.gf_reloc_flag = TRUE;
     enable_reloc_map_entry(DW_SECTION_REL_DEBUG_ARANGES);
 }
 
 /*  option '-oR' */
 void option_oR(void)
 {
+    glflags.gf_reloc_flag = TRUE;
     enable_reloc_map_entry(DW_SECTION_REL_DEBUG_RANGES);
     enable_reloc_map_entry(DW_SECTION_REL_DEBUG_RNGLISTS);
 }
@@ -1421,11 +1512,9 @@ void option_oR(void)
 /*  option '-O' */
 void option_O(void)
 {
-    assert(option == 'O');
-
     /* Output filename */
     const char *path = 0;
-    /*  -O name=<filename> */
+    /*  -O file=<filename> */
     usage_error = TRUE;
     if (strncmp(dwoptarg,"file=",5) == 0) {
         path = do_uri_translation(&dwoptarg[5],"-O file=");
@@ -1439,8 +1528,6 @@ void option_O(void)
 /*  option '-p' */
 void option_p(void)
 {
-    assert(option == 'p');
-
     glflags.gf_pubnames_flag = TRUE;
     suppress_check_dwarf();
 }
@@ -1448,8 +1535,6 @@ void option_p(void)
 /*  option '-P' */
 void option_P(void)
 {
-    assert(option == 'P');
-
     /* List of CUs per compiler */
     glflags.gf_producer_children_flag = TRUE;
 }
@@ -1457,8 +1542,6 @@ void option_P(void)
 /*  option '-q' */
 void option_q(void)
 {
-    assert(option == 'q');
-
     /* Suppress uri-did-transate notification */
     glflags.gf_do_print_uri_in_input = FALSE;
 }
@@ -1466,8 +1549,6 @@ void option_q(void)
 /*  option '-Q' */
 void option_Q(void)
 {
-    assert(option == 'Q');
-
     /* Q suppresses section data printing. */
     glflags.gf_do_print_dwarf = FALSE;
 }
@@ -1475,8 +1556,6 @@ void option_Q(void)
 /*  option '-r' */
 void option_r(void)
 {
-    assert(option == 'r');
-
     glflags.gf_aranges_flag = TRUE;
     suppress_check_dwarf();
 }
@@ -1484,16 +1563,12 @@ void option_r(void)
 /*  option '-R' */
 void option_R(void)
 {
-    assert(option == 'R');
-
     glflags.gf_generic_1200_regs = TRUE;
 }
 
 /*  option '-s' */
 void option_s(void)
 {
-    assert(option == 's');
-
     glflags.gf_string_flag = TRUE;
     suppress_check_dwarf();
 }
@@ -1501,79 +1576,80 @@ void option_s(void)
 /*  option '-S' */
 void option_S(void)
 {
-    assert(option == 'S');
-
-    /* -S option: strings for 'any' and 'match' */
-    const char *tempstr = 0;
-    boolean serr = TRUE;
-    glflags.gf_search_is_on = TRUE;
     /* 'v' option, to print number of occurrences */
     /* -S[v]match|any|regex=text*/
     if (dwoptarg[0] == 'v') {
         ++dwoptarg;
         glflags.gf_search_print_results = TRUE;
     }
-    /* -S match=<text>*/
+
     if (strncmp(dwoptarg,"match=",6) == 0) {
-        glflags.search_match_text = makename(&dwoptarg[6]);
-        tempstr = remove_quotes_pair(glflags.search_match_text);
-        glflags.search_match_text =
-            do_uri_translation(tempstr, "-S match=");
-        if (strlen(glflags.search_match_text) > 0) {
-            serr = FALSE;
-        }
+        option_S_match();
+    } else if (strncmp(dwoptarg,"any=",4) == 0) {
+        option_S_any();
     }
-    else {
-        /* -S any=<text>*/
-        if (strncmp(dwoptarg,"any=",4) == 0) {
-            glflags.search_any_text = makename(&dwoptarg[4]);
-            tempstr = remove_quotes_pair(glflags.search_any_text);
-            glflags.search_any_text =
-                do_uri_translation(tempstr,"-S any=");
-            if (strlen(glflags.search_any_text) > 0) {
-                serr = FALSE;
-            }
-        }
 #ifdef HAVE_REGEX
-        else {
-            /* -S regex=<regular expression>*/
-            if (strncmp(dwoptarg,"regex=",6) == 0) {
-                glflags.search_regex_text = makename(&dwoptarg[6]);
-                tempstr = remove_quotes_pair(
-                    glflags.search_regex_text);
-                glflags.search_regex_text =
-                    do_uri_translation(tempstr,
-                    "-S regex=");
-                if (strlen(glflags.search_regex_text) > 0) {
-                    if (regcomp(glflags.search_re,
-                        glflags.search_regex_text,
-                        REG_EXTENDED)) {
-                        fprintf(stderr,
-                            "regcomp: unable to compile %s\n",
-                            glflags.search_regex_text);
-                    }
-                    else {
-                        serr = FALSE;
-                    }
-                }
-            }
-        }
-#endif /* HAVE_REGEX */
+    else if (strncmp(dwoptarg,"regex=",6) == 0) {
+        option_S_regex();
     }
-    if (serr) {
-        fprintf(stderr,
-            "-S any=<text> or -S match=<text> or"
-            " -S regex=<text>\n");
-        fprintf(stderr, "is allowed, not -S %s\n",dwoptarg);
-        usage_error = TRUE;
+#endif /* HAVE_REGEX */
+    else {
+        option_S_badopt();
     }
 }
+
+/*  option '-S any=' */
+void option_S_any(void)
+{
+    /* -S any=<text> */
+    glflags.gf_search_is_on = TRUE;
+    glflags.search_any_text = makename(&dwoptarg[4]);
+    const char *tempstr = remove_quotes_pair(glflags.search_any_text);
+    glflags.search_any_text = do_uri_translation(tempstr,"-S any=");
+    if (strlen(glflags.search_any_text) <= 0) {
+        option_S_badopt();
+    }
+}
+
+/*  option '-S match=' */
+void option_S_match(void)
+{
+    /* -S match=<text> */
+    glflags.gf_search_is_on = TRUE;
+    glflags.search_match_text = makename(&dwoptarg[6]);
+    const char *tempstr = remove_quotes_pair(glflags.search_match_text);
+    glflags.search_match_text = do_uri_translation(tempstr, "-S match=");
+    if (strlen(glflags.search_match_text) <= 0) {
+        option_S_badopt();
+    }
+}
+
+#ifdef HAVE_REGEX
+/*  option '-S regex=' */
+void option_S_regex(void)
+{
+    /* -S regex=<regular expression> */
+    glflags.gf_search_is_on = TRUE;
+    glflags.search_regex_text = makename(&dwoptarg[6]);
+    const char *tempstr = remove_quotes_pair(glflags.search_regex_text);
+    glflags.search_regex_text = do_uri_translation(tempstr, "-S regex=");
+    if (strlen(glflags.search_regex_text) > 0) {
+        if (regcomp(glflags.search_re,
+            glflags.search_regex_text,
+            REG_EXTENDED)) {
+            fprintf(stderr,
+                "regcomp: unable to compile %s\n",
+                glflags.search_regex_text);
+        }
+    } else {
+        option_S_badopt();
+    }
+}
+#endif /* HAVE_REGEX */
 
 /*  option '-t' */
 void option_t(void)
 {
-    assert(option == 't');
-
     switch (dwoptarg[0]) {
     case 'a': option_ta(); break;
     case 'f': option_tf(); break;
@@ -1610,8 +1686,6 @@ void option_tv(void)
 /*  option '-u' */
 void option_u(void)
 {
-    assert(option == 'u');
-
     /* compile unit */
     const char *tstr = 0;
     glflags.gf_cu_name_flag = TRUE;
@@ -1622,24 +1696,18 @@ void option_u(void)
 /*  option '-U' */
 void option_U(void)
 {
-    assert(option == 'U');
-
     glflags.gf_uri_options_translation = FALSE;
 }
 
 /*  option '-v' */
 void option_v(void)
 {
-    assert(option == 'v');
-
     glflags.verbose++;
 }
 
 /*  option '-V' */
 void option_V(void)
 {
-    assert(option == 'V');
-
     /* Display dwarfdump compilation date and time */
     print_version_details(glflags.program_fullname,TRUE);
     exit(OKAY);
@@ -1648,140 +1716,167 @@ void option_V(void)
 /*  option '-w' */
 void option_w(void)
 {
-    assert(option == 'w');
-
     /* .debug_weaknames */
     glflags.gf_weakname_flag = TRUE;
     suppress_check_dwarf();
 }
 
-/*  option '-W' */
-void option_W(void)
+/*  option '-W[...]' */
+void option_W_0(void)
 {
-    assert(option == 'W');
-
     if (dwoptarg) {
         switch (dwoptarg[0]) {
         case 'c': option_Wc(); break;
         case 'p': option_Wp(); break;
         default: usage_error = TRUE; break;
         }
+    } else {
+        option_W();
     }
-    else {
-        /* Search results in wide format */
-        glflags.gf_search_wide_format = TRUE;
-        /* -W : Display parent and children tree */
-        glflags.gf_display_children_tree = TRUE;
-        glflags.gf_display_parent_tree = TRUE;
-    }
+}
+
+/*  option '-W' */
+void option_W(void)
+{
+    /* Search results in wide format */
+    glflags.gf_search_wide_format = TRUE;
+
+    /* -W : Display parent and children tree */
+    glflags.gf_display_children_tree = TRUE;
+    glflags.gf_display_parent_tree = TRUE;
 }
 
 /*  option '-Wc' */
 void option_Wc(void)
 {
-    /* Search results in wide format */
-    glflags.gf_search_wide_format = TRUE;
     /* -Wc : Display children tree */
+    option_W();
     glflags.gf_display_children_tree = TRUE;
+    glflags.gf_display_parent_tree = FALSE;
 }
 
 /*  option '-Wp' */
 void option_Wp(void)
 {
-    /* Search results in wide format */
-    glflags.gf_search_wide_format = TRUE;
     /* -Wp : Display parent tree */
+    option_W();
+    glflags.gf_display_children_tree = FALSE;
     glflags.gf_display_parent_tree = TRUE;
 }
 
-/*  option '-x' */
-void option_x(void)
+/*  option '-x[...]' */
+void option_x_0(void)
 {
-    assert(option == 'x');
-
-    const char *path = 0;
-    const char *abi = 0;
-    /*  -x name=<path> meaning name dwarfdump.conf file -x
-        abi=<abi> meaning select abi from dwarfdump.conf
-        file. Must always select abi to use dwarfdump.conf */
     if (strncmp(dwoptarg, "name=", 5) == 0) {
-        path = do_uri_translation(&dwoptarg[5],"-x name=");
-        if (strlen(path) < 1) {
-            goto badopt;
-        }
+        option_x_name();
+    } else if (strncmp(dwoptarg, "abi=", 4) == 0) {
+        option_x_abi();
+    } else if (strncmp(dwoptarg, "groupnumber=", 12) == 0) {
+        option_x_groupnumber();
+    } else if (strncmp(dwoptarg, "tied=", 5) == 0) {
+        option_x_tied();
+    } else if (strncmp(dwoptarg, "line5=", 6) == 0) {
+        option_x_line5();
+    } else if (strcmp(dwoptarg, "nosanitizestrings") == 0) {
+        option_x_nosanitizestrings();
+    } else if (strcmp(dwoptarg,"noprintsectiongroups") == 0) {
+        option_x_noprintsectiongroups();
+    } else {
+        option_x_badopt();
+    }
+}
+
+/*  option '-x abi=' */
+void option_x_abi(void)
+{
+    /*  -x abi=<abi> meaning select abi from dwarfdump.conf
+        file. Must always select abi to use dwarfdump.conf */
+    const char *abi = do_uri_translation(&dwoptarg[4],"-x abi=");
+    if (strlen(abi) < 1) {
+        option_x_badopt();
+    } else {
+        config_file_abi = abi;
+    }
+}
+
+/*  option '-x groupnumber=' */
+void option_x_groupnumber(void)
+{
+    /*  By default prints the lowest
+        groupnumber in the object.
+        Default is  -x groupnumber=0
+        For group 1 (standard base dwarfdata)
+            -x groupnumber=1
+        For group 1 (DWARF5 .dwo sections and dwp data)
+            -x groupnumber=2 */
+    long int gnum = 0;
+
+    int res = get_number_value(dwoptarg+12,&gnum);
+    if (res == DW_DLV_OK) {
+        glflags.group_number = gnum;
+    } else {
+        option_x_badopt();
+    }
+}
+
+/*  option '-x line5=' */
+void option_x_line5(void)
+{
+    if (strlen(dwoptarg) < 6) {
+        option_x_badopt();
+    } else if (!strcmp(&dwoptarg[6],"std")) {
+        glflags.gf_line_flag_selection = singledw5;
+    } else if (!strcmp(&dwoptarg[6],"s2l")) {
+        glflags.gf_line_flag_selection= s2l;
+    } else if (!strcmp(&dwoptarg[6],"orig")) {
+        glflags.gf_line_flag_selection= orig;
+    } else if (!strcmp(&dwoptarg[6],"orig2l")) {
+        glflags.gf_line_flag_selection= orig2l;
+    } else {
+        option_x_badopt();
+    }
+}
+
+/*  option '-x name=' */
+void option_x_name(void)
+{
+    /*  -x name=<path> meaning name dwarfdump.conf file. */
+    const char *path = do_uri_translation(&dwoptarg[5],"-x name=");
+    if (strlen(path) < 1) {
+        option_x_badopt();
+    } else {
         esb_empty_string(glflags.config_file_path);
         esb_append(glflags.config_file_path,path);
-    } else if (strncmp(dwoptarg, "abi=", 4) == 0) {
-        abi = do_uri_translation(&dwoptarg[4],"-x abi=");
-        if (strlen(abi) < 1) {
-            goto badopt;
-        }
-        config_file_abi = abi;
-    } else if (strncmp(dwoptarg, "groupnumber=", 12) == 0) {
-        /*  By default prints the lowest
-            groupnumber in the object.
-            Default is  -x groupnumber=0
-            For group 1 (standard base dwarfdata)
-                -x groupnumber=1
-            For group 1 (DWARF5 .dwo sections and dwp data)
-                -x groupnumber=2 */
-            long int gnum = 0;
-            int res = 0;
+    }
+}
 
-            res = get_number_value(dwoptarg+12,&gnum);
-            if (res == DW_DLV_OK) {
-                glflags.group_number = gnum;
-            } else {
-                goto badopt;
-            }
-    } else if (strncmp(dwoptarg, "tied=", 5) == 0) {
-        const char *tiedpath = 0;
-        tiedpath = do_uri_translation(&dwoptarg[5],"-x tied=");
-        if (strlen(tiedpath) < 1) {
-            goto badopt;
-        }
+/*  option '-x noprintsectiongroups' */
+void option_x_noprintsectiongroups(void)
+{
+    glflags.gf_section_groups_flag = FALSE;
+}
+
+/*  option '-x nosanitizestrings' */
+void option_x_nosanitizestrings(void)
+{
+    no_sanitize_string_garbage = TRUE;
+}
+
+/*  option '-x tied=' */
+void option_x_tied(void)
+{
+    const char *tiedpath = do_uri_translation(&dwoptarg[5],"-x tied=");
+    if (strlen(tiedpath) < 1) {
+        option_x_badopt();
+    } else {
         esb_empty_string(glflags.config_file_tiedpath);
         esb_append(glflags.config_file_tiedpath,tiedpath);
-    } else if (strncmp(dwoptarg, "line5=", 6) == 0) {
-        if (strlen(dwoptarg) < 6) {
-            goto badopt;
-        }
-        if (!strcmp(&dwoptarg[6],"std")) {
-            glflags.gf_line_flag_selection =  singledw5;
-        } else if (!strcmp(&dwoptarg[6],"s2l")){
-            glflags.gf_line_flag_selection= s2l;
-        } else if (!strcmp(&dwoptarg[6],"orig")){
-            glflags.gf_line_flag_selection= orig;
-        } else if (!strcmp(&dwoptarg[6],"orig2l")) {
-            glflags.gf_line_flag_selection= orig2l;
-        } else {
-            goto badopt;
-        }
-    } else if (strcmp(dwoptarg, "nosanitizestrings") == 0) {
-        no_sanitize_string_garbage = TRUE;
-    } else if (strcmp(dwoptarg,"noprintsectiongroups") == 0){
-        glflags.gf_section_groups_flag = FALSE;
-    } else {
-    badopt:
-        fprintf(stderr, "-x name=<path-to-conf> \n");
-        fprintf(stderr, " and  \n");
-        fprintf(stderr, "-x abi=<abi-in-conf> \n");
-        fprintf(stderr, " and  \n");
-        fprintf(stderr, "-x tied=<tied-file-path> \n");
-        fprintf(stderr, " and  \n");
-        fprintf(stderr, "-x line5={std,s2l,orig,orig2l} \n");
-        fprintf(stderr, " and  \n");
-        fprintf(stderr, "-x nosanitizestrings \n");
-        fprintf(stderr, "are legal, not -x %s\n", dwoptarg);
-        usage_error = TRUE;
     }
 }
 
 /*  option '-y' */
 void option_y(void)
 {
-    assert(option == 'y');
-
     /* .debug_pubtypes */
     /* Also for SGI-only, and obsolete, .debug_typenames */
     suppress_check_dwarf();
@@ -1791,7 +1886,31 @@ void option_y(void)
 /*  option '-z' */
 void option_z(void)
 {
-    assert(option == 'z');
-
     fprintf(stderr, "-z is no longer supported:ignored\n");
+}
+
+/*  Error message for invalid '-S' option. */
+void option_S_badopt(void)
+{
+    fprintf(stderr,
+        "-S any=<text> or -S match=<text> or"
+        " -S regex=<text>\n");
+    fprintf(stderr, "is allowed, not -S %s\n",dwoptarg);
+    usage_error = TRUE;
+}
+
+/*  Error message for invalid '-x' option. */
+void option_x_badopt(void)
+{
+    fprintf(stderr, "-x name=<path-to-conf> \n");
+    fprintf(stderr, " and  \n");
+    fprintf(stderr, "-x abi=<abi-in-conf> \n");
+    fprintf(stderr, " and  \n");
+    fprintf(stderr, "-x tied=<tied-file-path> \n");
+    fprintf(stderr, " and  \n");
+    fprintf(stderr, "-x line5={std,s2l,orig,orig2l} \n");
+    fprintf(stderr, " and  \n");
+    fprintf(stderr, "-x nosanitizestrings \n");
+    fprintf(stderr, "are legal, not -x %s\n", dwoptarg);
+    usage_error = TRUE;
 }
