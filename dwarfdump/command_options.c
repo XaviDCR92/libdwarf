@@ -168,6 +168,174 @@ static const char *usage_debug_text[] = {
 ""
 };
 
+static const char *usage_long_text[] = {
+"Usage: DwarfDump <options> <object file>",
+" ",
+"-----------------------------------------------------------------------------",
+"Print Debug Sections",
+"-----------------------------------------------------------------------------",
+"-b   --print-abbrev      Print abbrev section",
+"-r   --print-aranges     Print aranges section",
+"-F   --print-eh-frame    Print gnu .eh_frame section",
+"-I   --print-fission     Print fission sections:",
+"                           .gdb_index, .debug_cu_index, .debug_tu_index",
+"-f   --print-frame       Print dwarf frame section",
+"-i   --print-info        Print info section",
+"-l   --print-lines       Print line section",
+"-ls  --print-lines-short Print line section, but do not print <pc> address",
+"-c   --print-loc         Print loc section",
+"-m   --print-macinfo     Print macinfo section",
+"-P   --print-producers   Print list of compile units per producer",
+"-p   --print-pubnames    Print pubnames section",
+"-N   --print-ranges      Print ranges section",
+"-ta  --print-static      Print both static sections",
+"-tf  --print-static-func Print static func section",
+"-tv  --print-static-var  Print static var section",
+"-s   --print-strings     Print string section",
+"     --print-str-offsets Print details from the .debug_str_offsets section",
+"-y   --print-type        Print type section",
+"-w   --print-weakname    Print weakname section",
+" ",
+"-----------------------------------------------------------------------------",
+"Print Relocations Info",
+"-----------------------------------------------------------------------------",
+"-o   --reloc           Print relocation info [liaprfoR]",
+"-oa  --reloc-abbrev    Print relocation .debug_abbrev section",
+"-or  --reloc-aranges   Print relocation .debug_aranges section",
+"-of  --reloc-frames    Print relocation .debug_frame section",
+"-oi  --reloc-info      Print relocation .debug_info section",
+"-ol  --reloc-line      Print relocation .debug_line section",
+"-oo  --reloc-loc       Print relocation .debug_loc section",
+"-op  --reloc-pubnames  Print relocation .debug_pubnames section",
+"-oR  --reloc-ranges    Print relocation .debug_ranges section",
+" ",
+"-----------------------------------------------------------------------------",
+"Print ELF sections header",
+"-----------------------------------------------------------------------------",
+"-E   --elf           Print object Header and/or section information",
+"                       Same as -E[hliaprfoRstxd]",
+"-Ea  --elf-abbrev    Print .debug_abbrev header",
+"-Er  --elf-aranges   Print .debug_aranges header",
+"-Ed  --elf-default   Same as -E and {liaprfoRstx}",
+"-Ef  --elf-frames    Print .debug_frame header",
+"-Eh  --elf-header    Print ELF header",
+"-Ei  --elf-info      Print .debug_info header",
+"-El  --elf-line      Print .debug_line header",
+"-Eo  --elf-loc       Print .debug_loc header",
+"-Ep  --elf-pubnames  Print .debug_pubnames header",
+"-Et  --elf-pubtypes  Print .debug_types header",
+"-ER  --elf-ranges    Print .debug_ranges header",
+"-Es  --elf-strings   Print .debug_string header",
+"-Ex  --elf-text      Print .text header",
+" ",
+"-----------------------------------------------------------------------------",
+"Check DWARF Integrity",
+"-----------------------------------------------------------------------------",
+"-kb  --check-abbrev          Check abbreviations",
+"-ka  --check-all             Do all checks",
+"-kM  --check-aranges         Check ranges list (.debug_aranges)",
+"-kD  --check-attr-dup        Check duplicated attributes",
+"-kE  --check-attr-encodings  Examine attributes encodings",
+"-kn  --check-attr-names      Examine names in attributes",
+"-kc  --check-constants       Examine DWARF constants",
+"-kF  --check-files-lines     Examine integrity of files-lines attributes",
+"-kR  --check-forward-refs    Check forward references to DIEs (declarations)",
+"-kx  --check-frame-basic     Basic frames check (.eh_frame, .debug_frame)",
+"-kxe --check-frame-extended  Extensive frames check (.eh_frame, .debug_frame)",
+"-kf  --check-frame-info      Examine frame information (use with -f or -F)",
+"-kg  --check-gaps            Check debug info gaps",
+"-kl  --check-loc             Check location list (.debug_loc)",
+"-kw  --check-macros          Check macros",
+"-ke  --check-pubnames        Examine attributes of pubnames",
+"-km  --check-ranges          Check ranges list (.debug_ranges)",
+"-kS  --check-self-refs       Check self references to DIEs",
+"-kd  --check-show            Show check results",
+"-ks  --check-silent          Perform checks in silent mode",
+"-ki  --check-summary         Display summary for all compilers",
+"-kr  --check-tag-attr        Examine tag-attr relation",
+"-kt  --check-tag-tag         Examine tag-tag relations",
+"                               Unless -C option given certain common tag-attr",
+"                               and tag-tag extensions are assumed to be ok",
+"                               (not reported).",
+"-ky  --check-type            Eexamine type info",
+"-kG  --check-unique          Print only unique errors",
+#ifdef HAVE_USAGE_TAG_ATTR
+"-ku  --check-usage           Print tag-tree & tag-attr usage (basic format)",
+"-kuf --check-usage-extended  Print tag-tree & tag-attr usage (full format)",
+#endif /* HAVE_USAGE_TAG_ATTR */
+" ",
+"-----------------------------------------------------------------------------",
+"Print Output Qualifiers",
+"-----------------------------------------------------------------------------",
+"-M   --format-attr-name        Print the form name for each attribute",
+"-d   --format-dense            One line per entry (info section only)",
+"-e   --format-ellipsis         Short names for tags, attrs etc.",
+"-G   --format-global-offsets   Show global die offsets",
+"-R   --format-registers        Print frame register names as r33 etc",
+"                                 and allow up to 1200 registers.",
+"                                 Print using a 'generic' register set.",
+"-Q   --format-suppress-data    Suppress printing section data",
+"-D   --format-suppress-offsets do not show offsets",
+"-n   --format-suppress-lookup  Suppress frame information function name lookup",
+"                                 (when printing frame information from multi",
+"                                 gigabyte, object files this option may save",
+"                                 significant time).",
+"-C   --format-extensions       Activate printing (with -i) of warnings about",
+"                                 certain common extensions of DWARF.",
+"-g   --format-loc              Use incomplete loclist support",
+" ",
+"-----------------------------------------------------------------------------",
+"Print Output Limiters",
+"-----------------------------------------------------------------------------",
+"-u<file> --format-file=<file>    Print sections only for specified file",
+"-H<num>  --format-limit=<num>    Limit output to the first <num> major units",
+"                                   stop after <num> compilation units",
+"-c<str>  --format-producer=<str> Check only specific compiler objects",
+"                                   <str> is described by 'DW_AT_producer'",
+"                                   -c'350.1' check only compiler objects with",
+"                                   350.1 in the CU name",
+"-cg      --format-gcc            Check only GCC compiler objects",
+"-cs      --format-snc            Check only SNC compiler objects",
+"-x<n>    --format-group=<n>      Groupnumber to print",
+" ",
+"-----------------------------------------------------------------------------",
+"File Specifications",
+"-----------------------------------------------------------------------------",
+"-O file=<path>   --file-output=<path>  Name the output file",
+"-x abi=<abi>     --file-abi=<abi>      Name abi in dwarfdump.conf",
+"-x name=<path>   --file-config=<path>  Name dwarfdump.conf",
+"-x tied=<path>   --file-tied=<path>    Name an associated object file",
+"                                         (Split DWARF)",
+" ",
+"-----------------------------------------------------------------------------",
+"Search text in attributes",
+"-----------------------------------------------------------------------------",
+"-S any=<text>    --search-any=<text>         Search any <text>",
+"-Svany=<text>    --search-any-count=<text>     print number of occurrences",
+"-S match=<text>  --search-match=<text>       Search matching <text>",
+"-Svmatch=<text>  --search-match-count<text>    print number of occurrences",
+#ifdef HAVE_REGEX
+"-S regex=<text>  --search-regex=<text>       Use regular expression matching",
+"-Svregex=<text>  --search-regex-count<text>    print number of occurrences",
+#endif /* HAVE_REGEX */
+"                                         only one -S option allowed, any= and",
+"                                         regex= only usable if the functions",
+"                                         required are found at configure time",
+" ",
+"-W   --search-print-tree     Print parent/children tree (wide format) with -S",
+"-Wp  --search-print-parent   Print parent tree (wide format) with -S",
+"-Wc  --search-print-children Print children tree (wide format) with -S",
+" ",
+"-----------------------------------------------------------------------------",
+"Help & Version",
+"-----------------------------------------------------------------------------",
+"-h   --help          Print the dwarfdump help message",
+"-v   --verbose       Show more information",
+"-vv  --verbose-more  Show even more information",
+"-V   --version       Print version information",
+"",
+};
+
 /*  These configure items are for the
     frame data.  We're flexible in
     the path to dwarfdump.conf .
@@ -380,15 +548,15 @@ do_uri_translation(const char *s,const char *context)
     short names and long names options. */
 
 /*  Handlers for the long names options. */
-static void option_1000(void);
-static void option_1001(void);
+static void option_print_str_offsets(void);
+static void option_print_debug_names(void);
 
 static void option_trace(void);
 
 static void option_a(void);
 static void option_b(void);
 
-/*  option '-c[...]' */
+/*  Option '-c[...]' */
 static void option_c_0(void);
 static void option_c(void);
 static void option_cs(void);
@@ -399,7 +567,7 @@ static void option_d(void);
 static void option_D(void);
 static void option_e(void);
 
-/*  option '-E[...]' */
+/*  Option '-E[...]' */
 static void option_E_0(void);
 static void option_E(void);
 static void option_Ea(void);
@@ -427,7 +595,7 @@ static void option_H(void);
 static void option_i(void);
 static void option_I(void);
 
-/*  option '-k[...]' */
+/*  Option '-k[...]' */
 static void option_k_0(void);
 static void option_ka(void);
 static void option_kb(void);
@@ -452,7 +620,7 @@ static void option_kS(void);
 static void option_kt(void);
 
 #ifdef HAVE_USAGE_TAG_ATTR
-/*  option '-ku[...]' */
+/*  Option '-ku[...]' */
 static void option_ku_0(void);
 static void option_ku(void);
 static void option_kuf(void);
@@ -460,14 +628,14 @@ static void option_kuf(void);
 
 static void option_kw(void);
 
-/*  option '-kx[...]' */
+/*  Option '-kx[...]' */
 static void option_kx_0(void);
 static void option_kx(void);
 static void option_kxe(void);
 
 static void option_ky(void);
 
-/*  option '-l[...]' */
+/*  Option '-l[...]' */
 static void option_l_0(void);
 static void option_l(void);
 static void option_ls(void);
@@ -477,7 +645,7 @@ static void option_M(void);
 static void option_n(void);
 static void option_N(void);
 
-/*  option '-o[...]' */
+/*  Option '-o[...]' */
 static void option_o_0(void);
 static void option_o(void);
 static void option_oa(void);
@@ -498,11 +666,12 @@ static void option_r(void);
 static void option_R(void);
 static void option_s(void);
 
-/*  option '-S[...]' */
+/*  Option '-S[...]' */
 static void option_S(void);
 static void option_S_any(void);
 static void option_S_match(void);
 static void option_S_regex(void);
+static void option_Sv(void);
 static void option_S_badopt(void);
 
 static void option_t(void);
@@ -515,13 +684,13 @@ static void option_v(void);
 static void option_V(void);
 static void option_w(void);
 
-/*  option '-W[...]' */
+/*  Option '-W[...]' */
 static void option_W_0(void);
 static void option_W(void);
 static void option_Wc(void);
 static void option_Wp(void);
 
-/*  option '-x[...]' */
+/*  Option '-x[...]' */
 static void option_x_0(void);
 static void option_x_badopt(void);
 static void option_x_abi();
@@ -539,16 +708,279 @@ static void option_z(void);
 static boolean usage_error = FALSE;
 static int option = 0;
 
+enum longopts_vals {
+    OPTIONS_BEGIN = 999,
+
+    /* Check DWARF Integrity                                                */
+    CHECK_ABBREV,             /* -kb  --check-abbrev                        */
+    CHECK_ALL,                /* -ka  --check-all                           */
+    CHECK_ARANGES,            /* -kM  --check-aranges                       */
+    CHECK_ATTR_DUP,           /* -kD  --check-attr-dup                      */
+    CHECK_ATTR_ENCODINGS,     /* -kE  --check-attr-encodings                */
+    CHECK_ATTR_NAMES,         /* -kn  --check-attr-names                    */
+    CHECK_CONSTANTS,          /* -kc  --check-constants                     */
+    CHECK_FILES_LINES,        /* -kF  --check-files-lines                   */
+    CHECK_FORWARD_REFS,       /* -kR  --check-forward-refs                  */
+    CHECK_FRAME_BASIC,        /* -kx  --check-frame-basic                   */
+    CHECK_FRAME_EXTENDED,     /* -kxe --check-frame-extended                */
+    CHECK_FRAME_INFO,         /* -kf  --check-frame-info                    */
+    CHECK_GAPS,               /* -kg  --check-gaps                          */
+    CHECK_LOC,                /* -kl  --check-loc                           */
+    CHECK_MACROS,             /* -kw  --check-macros                        */
+    CHECK_PUBNAMES,           /* -ke  --check-pubnames                      */
+    CHECK_RANGES,             /* -km  --check-ranges                        */
+    CHECK_SELF_REFS,          /* -kS  --check-self-refs                     */
+    CHECK_SHOW,               /* -kd  --check-show                          */
+    CHECK_SILENT,             /* -ks  --check-silent                        */
+    CHECK_SUMMARY,            /* -ki  --check-summary                       */
+    CHECK_TAG_ATTR,           /* -kr  --check-tag-attr                      */
+    CHECK_TAG_TAG,            /* -kt  --check-tag-tag                       */
+    CHECK_TYPE,               /* -ky  --check-type                          */
+    CHECK_UNIQUE,             /* -kG  --check-unique                        */
+#ifdef HAVE_USAGE_TAG_ATTR
+    CHECK_USAGE,              /* -ku  --check-usage                         */
+    CHECK_USAGE_EXTENDED,     /* -kuf --check-usage-extended                */
+#endif /* HAVE_USAGE_TAG_ATTR */
+
+    /* Print ELF sections header                                            */
+    ELF,                      /* -E   --elf                                 */
+    ELF_ABBREV,               /* -Ea  --elf-abbrev                          */
+    ELF_ARANGES,              /* -Er  --elf-aranges                         */
+    ELF_DEFAULT,              /* -Ed  --elf-default                         */
+    ELF_FRAMES,               /* -Ef  --elf-frames                          */
+    ELF_HEADER,               /* -Eh  --elf-header                          */
+    ELF_INFO,                 /* -Ei  --elf-info                            */
+    ELF_LINE,                 /* -El  --elf-line                            */
+    ELF_LOC,                  /* -Eo  --elf-loc                             */
+    ELF_PUBNAMES,             /* -Ep  --elf-pubnames                        */
+    ELF_PUBTYPES,             /* -Et  --elf-pubtypes                        */
+    ELF_RANGES,               /* -ER  --elf-ranges                          */
+    ELF_STRINGS,              /* -Es  --elf-strings                         */
+    ELF_TEXT,                 /* -Ex  --elf-text                            */
+
+    /* File Specifications                                                  */
+    FILE_ABI,                 /* -x abi=<abi>    --file-abi=<abi>           */
+    FILE_CONFIG,              /* -x name=<path>  --file-config=<path>       */
+    FILE_OUTPUT,              /* -O file=<path>  --file-output=<path>       */
+    FILE_TIED,                /* -x tied=<path>  --file-tied=<path>         */
+
+    /* Print Output Qualifiers                                              */
+    FORMAT_ATTR_NAME,         /* -M   --format-attr-name                    */
+    FORMAT_DENSE,             /* -d   --format-dense                        */
+    FORMAT_ELLIPSIS,          /* -e   --format-ellipsis                     */
+    FORMAT_EXTENSIONS,        /* -C   --format-extensions                   */
+    FORMAT_GLOBAL_OFFSETS,    /* -G   --format-global-offsets               */
+    FORMAT_LOC,               /* -g   --format-loc                          */
+    FORMAT_REGISTERS,         /* -R   --format-registers                    */
+    FORMAT_SUPPRESS_DATA,     /* -Q   --format-suppress-data                */
+    FORMAT_SUPPRESS_OFFSETS,  /* -D   --format-suppress-offsets             */
+    FORMAT_SUPPRESS_LOOKUP,   /* -n   --format-suppress-lookup              */
+
+    /* Print Output Limiters                                                */
+    FORMAT_FILE,              /* -u<file> --format-file=<file>              */
+    FORMAT_GCC,               /* -cg      --format-gcc                      */
+    FORMAT_GROUP,             /* -x<n>    --format-group=<n>                */
+    FORMAT_LIMIT,             /* -H<num>  --format-limit=<num>              */
+    FORMAT_PRODUCER,          /* -c<str>  --format-producer=<str>           */
+    FORMAT_SNC,               /* -cs      --format-snc                      */
+
+    /* Print Debug Sections                                                 */
+    PRINT_ABBREV,             /* -b   --print-abbrev                        */
+    PRINT_ARANGES,            /* -r   --print-aranges                       */
+    PRINT_DEBUG_NAMES,        /*      --print-debug-name                    */
+    PRINT_EH_FRAME,           /* -F   --print-eh-frame                      */
+    PRINT_FISSION,            /* -I   --print-fission                       */
+    PRINT_FRAME,              /* -f   --print-frame                         */
+    PRINT_INFO,               /* -i   --print-info                          */
+    PRINT_LINES,              /* -l   --print-lines                         */
+    PRINT_LINES_SHORT,        /* -ls  --print-lines-short                   */
+    PRINT_LOC,                /* -c   --print-loc                           */
+    PRINT_MACINFO,            /* -m   --print-macinfo                       */
+    PRINT_PRODUCERS,          /* -p   --print-producers                     */
+    PRINT_PUBNAMES,           /* -p   --print-pubnames                      */
+    PRINT_RANGES,             /* -N   --print-ranges                        */
+    PRINT_STATIC,             /* -ta  --print-static                        */
+    PRINT_STATIC_FUNC,        /* -tf  --print-static-func                   */
+    PRINT_STATIC_VAR,         /* -tv  --print-static-var                    */
+    PRINT_STRINGS,            /* -s   --print-strings                       */
+    PRINT_STR_OFFSETS,        /*      --print-str-offsets                   */
+    PRINT_TYPE,               /* -y   --print-type                          */
+    PRINT_WEAKNAME,           /* -w   --print-weakname                      */
+
+    /* Print Relocations Info                                               */
+    RELOC,                    /* -o   --reloc                               */
+    RELOC_ABBREV,             /* -oa  --reloc-abbrev                        */
+    RELOC_ARANGES,            /* -or  --reloc-aranges                       */
+    RELOC_FRAMES,             /* -of  --reloc-frames                        */
+    RELOC_INFO,               /* -oi  --reloc-info                          */
+    RELOC_LINE,               /* -ol  --reloc-line                          */
+    RELOC_LOC,                /* -oo  --reloc-loc                           */
+    RELOC_PUBNAMES,           /* -op  --reloc-pubnames                      */
+    RELOC_RANGES,             /* -oR  --reloc-ranges                        */
+
+    /* Search text in attributes                                            */
+    SEARCH_ANY,               /* -S any=<text>   --search-any=<text>        */
+    SEARCH_ANY_COUNT,         /* -Svany=<text>   --search-any-count=<text>  */
+    SEARCH_MATCH,             /* -S match=<text> --search-match=<text>      */
+    SEARCH_MATCH_COUNT,       /* -Svmatch=<text> --search-match-count<text> */
+    SEARCH_PRINT_CHILDREN,    /* -Wc --search-print-children                */
+    SEARCH_PRINT_PARENT,      /* -Wp --search-print-parent                  */
+    SEARCH_PRINT_TREE,        /* -W  --search-print-tree                    */
+#ifdef HAVE_REGEX
+    SEARCH_REGEX,             /* -S regex=<text> --search-regex=<text>      */
+    SEARCH_REGEX_COUNT,       /* -Svregex=<text> --search-regex-count<text> */
+#endif /* HAVE_REGEX */
+
+    /* Help & Version                                                       */
+    HELP,                     /* -h  --help                                 */
+    VERBOSE,                  /* -v  --verbose                              */
+    VERBOSE_MORE,             /* -vv --verbose-more                         */
+    VERSION,                  /* -V  --version                              */
+
+    /* Trace                                                                */
+    TRACE,                    /* -# --trace<num>                            */
+
+    OPTIONS_END,
+};
+
+static struct dwoption longopts[] =  {
+
+    /* Check DWARF Integrity */
+    {"check-abbrev",            dwno_argument, 0, CHECK_ABBREV               },      
+    {"check-all",               dwno_argument, 0, CHECK_ALL                  },      
+    {"check-aranges",           dwno_argument, 0, CHECK_ARANGES              },
+    {"check-attr-dup",          dwno_argument, 0, CHECK_ATTR_DUP             },
+    {"check-attr-encodings",    dwno_argument, 0, CHECK_ATTR_ENCODINGS       },
+    {"check-attr-names",        dwno_argument, 0, CHECK_ATTR_NAMES           },
+    {"check-constants",         dwno_argument, 0, CHECK_CONSTANTS            },
+    {"check-files-lines",       dwno_argument, 0, CHECK_FILES_LINES          },
+    {"check-forward-refs",      dwno_argument, 0, CHECK_FORWARD_REFS         },
+    {"check-frame-basic",       dwno_argument, 0, CHECK_FRAME_BASIC          },
+    {"check-frame-extended",    dwno_argument, 0, CHECK_FRAME_EXTENDED       },
+    {"check-frame-info",        dwno_argument, 0, CHECK_FRAME_INFO           },
+    {"check-gaps",              dwno_argument, 0, CHECK_GAPS                 },
+    {"check-loc",               dwno_argument, 0, CHECK_LOC                  },
+    {"check-macros",            dwno_argument, 0, CHECK_MACROS               },
+    {"check-pubnames",          dwno_argument, 0, CHECK_PUBNAMES             },
+    {"check-ranges",            dwno_argument, 0, CHECK_RANGES               },
+    {"check-self-refs",         dwno_argument, 0, CHECK_SELF_REFS            },
+    {"check-show",              dwno_argument, 0, CHECK_SHOW                 },
+    {"check-silent",            dwno_argument, 0, CHECK_SILENT               },
+    {"check-summary",           dwno_argument, 0, CHECK_SUMMARY              },
+    {"check-tag-attr",          dwno_argument, 0, CHECK_TAG_ATTR             },
+    {"check-tag-tag",           dwno_argument, 0, CHECK_TAG_TAG              },
+    {"check-type",              dwno_argument, 0, CHECK_TYPE                 },
+    {"check-unique",            dwno_argument, 0, CHECK_UNIQUE               },
+#ifdef HAVE_USAGE_TAG_ATTR
+    {"check-usage",             dwno_argument, 0, CHECK_USAGE                },
+    {"check-usage-extended",    dwno_argument, 0, CHECK_USAGE_EXTENDED       },
+#endif /* HAVE_USAGE_TAG_ATTR */
+
+    /* Print ELF sections header */
+    {"elf",                     dwno_argument, 0, ELF                        },
+    {"elf-abbrev",              dwno_argument, 0, ELF_ABBREV                 },
+    {"elf-aranges",             dwno_argument, 0, ELF_ARANGES                },
+    {"elf-default",             dwno_argument, 0, ELF_DEFAULT                },
+    {"elf-frames",              dwno_argument, 0, ELF_FRAMES                 },
+    {"elf-header",              dwno_argument, 0, ELF_HEADER                 },
+    {"elf-info",                dwno_argument, 0, ELF_INFO                   },
+    {"elf-line",                dwno_argument, 0, ELF_LINE                   },
+    {"elf-loc",                 dwno_argument, 0, ELF_LOC                    },
+    {"elf-pubnames",            dwno_argument, 0, ELF_PUBNAMES               },
+    {"elf-pubtypes",            dwno_argument, 0, ELF_PUBTYPES               },
+    {"elf-ranges",              dwno_argument, 0, ELF_RANGES                 },
+    {"elf-strings",             dwno_argument, 0, ELF_STRINGS                },
+    {"elf-text",                dwno_argument, 0, ELF_TEXT                   },
+
+    /* File Specifications                                                  */
+    {"file-abi",                dwrequired_argument, 0, FILE_ABI             },
+    {"file-config",             dwrequired_argument, 0, FILE_CONFIG          },
+    {"file-output",             dwrequired_argument, 0, FILE_OUTPUT          },
+    {"file-tied",               dwrequired_argument, 0, FILE_TIED            },
+
+    /* Print Output Qualifiers */
+    {"format-attr-name",        dwno_argument, 0, FORMAT_ATTR_NAME           },
+    {"format-dense",            dwno_argument, 0, FORMAT_DENSE               },
+    {"format-ellipsis",         dwno_argument, 0, FORMAT_ELLIPSIS            },
+    {"format-extensions",       dwno_argument, 0, FORMAT_EXTENSIONS          },
+    {"format-global-offsets",   dwno_argument, 0, FORMAT_GLOBAL_OFFSETS      },
+    {"format-loc",              dwno_argument, 0, FORMAT_LOC                 },
+    {"format-registers",        dwno_argument, 0, FORMAT_REGISTERS           },
+    {"format-suppress-data",    dwno_argument, 0, FORMAT_SUPPRESS_DATA       },
+    {"format-suppress-offsets", dwno_argument, 0, FORMAT_SUPPRESS_OFFSETS    },
+    {"format-suppress-lookup",  dwno_argument, 0, FORMAT_SUPPRESS_LOOKUP     },
+
+    /* Print Output Limiters                                                */
+    {"format-file",             dwrequired_argument, 0, FORMAT_FILE          },
+    {"format-gcc",              dwno_argument,       0, FORMAT_GCC           },
+    {"format-group",            dwrequired_argument, 0, FORMAT_GROUP         },
+    {"format-limit",            dwrequired_argument, 0, FORMAT_LIMIT         },
+    {"format-producer",         dwrequired_argument, 0, FORMAT_PRODUCER      },
+    {"format-snc",              dwno_argument,       0, FORMAT_SNC           },
+
+    /* Print Debug Sections */
+    {"print-abbrev",            dwno_argument, 0, PRINT_ABBREV               },
+    {"print-aranges",           dwno_argument, 0, PRINT_ARANGES              },
+    {"print-debug-names",       dwno_argument, 0, PRINT_DEBUG_NAMES          },
+    {"print-eh-frame",          dwno_argument, 0, PRINT_EH_FRAME             },
+    {"print-fission",           dwno_argument, 0, PRINT_FISSION              },
+    {"print-frame",             dwno_argument, 0, PRINT_FRAME                },
+    {"print-info",              dwno_argument, 0, PRINT_INFO                 },
+    {"print-lines",             dwno_argument, 0, PRINT_LINES                },
+    {"print-lines-short",       dwno_argument, 0, PRINT_LINES_SHORT          },
+    {"print-loc",               dwno_argument, 0, PRINT_LOC                  },
+    {"print-macinfo",           dwno_argument, 0, PRINT_MACINFO              },
+    {"print-producers",         dwno_argument, 0, PRINT_PRODUCERS            },
+    {"print-pubnames",          dwno_argument, 0, PRINT_PUBNAMES             },
+    {"print-ranges",            dwno_argument, 0, PRINT_RANGES               },
+    {"print-static",            dwno_argument, 0, PRINT_STATIC               },
+    {"print-static-func",       dwno_argument, 0, PRINT_STATIC_FUNC          },
+    {"print-static-var",        dwno_argument, 0, PRINT_STATIC_VAR           },
+    {"print-strings",           dwno_argument, 0, PRINT_STRINGS              },
+    {"print-str-offsets",       dwno_argument, 0, PRINT_STR_OFFSETS          },
+    {"print-type",              dwno_argument, 0, PRINT_TYPE                 },
+    {"print-weakname",          dwno_argument, 0, PRINT_WEAKNAME             },
+
+    /* Print Relocations Info */
+    {"reloc",                   dwno_argument, 0, RELOC                      },
+    {"reloc-abbrev",            dwno_argument, 0, RELOC_ABBREV               },
+    {"reloc-aranges",           dwno_argument, 0, RELOC_ARANGES              },
+    {"reloc-frames",            dwno_argument, 0, RELOC_FRAMES               },
+    {"reloc-info",              dwno_argument, 0, RELOC_INFO                 },
+    {"reloc-line",              dwno_argument, 0, RELOC_LINE                 },
+    {"reloc-loc",               dwno_argument, 0, RELOC_LOC                  },
+    {"reloc-pubnames",          dwno_argument, 0, RELOC_PUBNAMES             },
+    {"reloc-ranges",            dwno_argument, 0, RELOC_RANGES               },
+
+    /* Search text in attributes                                            */
+    {"search-any",              dwrequired_argument, 0, SEARCH_ANY           },
+    {"search-any-count",        dwrequired_argument, 0, SEARCH_ANY_COUNT     },
+    {"search-match",            dwrequired_argument, 0, SEARCH_MATCH         },
+    {"search-match-count",      dwrequired_argument, 0, SEARCH_MATCH_COUNT   },
+    {"search-print-children",   dwno_argument,       0, SEARCH_PRINT_CHILDREN},
+    {"search-print-parent",     dwno_argument,       0, SEARCH_PRINT_PARENT  },
+    {"search-print-tree",       dwno_argument,       0, SEARCH_PRINT_TREE    },
+#ifdef HAVE_REGEX
+    {"search-regex",            dwrequired_argument, 0, SEARCH_REGEX         },
+    {"search-regex-count",      dwrequired_argument, 0, SEARCH_REGEX_COUNT   },
+#endif /* HAVE_REGEX */
+
+    /* Help & Version                                                       */
+    {"help",                    dwno_argument,       0, HELP                 },
+    {"verbose",                 dwno_argument,       0, VERBOSE              },
+    {"version",                 dwno_argument,       0, VERSION              },
+
+    /* Trace                                                                */
+    {"trace",                   dwrequired_argument, 0, TRACE                },
+
+    {0,0,0,0}
+};
+
 /* process arguments and return object filename */
 const char *
 process_args(int argc, char *argv[])
 {
     int longindex = 0;
-    static struct dwoption  longopts[] =  {
-        {"print-str-offsets",  dwno_argument,  0,1000},
-        {"print-debug-names",  dwno_argument,  0,1001},
-        {0,0,0,0}
-    };
 
     glflags.program_name = special_program_name(argv[0]);
     glflags.program_fullname = argv[0];
@@ -565,8 +997,6 @@ process_args(int argc, char *argv[])
         longopts,&longindex)) != EOF) {
 
         switch (option) {
-        case 1000: option_1000(); break;
-        case 1001: option_1001(); break;
         case '#': option_trace(); break;
         case 'a': option_a();     break;
         case 'b': option_b();     break;
@@ -610,6 +1040,135 @@ process_args(int argc, char *argv[])
         case 'x': option_x_0();   break;
         case 'y': option_y();     break;
         case 'z': option_z();     break;
+
+        /* Check DWARF Integrity. */
+        case CHECK_ABBREV:          break;
+        case CHECK_ALL:             break;
+        case CHECK_ARANGES:         break;
+        case CHECK_ATTR_DUP:        break;
+        case CHECK_ATTR_ENCODINGS:  break;
+        case CHECK_ATTR_NAMES:      break;
+        case CHECK_CONSTANTS:       break;
+        case CHECK_FILES_LINES:     break;
+        case CHECK_FORWARD_REFS:    break;
+        case CHECK_FRAME_BASIC:     break;
+        case CHECK_FRAME_EXTENDED:  break;
+        case CHECK_FRAME_INFO:      break;
+        case CHECK_GAPS:            break;
+        case CHECK_LOC:             break;
+        case CHECK_MACROS:          break;
+        case CHECK_PUBNAMES:        break;
+        case CHECK_RANGES:          break;
+        case CHECK_SELF_REFS:       break;
+        case CHECK_SHOW:            break;
+        case CHECK_SILENT:          break;
+        case CHECK_SUMMARY:         break;
+        case CHECK_TAG_ATTR:        break;
+        case CHECK_TAG_TAG:         break;
+        case CHECK_TYPE:            break;
+        case CHECK_UNIQUE:          break;
+#ifdef HAVE_USAGE_TAG_ATTR
+        case CHECK_USAGE:           break;
+        case CHECK_USAGE_EXTENDED:  break;
+#endif /* HAVE_USAGE_TAG_ATTR */
+
+        /* Print ELF sections header. */
+        case ELF:           break;
+        case ELF_ABBREV:    break;
+        case ELF_ARANGES:   break;
+        case ELF_DEFAULT:   break;
+        case ELF_FRAMES:    break;
+        case ELF_HEADER:    break;
+        case ELF_INFO:      break;
+        case ELF_LINE:      break;
+        case ELF_LOC:       break;
+        case ELF_PUBNAMES:  break;
+        case ELF_PUBTYPES:  break;
+        case ELF_RANGES:    break;
+        case ELF_STRINGS:   break;
+        case ELF_TEXT:      break;
+
+        /* File Specifications. */
+        case FILE_ABI:    break;
+        case FILE_CONFIG: break;
+        case FILE_OUTPUT: break;
+        case FILE_TIED:   break;
+
+        /* Print Output Qualifiers. */
+        case FORMAT_ATTR_NAME:        break;
+        case FORMAT_DENSE:            break;
+        case FORMAT_ELLIPSIS:         break;
+        case FORMAT_EXTENSIONS:       break;
+        case FORMAT_GLOBAL_OFFSETS:   break;
+        case FORMAT_LOC:              break;
+        case FORMAT_REGISTERS:        break;
+        case FORMAT_SUPPRESS_DATA:    break;
+        case FORMAT_SUPPRESS_OFFSETS: break;
+        case FORMAT_SUPPRESS_LOOKUP:  break;
+
+        /* Print Output Limiters. */
+        case FORMAT_FILE:     break;
+        case FORMAT_GCC:      break;
+        case FORMAT_GROUP:    break;
+        case FORMAT_LIMIT:    break;
+        case FORMAT_PRODUCER: break;
+        case FORMAT_SNC:      break;
+
+        /* Print Debug Sections. */
+        case PRINT_ABBREV:                                  break;
+        case PRINT_ARANGES:                                 break;
+        case PRINT_DEBUG_NAMES: option_print_debug_names(); break;
+        case PRINT_EH_FRAME:                                break;
+        case PRINT_FISSION:                                 break;
+        case PRINT_FRAME:                                   break;
+        case PRINT_INFO:                                    break;
+        case PRINT_LINES:                                   break;
+        case PRINT_LINES_SHORT:                             break;
+        case PRINT_LOC:                                     break;
+        case PRINT_MACINFO:                                 break;
+        case PRINT_PRODUCERS:                               break;
+        case PRINT_PUBNAMES:                                break;
+        case PRINT_RANGES:                                  break;
+        case PRINT_STATIC:                                  break;
+        case PRINT_STATIC_FUNC:                             break;
+        case PRINT_STATIC_VAR:                              break;
+        case PRINT_STRINGS:                                 break;
+        case PRINT_STR_OFFSETS: option_print_str_offsets(); break;
+        case PRINT_TYPE:                                    break;
+        case PRINT_WEAKNAME:                                break;
+
+        /* Print Relocations Info. */
+        case RELOC:           break;
+        case RELOC_ABBREV:    break;
+        case RELOC_ARANGES:   break;
+        case RELOC_FRAMES:    break;
+        case RELOC_INFO:      break;
+        case RELOC_LINE:      break;
+        case RELOC_LOC:       break;
+        case RELOC_PUBNAMES:  break;
+       case RELOC_RANGES:     break;
+
+        /* Search text in attributes. */
+        case SEARCH_ANY:            break;
+        case SEARCH_ANY_COUNT:      break;
+        case SEARCH_MATCH:          break;
+        case SEARCH_MATCH_COUNT:    break;
+        case SEARCH_PRINT_CHILDREN: break;
+        case SEARCH_PRINT_PARENT:   break;
+        case SEARCH_PRINT_TREE:     break;
+#ifdef HAVE_REGEX
+        case SEARCH_REGEX:          break;
+        case SEARCH_REGEX_COUNT:    break;
+#endif /* HAVE_REGEX */
+
+        /* Help & Version. */
+        case HELP: option_h();    break;
+        case VERBOSE: option_v(); break;
+        case VERSION: option_V(); break;
+
+        /* Trace. */
+        case TRACE: option_trace(); break;
+
         default: usage_error = TRUE; break;
         }
     }
@@ -684,17 +1243,19 @@ process_args(int argc, char *argv[])
 
 /*  Handlers for the command line options. */
 
-void option_1000(void)
-{
-    glflags.gf_print_str_offsets = TRUE;
-}
-
-void option_1001(void)
+/*  Option 'print_debug_names' */
+void option_print_debug_names(void)
 {
     glflags.gf_debug_names_flag = TRUE;
 }
 
-/*  option '-#' */
+/*  Option '--print_str_offsets' */
+void option_print_str_offsets(void)
+{
+    glflags.gf_print_str_offsets = TRUE;
+}
+
+/*  Option '-#' */
 void option_trace(void)
 {
     int nTraceLevel =  atoi(dwoptarg);
@@ -708,21 +1269,21 @@ void option_trace(void)
     }
 }
 
-/*  option '-a' */
+/*  Option '-a' */
 void option_a(void)
 {
     suppress_check_dwarf();
     do_all();
 }
 
-/*  option '-b' */
+/*  Option '-b' */
 void option_b(void)
 {
     glflags.gf_abbrev_flag = TRUE;
     suppress_check_dwarf();
 }
 
-/*  option '-c[...]' */
+/*  Option '-c[...]' */
 void option_c_0(void)
 {
     /* Specify compiler name. */
@@ -745,14 +1306,14 @@ void option_c_0(void)
     }
 }
 
-/*  option '-c' */
+/*  Option '-c' */
 void option_c(void)
 {
     glflags.gf_loc_flag = TRUE;
     suppress_check_dwarf();
 }
 
-/*  option '-cs' */
+/*  Option '-cs' */
 void option_cs(void)
 {
     /* -cs : Check SNC compiler */
@@ -760,7 +1321,7 @@ void option_cs(void)
     glflags.gf_check_all_compilers = FALSE;
 }
 
-/*  option '-cg' */
+/*  Option '-cg' */
 void option_cg(void)
 {
     /* -cg : Check GCC compiler */
@@ -768,13 +1329,13 @@ void option_cg(void)
     glflags.gf_check_all_compilers = FALSE;
 }
 
-/*  option '-C' */
+/*  Option '-C' */
 void option_C(void)
 {
     glflags.gf_suppress_check_extensions_tables = TRUE;
 }
 
-/*  option '-d' */
+/*  Option '-d' */
 void option_d(void)
 {
     glflags.gf_do_print_dwarf = TRUE;
@@ -784,21 +1345,21 @@ void option_d(void)
     glflags.dense = TRUE;
 }
 
-/*  option '-D' */
+/*  Option '-D' */
 void option_D(void)
 {
     /* Do not emit offset in output */
     glflags.gf_display_offsets = FALSE;
 }
 
-/*  option '-e' */
+/*  Option '-e' */
 void option_e(void)
 {
     suppress_check_dwarf();
     glflags.ellipsis = TRUE;
 }
 
-/*  option '-E[...]' */
+/*  Option '-E[...]' */
 void option_E_0(void)
 {
     /* Object Header information (but maybe really print) */
@@ -827,7 +1388,7 @@ void option_E_0(void)
     }
 }
 
-/*  option '-E' */
+/*  Option '-E' */
 void option_E(void)
 {
     /* Display header and all sections info */
@@ -835,14 +1396,14 @@ void option_E(void)
     set_all_sections_on();
 }
 
-/*  option '-Ea' */
+/*  Option '-Ea' */
 void option_Ea(void)
 {
     glflags.gf_header_flag = TRUE;
     enable_section_map_entry(DW_HDR_DEBUG_ABBREV);
 }
 
-/*  option '-Ed' */
+/*  Option '-Ed' */
 void option_Ed(void)
 {
     /* case 'd', use the default section set */
@@ -850,21 +1411,21 @@ void option_Ed(void)
     set_all_section_defaults();
 }
 
-/*  option '-Ef' */
+/*  Option '-Ef' */
 void option_Ef(void)
 {
     glflags.gf_header_flag = TRUE;
     enable_section_map_entry(DW_HDR_DEBUG_FRAME);
 }
 
-/*  option '-Eh' */
+/*  Option '-Eh' */
 void option_Eh(void)
 {
     glflags.gf_header_flag = TRUE;
     enable_section_map_entry(DW_HDR_HEADER);
 }
 
-/*  option '-Ei' */
+/*  Option '-Ei' */
 void option_Ei(void)
 {
     glflags.gf_header_flag = TRUE;
@@ -872,7 +1433,7 @@ void option_Ei(void)
     enable_section_map_entry(DW_HDR_DEBUG_TYPES);
 }
 
-/*  option '-EI' */
+/*  Option '-EI' */
 void option_EI(void)
 {
     glflags.gf_header_flag = TRUE;
@@ -882,14 +1443,14 @@ void option_EI(void)
     enable_section_map_entry(DW_HDR_DEBUG_NAMES);
 }
 
-/*  option '-El' */
+/*  Option '-El' */
 void option_El(void)
 {
     glflags.gf_header_flag = TRUE;
     enable_section_map_entry(DW_HDR_DEBUG_LINE);
 }
 
-/*  option '-Em' */
+/*  Option '-Em' */
 void option_Em(void)
 {
     /*  For both old macinfo and dwarf5  macro */
@@ -897,28 +1458,28 @@ void option_Em(void)
     enable_section_map_entry(DW_HDR_DEBUG_MACINFO);
 }
 
-/*  option '-Eo' */
+/*  Option '-Eo' */
 void option_Eo(void)
 {
     glflags.gf_header_flag = TRUE;
     enable_section_map_entry(DW_HDR_DEBUG_LOC);
 }
 
-/*  option '-Ep' */
+/*  Option '-Ep' */
 void option_Ep(void)
 {
     glflags.gf_header_flag = TRUE;
     enable_section_map_entry(DW_HDR_DEBUG_PUBNAMES);
 }
 
-/*  option '-Er' */
+/*  Option '-Er' */
 void option_Er(void)
 {
     glflags.gf_header_flag = TRUE;
     enable_section_map_entry(DW_HDR_DEBUG_ARANGES);
 }
 
-/*  option '-ER' */
+/*  Option '-ER' */
 void option_ER(void)
 {
     glflags.gf_header_flag = TRUE;
@@ -926,42 +1487,42 @@ void option_ER(void)
     enable_section_map_entry(DW_HDR_DEBUG_RNGLISTS);
 }
 
-/*  option '-Es' */
+/*  Option '-Es' */
 void option_Es(void)
 {
     glflags.gf_header_flag = TRUE;
     enable_section_map_entry(DW_HDR_DEBUG_STR);
 }
 
-/*  option '-Et' */
+/*  Option '-Et' */
 void option_Et(void)
 {
     glflags.gf_header_flag = TRUE;
     enable_section_map_entry(DW_HDR_DEBUG_PUBTYPES);
 }
 
-/*  option '-Ex' */
+/*  Option '-Ex' */
 void option_Ex(void)
 {
     glflags.gf_header_flag = TRUE;
     enable_section_map_entry(DW_HDR_TEXT);
 }
 
-/*  option '-f' */
+/*  Option '-f' */
 void option_f(void)
 {
     glflags.gf_frame_flag = TRUE;
     suppress_check_dwarf();
 }
 
-/*  option '-F' */
+/*  Option '-F' */
 void option_F(void)
 {
     glflags.gf_eh_frame_flag = TRUE;
     suppress_check_dwarf();
 }
 
-/*  option '-g' */
+/*  Option '-g' */
 void option_g(void)
 {
     /*info_flag = TRUE;  removed  from -g. Nov 2015 */
@@ -969,20 +1530,20 @@ void option_g(void)
     suppress_check_dwarf();
 }
 
-/*  option '-G' */
+/*  Option '-G' */
 void option_G(void)
 {
     glflags.gf_show_global_offsets = TRUE;
 }
 
-/*  option '-h' */
+/*  Option '-h' */
 void option_h(void)
 {
     print_usage_message(glflags.program_name,usage_text);
     exit(OKAY);
 }
 
-/*  option '-H' */
+/*  Option '-H' */
 void option_H(void)
 {
     int break_val =  atoi(dwoptarg);
@@ -991,7 +1552,7 @@ void option_H(void)
     }
 }
 
-/*  option '-i' */
+/*  Option '-i' */
 void option_i(void)
 {
     glflags.gf_info_flag = TRUE;
@@ -999,14 +1560,14 @@ void option_i(void)
     suppress_check_dwarf();
 }
 
-/*  option '-I' */
+/*  Option '-I' */
 void option_I(void)
 {
     glflags.gf_gdbindex_flag = TRUE;
     suppress_check_dwarf();
 }
 
-/*  option '-k[...]' */
+/*  Option '-k[...]' */
 void option_k_0(void)
 {
     switch (dwoptarg[0]) {
@@ -1041,7 +1602,7 @@ void option_k_0(void)
     }
 }
 
-/*  option '-ka' */
+/*  Option '-ka' */
 void option_ka(void)
 {
     suppress_print_dwarf();
@@ -1077,7 +1638,7 @@ void option_ka(void)
     glflags.gf_check_duplicated_attributes = TRUE;
 }
 
-/*  option '-kb' */
+/*  Option '-kb' */
 void option_kb(void)
 {
     /* Abbreviations */
@@ -1090,7 +1651,7 @@ void option_kb(void)
     glflags.gf_abbrev_flag = TRUE;
 }
 
-/*  option '-kc' */
+/*  Option '-kc' */
 void option_kc(void)
 {
     /* DWARF constants */
@@ -1100,7 +1661,7 @@ void option_kc(void)
     glflags.gf_types_flag = TRUE;
 }
 
-/*  option '-kd' */
+/*  Option '-kd' */
 void option_kd(void)
 {
     /* Display check results */
@@ -1108,7 +1669,7 @@ void option_kd(void)
     glflags.gf_check_show_results = TRUE;
 }
 
-/*  option '-kD' */
+/*  Option '-kD' */
 void option_kD(void)
 {
     /* Check duplicated attributes */
@@ -1121,7 +1682,7 @@ void option_kD(void)
     glflags.gf_abbrev_flag = TRUE;
 }
 
-/*  option '-ke' */
+/*  Option '-ke' */
 void option_ke(void)
 {
     suppress_print_dwarf();
@@ -1131,7 +1692,7 @@ void option_ke(void)
     glflags.gf_check_fdes = TRUE;
 }
 
-/*  option '-kE' */
+/*  Option '-kE' */
 void option_kE(void)
 {
     /* Attributes encoding usage */
@@ -1141,7 +1702,7 @@ void option_kE(void)
     glflags.gf_types_flag = TRUE;
 }
 
-/*  option '-kf' */
+/*  Option '-kf' */
 void option_kf(void)
 {
     suppress_print_dwarf();
@@ -1149,7 +1710,7 @@ void option_kf(void)
     glflags.gf_check_fdes = TRUE;
 }
 
-/*  option '-kF' */
+/*  Option '-kF' */
 void option_kF(void)
 {
     /* files-lines */
@@ -1160,7 +1721,7 @@ void option_kF(void)
     glflags.gf_types_flag = TRUE;
 }
 
-/*  option '-kg' */
+/*  Option '-kg' */
 void option_kg(void)
 {
     /* Check debug info gaps */
@@ -1170,7 +1731,7 @@ void option_kg(void)
     glflags.gf_types_flag = TRUE;
 }
 
-/*  option '-kG' */
+/*  Option '-kG' */
 void option_kG(void)
 {
     /* Print just global (unique) errors */
@@ -1178,7 +1739,7 @@ void option_kG(void)
     glflags.gf_print_unique_errors = TRUE;
 }
 
-/*  option '-ki' */
+/*  Option '-ki' */
 void option_ki(void)
 {
     /* Summary for each compiler */
@@ -1186,7 +1747,7 @@ void option_ki(void)
     glflags.gf_print_summary_all = TRUE;
 }
 
-/*  option '-kl' */
+/*  Option '-kl' */
 void option_kl(void)
 {
     /* Locations list */
@@ -1197,7 +1758,7 @@ void option_kl(void)
     glflags.gf_loc_flag = TRUE;
 }
 
-/*  option '-km' */
+/*  Option '-km' */
 void option_km(void)
 {
     /* Ranges */
@@ -1207,7 +1768,7 @@ void option_km(void)
     glflags.gf_types_flag = TRUE;
 }
 
-/*  option '-kM' */
+/*  Option '-kM' */
 void option_kM(void)
 {
     /* Aranges */
@@ -1216,7 +1777,7 @@ void option_kM(void)
     glflags.gf_aranges_flag = TRUE;
 }
 
-/*  option '-kn' */
+/*  Option '-kn' */
 void option_kn(void)
 {
     /* invalid names */
@@ -1226,7 +1787,7 @@ void option_kn(void)
     glflags.gf_types_flag = TRUE;
 }
 
-/*  option '-kr' */
+/*  Option '-kr' */
 void option_kr(void)
 {
     suppress_print_dwarf();
@@ -1236,7 +1797,7 @@ void option_kr(void)
     glflags.gf_check_harmless = TRUE;
 }
 
-/*  option '-kR' */
+/*  Option '-kR' */
 void option_kR(void)
 {
     /* forward declarations in DW_AT_specification */
@@ -1246,7 +1807,7 @@ void option_kR(void)
     glflags.gf_types_flag = TRUE;
 }
 
-/*  option '-ks' */
+/*  Option '-ks' */
 void option_ks(void)
 {
     /* Check verbose mode */
@@ -1254,7 +1815,7 @@ void option_ks(void)
     glflags.gf_check_verbose_mode = FALSE;
 }
 
-/*  option '-kS' */
+/*  Option '-kS' */
 void option_kS(void)
 {
     /*  self references in:
@@ -1265,7 +1826,7 @@ void option_kS(void)
     glflags.gf_types_flag = TRUE;
 }
 
-/*  option '-kt' */
+/*  Option '-kt' */
 void option_kt(void)
 {
     suppress_print_dwarf();
@@ -1276,7 +1837,7 @@ void option_kt(void)
 }
 
 #ifdef HAVE_USAGE_TAG_ATTR
-/*  option '-ku[...]' */
+/*  Option '-ku[...]' */
 void option_ku_0(void)
 {
     /* Tag-Tree and Tag-Attr usage */
@@ -1290,7 +1851,7 @@ void option_ku_0(void)
     }
 }
 
-/*  option '-ku' */
+/*  Option '-ku' */
 void option_ku(void)
 {
     suppress_print_dwarf();
@@ -1299,7 +1860,7 @@ void option_ku(void)
     glflags.gf_types_flag = TRUE;
 }
 
-/*  option '-kuf' */
+/*  Option '-kuf' */
 void option_kuf(void)
 {
     option_ku();
@@ -1309,7 +1870,7 @@ void option_kuf(void)
 }
 #endif /* HAVE_USAGE_TAG_ATTR */
 
-/*  option '-kw' */
+/*  Option '-kw' */
 void option_kw(void)
 {
     suppress_print_dwarf();
@@ -1318,7 +1879,7 @@ void option_kw(void)
     glflags.gf_macinfo_flag = TRUE;
 }
 
-/*  option '-kx[...]' */
+/*  Option '-kx[...]' */
 void option_kx_0(void)
 {
     /* Frames check */
@@ -1332,7 +1893,7 @@ void option_kx_0(void)
     }
 }
 
-/*  option '-kx' */
+/*  Option '-kx' */
 void option_kx(void)
 {
     suppress_print_dwarf();
@@ -1341,7 +1902,7 @@ void option_kx(void)
     glflags.gf_eh_frame_flag = TRUE;
 }
 
-/*  option '-kxe' */
+/*  Option '-kxe' */
 void option_kxe(void)
 {
     option_kx();
@@ -1351,7 +1912,7 @@ void option_kxe(void)
     glflags.gf_check_frames_extended = TRUE;
 }
 
-/*  option '-ky' */
+/*  Option '-ky' */
 void option_ky(void)
 {
     suppress_print_dwarf();
@@ -1364,7 +1925,7 @@ void option_ky(void)
     glflags.gf_check_aranges = TRUE;
 }
 
-/*  option '-l[...]' */
+/*  Option '-l[...]' */
 void option_l_0(void)
 {
     if (dwoptarg) {
@@ -1377,7 +1938,7 @@ void option_l_0(void)
     }
 }
 
-/*  option '-l' */
+/*  Option '-l' */
 void option_l(void)
 {
     /* Enable to suppress offsets printing */
@@ -1385,7 +1946,7 @@ void option_l(void)
     suppress_check_dwarf();
 }
 
-/*  option '-ls' */
+/*  Option '-ls' */
 void option_ls(void)
 {
   option_l();
@@ -1394,7 +1955,7 @@ void option_ls(void)
   glflags.gf_line_print_pc = FALSE;
 }
 
-/*  option '-m' */
+/*  Option '-m' */
 void option_m(void)
 {
     glflags.gf_macinfo_flag = TRUE; /* DWARF2,3,4 */
@@ -1402,26 +1963,26 @@ void option_m(void)
     suppress_check_dwarf();
 }
 
-/*  option '-M' */
+/*  Option '-M' */
 void option_M(void)
 {
     glflags.show_form_used =  TRUE;
 }
 
-/*  option '-n' */
+/*  Option '-n' */
 void option_n(void)
 {
     glflags.gf_suppress_nested_name_search = TRUE;
 }
 
-/*  option '-N' */
+/*  Option '-N' */
 void option_N(void)
 {
     glflags.gf_ranges_flag = TRUE;
     suppress_check_dwarf();
 }
 
-/*  option '-o[...]' */
+/*  Option '-o[...]' */
 void option_o_0(void)
 {
     if (dwoptarg) {
@@ -1441,14 +2002,14 @@ void option_o_0(void)
     }
 }
 
-/*  option '-o' */
+/*  Option '-o' */
 void option_o(void)
 {
     glflags.gf_reloc_flag = TRUE;
     set_all_reloc_sections_on();
 }
 
-/*  option '-oa' */
+/*  Option '-oa' */
 void option_oa(void)
 {
     /*  Case a has no effect, no relocations can point out
@@ -1457,14 +2018,14 @@ void option_oa(void)
     enable_reloc_map_entry(DW_SECTION_REL_DEBUG_ABBREV);
 }
 
-/*  option '-of' */
+/*  Option '-of' */
 void option_of(void)
 {
     glflags.gf_reloc_flag = TRUE;
     enable_reloc_map_entry(DW_SECTION_REL_DEBUG_FRAME);
 }
 
-/*  option '-oi' */
+/*  Option '-oi' */
 void option_oi(void)
 {
     glflags.gf_reloc_flag = TRUE;
@@ -1472,14 +2033,14 @@ void option_oi(void)
     enable_reloc_map_entry(DW_SECTION_REL_DEBUG_TYPES);
 }
 
-/*  option '-ol' */
+/*  Option '-ol' */
 void option_ol(void)
 {
     glflags.gf_reloc_flag = TRUE;
     enable_reloc_map_entry(DW_SECTION_REL_DEBUG_LINE);
 }
 
-/*  option '-oo' */
+/*  Option '-oo' */
 void option_oo(void)
 {
     glflags.gf_reloc_flag = TRUE;
@@ -1487,21 +2048,21 @@ void option_oo(void)
     enable_reloc_map_entry(DW_SECTION_REL_DEBUG_LOCLISTS);
 }
 
-/*  option '-op' */
+/*  Option '-op' */
 void option_op(void)
 {
     glflags.gf_reloc_flag = TRUE;
     enable_reloc_map_entry(DW_SECTION_REL_DEBUG_PUBNAMES);
 }
 
-/*  option '-or' */
+/*  Option '-or' */
 void option_or(void)
 {
     glflags.gf_reloc_flag = TRUE;
     enable_reloc_map_entry(DW_SECTION_REL_DEBUG_ARANGES);
 }
 
-/*  option '-oR' */
+/*  Option '-oR' */
 void option_oR(void)
 {
     glflags.gf_reloc_flag = TRUE;
@@ -1509,7 +2070,7 @@ void option_oR(void)
     enable_reloc_map_entry(DW_SECTION_REL_DEBUG_RNGLISTS);
 }
 
-/*  option '-O' */
+/*  Option '-O' */
 void option_O(void)
 {
     /* Output filename */
@@ -1525,62 +2086,61 @@ void option_O(void)
     }
 }
 
-/*  option '-p' */
+/*  Option '-p' */
 void option_p(void)
 {
     glflags.gf_pubnames_flag = TRUE;
     suppress_check_dwarf();
 }
 
-/*  option '-P' */
+/*  Option '-P' */
 void option_P(void)
 {
     /* List of CUs per compiler */
     glflags.gf_producer_children_flag = TRUE;
 }
 
-/*  option '-q' */
+/*  Option '-q' */
 void option_q(void)
 {
     /* Suppress uri-did-transate notification */
     glflags.gf_do_print_uri_in_input = FALSE;
 }
 
-/*  option '-Q' */
+/*  Option '-Q' */
 void option_Q(void)
 {
     /* Q suppresses section data printing. */
     glflags.gf_do_print_dwarf = FALSE;
 }
 
-/*  option '-r' */
+/*  Option '-r' */
 void option_r(void)
 {
     glflags.gf_aranges_flag = TRUE;
     suppress_check_dwarf();
 }
 
-/*  option '-R' */
+/*  Option '-R' */
 void option_R(void)
 {
     glflags.gf_generic_1200_regs = TRUE;
 }
 
-/*  option '-s' */
+/*  Option '-s' */
 void option_s(void)
 {
     glflags.gf_string_flag = TRUE;
     suppress_check_dwarf();
 }
 
-/*  option '-S' */
+/*  Option '-S' */
 void option_S(void)
 {
     /* 'v' option, to print number of occurrences */
     /* -S[v]match|any|regex=text*/
     if (dwoptarg[0] == 'v') {
-        ++dwoptarg;
-        glflags.gf_search_print_results = TRUE;
+        option_Sv();
     }
 
     if (strncmp(dwoptarg,"match=",6) == 0) {
@@ -1598,7 +2158,7 @@ void option_S(void)
     }
 }
 
-/*  option '-S any=' */
+/*  Option '-S any=' */
 void option_S_any(void)
 {
     /* -S any=<text> */
@@ -1611,7 +2171,7 @@ void option_S_any(void)
     }
 }
 
-/*  option '-S match=' */
+/*  Option '-S match=' */
 void option_S_match(void)
 {
     /* -S match=<text> */
@@ -1625,7 +2185,7 @@ void option_S_match(void)
 }
 
 #ifdef HAVE_REGEX
-/*  option '-S regex=' */
+/*  Option '-S regex=' */
 void option_S_regex(void)
 {
     /* -S regex=<regular expression> */
@@ -1647,7 +2207,14 @@ void option_S_regex(void)
 }
 #endif /* HAVE_REGEX */
 
-/*  option '-t' */
+/*  Option '-Sv' */
+void option_Sv(void)
+{
+    ++dwoptarg;
+    glflags.gf_search_print_results = TRUE;
+}
+
+/*  Option '-t' */
 void option_t(void)
 {
     switch (dwoptarg[0]) {
@@ -1658,7 +2225,7 @@ void option_t(void)
     }
 }
 
-/*  option '-ta' */
+/*  Option '-ta' */
 void option_ta(void)
 {
     /* all */
@@ -1667,7 +2234,7 @@ void option_ta(void)
     suppress_check_dwarf();
 }
 
-/*  option '-tf' */
+/*  Option '-tf' */
 void option_tf(void)
 {
     /* .debug_static_func */
@@ -1675,7 +2242,7 @@ void option_tf(void)
     suppress_check_dwarf();
 }
 
-/*  option '-tv' */
+/*  Option '-tv' */
 void option_tv(void)
 {
     /* .debug_static_var */
@@ -1683,7 +2250,7 @@ void option_tv(void)
     suppress_check_dwarf();
 }
 
-/*  option '-u' */
+/*  Option '-u' */
 void option_u(void)
 {
     /* compile unit */
@@ -1693,19 +2260,19 @@ void option_u(void)
     esb_append(glflags.cu_name,tstr);
 }
 
-/*  option '-U' */
+/*  Option '-U' */
 void option_U(void)
 {
     glflags.gf_uri_options_translation = FALSE;
 }
 
-/*  option '-v' */
+/*  Option '-v' */
 void option_v(void)
 {
     glflags.verbose++;
 }
 
-/*  option '-V' */
+/*  Option '-V' */
 void option_V(void)
 {
     /* Display dwarfdump compilation date and time */
@@ -1713,7 +2280,7 @@ void option_V(void)
     exit(OKAY);
 }
 
-/*  option '-w' */
+/*  Option '-w' */
 void option_w(void)
 {
     /* .debug_weaknames */
@@ -1721,7 +2288,7 @@ void option_w(void)
     suppress_check_dwarf();
 }
 
-/*  option '-W[...]' */
+/*  Option '-W[...]' */
 void option_W_0(void)
 {
     if (dwoptarg) {
@@ -1735,7 +2302,7 @@ void option_W_0(void)
     }
 }
 
-/*  option '-W' */
+/*  Option '-W' */
 void option_W(void)
 {
     /* Search results in wide format */
@@ -1746,7 +2313,7 @@ void option_W(void)
     glflags.gf_display_parent_tree = TRUE;
 }
 
-/*  option '-Wc' */
+/*  Option '-Wc' */
 void option_Wc(void)
 {
     /* -Wc : Display children tree */
@@ -1755,7 +2322,7 @@ void option_Wc(void)
     glflags.gf_display_parent_tree = FALSE;
 }
 
-/*  option '-Wp' */
+/*  Option '-Wp' */
 void option_Wp(void)
 {
     /* -Wp : Display parent tree */
@@ -1764,7 +2331,7 @@ void option_Wp(void)
     glflags.gf_display_parent_tree = TRUE;
 }
 
-/*  option '-x[...]' */
+/*  Option '-x[...]' */
 void option_x_0(void)
 {
     if (strncmp(dwoptarg, "name=", 5) == 0) {
@@ -1786,7 +2353,7 @@ void option_x_0(void)
     }
 }
 
-/*  option '-x abi=' */
+/*  Option '-x abi=' */
 void option_x_abi(void)
 {
     /*  -x abi=<abi> meaning select abi from dwarfdump.conf
@@ -1799,11 +2366,10 @@ void option_x_abi(void)
     }
 }
 
-/*  option '-x groupnumber=' */
+/*  Option '-x groupnumber=' */
 void option_x_groupnumber(void)
 {
-    /*  By default prints the lowest
-        groupnumber in the object.
+    /*  By default prints the lowest groupnumber in the object.
         Default is  -x groupnumber=0
         For group 1 (standard base dwarfdata)
             -x groupnumber=1
@@ -1819,7 +2385,7 @@ void option_x_groupnumber(void)
     }
 }
 
-/*  option '-x line5=' */
+/*  Option '-x line5=' */
 void option_x_line5(void)
 {
     if (strlen(dwoptarg) < 6) {
@@ -1837,7 +2403,7 @@ void option_x_line5(void)
     }
 }
 
-/*  option '-x name=' */
+/*  Option '-x name=' */
 void option_x_name(void)
 {
     /*  -x name=<path> meaning name dwarfdump.conf file. */
@@ -1850,19 +2416,19 @@ void option_x_name(void)
     }
 }
 
-/*  option '-x noprintsectiongroups' */
+/*  Option '-x noprintsectiongroups' */
 void option_x_noprintsectiongroups(void)
 {
     glflags.gf_section_groups_flag = FALSE;
 }
 
-/*  option '-x nosanitizestrings' */
+/*  Option '-x nosanitizestrings' */
 void option_x_nosanitizestrings(void)
 {
     no_sanitize_string_garbage = TRUE;
 }
 
-/*  option '-x tied=' */
+/*  Option '-x tied=' */
 void option_x_tied(void)
 {
     const char *tiedpath = do_uri_translation(&dwoptarg[5],"-x tied=");
@@ -1874,7 +2440,7 @@ void option_x_tied(void)
     }
 }
 
-/*  option '-y' */
+/*  Option '-y' */
 void option_y(void)
 {
     /* .debug_pubtypes */
@@ -1883,7 +2449,7 @@ void option_y(void)
     glflags.gf_pubtypes_flag = TRUE;
 }
 
-/*  option '-z' */
+/*  Option '-z' */
 void option_z(void)
 {
     fprintf(stderr, "-z is no longer supported:ignored\n");
