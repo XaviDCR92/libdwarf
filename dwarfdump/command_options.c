@@ -709,271 +709,271 @@ static boolean usage_error = FALSE;
 static int option = 0;
 
 enum longopts_vals {
-    OPTIONS_BEGIN = 999,
+  OPT_BEGIN = 999,
 
-    /* Check DWARF Integrity                                                */
-    CHECK_ABBREV,             /* -kb  --check-abbrev                        */
-    CHECK_ALL,                /* -ka  --check-all                           */
-    CHECK_ARANGES,            /* -kM  --check-aranges                       */
-    CHECK_ATTR_DUP,           /* -kD  --check-attr-dup                      */
-    CHECK_ATTR_ENCODINGS,     /* -kE  --check-attr-encodings                */
-    CHECK_ATTR_NAMES,         /* -kn  --check-attr-names                    */
-    CHECK_CONSTANTS,          /* -kc  --check-constants                     */
-    CHECK_FILES_LINES,        /* -kF  --check-files-lines                   */
-    CHECK_FORWARD_REFS,       /* -kR  --check-forward-refs                  */
-    CHECK_FRAME_BASIC,        /* -kx  --check-frame-basic                   */
-    CHECK_FRAME_EXTENDED,     /* -kxe --check-frame-extended                */
-    CHECK_FRAME_INFO,         /* -kf  --check-frame-info                    */
-    CHECK_GAPS,               /* -kg  --check-gaps                          */
-    CHECK_LOC,                /* -kl  --check-loc                           */
-    CHECK_MACROS,             /* -kw  --check-macros                        */
-    CHECK_PUBNAMES,           /* -ke  --check-pubnames                      */
-    CHECK_RANGES,             /* -km  --check-ranges                        */
-    CHECK_SELF_REFS,          /* -kS  --check-self-refs                     */
-    CHECK_SHOW,               /* -kd  --check-show                          */
-    CHECK_SILENT,             /* -ks  --check-silent                        */
-    CHECK_SUMMARY,            /* -ki  --check-summary                       */
-    CHECK_TAG_ATTR,           /* -kr  --check-tag-attr                      */
-    CHECK_TAG_TAG,            /* -kt  --check-tag-tag                       */
-    CHECK_TYPE,               /* -ky  --check-type                          */
-    CHECK_UNIQUE,             /* -kG  --check-unique                        */
+  /* Check DWARF Integrity                                                   */
+  OPT_CHECK_ABBREV,             /* -kb  --check-abbrev                       */
+  OPT_CHECK_ALL,                /* -ka  --check-all                          */
+  OPT_CHECK_ARANGES,            /* -kM  --check-aranges                      */
+  OPT_CHECK_ATTR_DUP,           /* -kD  --check-attr-dup                     */
+  OPT_CHECK_ATTR_ENCODINGS,     /* -kE  --check-attr-encodings               */
+  OPT_CHECK_ATTR_NAMES,         /* -kn  --check-attr-names                   */
+  OPT_CHECK_CONSTANTS,          /* -kc  --check-constants                    */
+  OPT_CHECK_FILES_LINES,        /* -kF  --check-files-lines                  */
+  OPT_CHECK_FORWARD_REFS,       /* -kR  --check-forward-refs                 */
+  OPT_CHECK_FRAME_BASIC,        /* -kx  --check-frame-basic                  */
+  OPT_CHECK_FRAME_EXTENDED,     /* -kxe --check-frame-extended               */
+  OPT_CHECK_FRAME_INFO,         /* -kf  --check-frame-info                   */
+  OPT_CHECK_GAPS,               /* -kg  --check-gaps                         */
+  OPT_CHECK_LOC,                /* -kl  --check-loc                          */
+  OPT_CHECK_MACROS,             /* -kw  --check-macros                       */
+  OPT_CHECK_PUBNAMES,           /* -ke  --check-pubnames                     */
+  OPT_CHECK_RANGES,             /* -km  --check-ranges                       */
+  OPT_CHECK_SELF_REFS,          /* -kS  --check-self-refs                    */
+  OPT_CHECK_SHOW,               /* -kd  --check-show                         */
+  OPT_CHECK_SILENT,             /* -ks  --check-silent                       */
+  OPT_CHECK_SUMMARY,            /* -ki  --check-summary                      */
+  OPT_CHECK_TAG_ATTR,           /* -kr  --check-tag-attr                     */
+  OPT_CHECK_TAG_TAG,            /* -kt  --check-tag-tag                      */
+  OPT_CHECK_TYPE,               /* -ky  --check-type                         */
+  OPT_CHECK_UNIQUE,             /* -kG  --check-unique                       */
 #ifdef HAVE_USAGE_TAG_ATTR
-    CHECK_USAGE,              /* -ku  --check-usage                         */
-    CHECK_USAGE_EXTENDED,     /* -kuf --check-usage-extended                */
+  OPT_CHECK_USAGE,              /* -ku  --check-usage                        */
+  OPT_CHECK_USAGE_EXTENDED,     /* -kuf --check-usage-extended               */
 #endif /* HAVE_USAGE_TAG_ATTR */
 
-    /* Print ELF sections header                                            */
-    ELF,                      /* -E   --elf                                 */
-    ELF_ABBREV,               /* -Ea  --elf-abbrev                          */
-    ELF_ARANGES,              /* -Er  --elf-aranges                         */
-    ELF_DEFAULT,              /* -Ed  --elf-default                         */
-    ELF_FRAMES,               /* -Ef  --elf-frames                          */
-    ELF_HEADER,               /* -Eh  --elf-header                          */
-    ELF_INFO,                 /* -Ei  --elf-info                            */
-    ELF_LINE,                 /* -El  --elf-line                            */
-    ELF_LOC,                  /* -Eo  --elf-loc                             */
-    ELF_PUBNAMES,             /* -Ep  --elf-pubnames                        */
-    ELF_PUBTYPES,             /* -Et  --elf-pubtypes                        */
-    ELF_RANGES,               /* -ER  --elf-ranges                          */
-    ELF_STRINGS,              /* -Es  --elf-strings                         */
-    ELF_TEXT,                 /* -Ex  --elf-text                            */
+  /* Print ELF sections header                                               */
+  OPT_ELF,                      /* -E   --elf                                */
+  OPT_ELF_ABBREV,               /* -Ea  --elf-abbrev                         */
+  OPT_ELF_ARANGES,              /* -Er  --elf-aranges                        */
+  OPT_ELF_DEFAULT,              /* -Ed  --elf-default                        */
+  OPT_ELF_FRAMES,               /* -Ef  --elf-frames                         */
+  OPT_ELF_HEADER,               /* -Eh  --elf-header                         */
+  OPT_ELF_INFO,                 /* -Ei  --elf-info                           */
+  OPT_ELF_LINE,                 /* -El  --elf-line                           */
+  OPT_ELF_LOC,                  /* -Eo  --elf-loc                            */
+  OPT_ELF_PUBNAMES,             /* -Ep  --elf-pubnames                       */
+  OPT_ELF_PUBTYPES,             /* -Et  --elf-pubtypes                       */
+  OPT_ELF_RANGES,               /* -ER  --elf-ranges                         */
+  OPT_ELF_STRINGS,              /* -Es  --elf-strings                        */
+  OPT_ELF_TEXT,                 /* -Ex  --elf-text                           */
 
-    /* File Specifications                                                  */
-    FILE_ABI,                 /* -x abi=<abi>    --file-abi=<abi>           */
-    FILE_CONFIG,              /* -x name=<path>  --file-config=<path>       */
-    FILE_OUTPUT,              /* -O file=<path>  --file-output=<path>       */
-    FILE_TIED,                /* -x tied=<path>  --file-tied=<path>         */
+  /* File Specifications                                                     */
+  OPT_FILE_ABI,                 /* -x abi=<abi>    --file-abi=<abi>          */
+  OPT_FILE_CONFIG,              /* -x name=<path>  --file-config=<path>      */
+  OPT_FILE_OUTPUT,              /* -O file=<path>  --file-output=<path>      */
+  OPT_FILE_TIED,                /* -x tied=<path>  --file-tied=<path>        */
 
-    /* Print Output Qualifiers                                              */
-    FORMAT_ATTR_NAME,         /* -M   --format-attr-name                    */
-    FORMAT_DENSE,             /* -d   --format-dense                        */
-    FORMAT_ELLIPSIS,          /* -e   --format-ellipsis                     */
-    FORMAT_EXTENSIONS,        /* -C   --format-extensions                   */
-    FORMAT_GLOBAL_OFFSETS,    /* -G   --format-global-offsets               */
-    FORMAT_LOC,               /* -g   --format-loc                          */
-    FORMAT_REGISTERS,         /* -R   --format-registers                    */
-    FORMAT_SUPPRESS_DATA,     /* -Q   --format-suppress-data                */
-    FORMAT_SUPPRESS_OFFSETS,  /* -D   --format-suppress-offsets             */
-    FORMAT_SUPPRESS_LOOKUP,   /* -n   --format-suppress-lookup              */
+  /* Print Output Qualifiers                                                 */
+  OPT_FORMAT_ATTR_NAME,         /* -M   --format-attr-name                   */
+  OPT_FORMAT_DENSE,             /* -d   --format-dense                       */
+  OPT_FORMAT_ELLIPSIS,          /* -e   --format-ellipsis                    */
+  OPT_FORMAT_EXTENSIONS,        /* -C   --format-extensions                  */
+  OPT_FORMAT_GLOBAL_OFFSETS,    /* -G   --format-global-offsets              */
+  OPT_FORMAT_LOC,               /* -g   --format-loc                         */
+  OPT_FORMAT_REGISTERS,         /* -R   --format-registers                   */
+  OPT_FORMAT_SUPPRESS_DATA,     /* -Q   --format-suppress-data               */
+  OPT_FORMAT_SUPPRESS_OFFSETS,  /* -D   --format-suppress-offsets            */
+  OPT_FORMAT_SUPPRESS_LOOKUP,   /* -n   --format-suppress-lookup             */
 
-    /* Print Output Limiters                                                */
-    FORMAT_FILE,              /* -u<file> --format-file=<file>              */
-    FORMAT_GCC,               /* -cg      --format-gcc                      */
-    FORMAT_GROUP,             /* -x<n>    --format-group=<n>                */
-    FORMAT_LIMIT,             /* -H<num>  --format-limit=<num>              */
-    FORMAT_PRODUCER,          /* -c<str>  --format-producer=<str>           */
-    FORMAT_SNC,               /* -cs      --format-snc                      */
+  /* Print Output Limiters                                                   */
+  OPT_FORMAT_FILE,              /* -u<file> --format-file=<file>             */
+  OPT_FORMAT_GCC,               /* -cg      --format-gcc                     */
+  OPT_FORMAT_GROUP,             /* -x<n>    --format-group=<n>               */
+  OPT_FORMAT_LIMIT,             /* -H<num>  --format-limit=<num>             */
+  OPT_FORMAT_PRODUCER,          /* -c<str>  --format-producer=<str>          */
+  OPT_FORMAT_SNC,               /* -cs      --format-snc                     */
 
-    /* Print Debug Sections                                                 */
-    PRINT_ABBREV,             /* -b   --print-abbrev                        */
-    PRINT_ARANGES,            /* -r   --print-aranges                       */
-    PRINT_DEBUG_NAMES,        /*      --print-debug-name                    */
-    PRINT_EH_FRAME,           /* -F   --print-eh-frame                      */
-    PRINT_FISSION,            /* -I   --print-fission                       */
-    PRINT_FRAME,              /* -f   --print-frame                         */
-    PRINT_INFO,               /* -i   --print-info                          */
-    PRINT_LINES,              /* -l   --print-lines                         */
-    PRINT_LINES_SHORT,        /* -ls  --print-lines-short                   */
-    PRINT_LOC,                /* -c   --print-loc                           */
-    PRINT_MACINFO,            /* -m   --print-macinfo                       */
-    PRINT_PRODUCERS,          /* -p   --print-producers                     */
-    PRINT_PUBNAMES,           /* -p   --print-pubnames                      */
-    PRINT_RANGES,             /* -N   --print-ranges                        */
-    PRINT_STATIC,             /* -ta  --print-static                        */
-    PRINT_STATIC_FUNC,        /* -tf  --print-static-func                   */
-    PRINT_STATIC_VAR,         /* -tv  --print-static-var                    */
-    PRINT_STRINGS,            /* -s   --print-strings                       */
-    PRINT_STR_OFFSETS,        /*      --print-str-offsets                   */
-    PRINT_TYPE,               /* -y   --print-type                          */
-    PRINT_WEAKNAME,           /* -w   --print-weakname                      */
+  /* Print Debug Sections                                                    */
+  OPT_PRINT_ABBREV,             /* -b   --print-abbrev                       */
+  OPT_PRINT_ARANGES,            /* -r   --print-aranges                      */
+  OPT_PRINT_DEBUG_NAMES,        /*      --print-debug-name                   */
+  OPT_PRINT_EH_FRAME,           /* -F   --print-eh-frame                     */
+  OPT_PRINT_FISSION,            /* -I   --print-fission                      */
+  OPT_PRINT_FRAME,              /* -f   --print-frame                        */
+  OPT_PRINT_INFO,               /* -i   --print-info                         */
+  OPT_PRINT_LINES,              /* -l   --print-lines                        */
+  OPT_PRINT_LINES_SHORT,        /* -ls  --print-lines-short                  */
+  OPT_PRINT_LOC,                /* -c   --print-loc                          */
+  OPT_PRINT_MACINFO,            /* -m   --print-macinfo                      */
+  OPT_PRINT_PRODUCERS,          /* -p   --print-producers                    */
+  OPT_PRINT_PUBNAMES,           /* -p   --print-pubnames                     */
+  OPT_PRINT_RANGES,             /* -N   --print-ranges                       */
+  OPT_PRINT_STATIC,             /* -ta  --print-static                       */
+  OPT_PRINT_STATIC_FUNC,        /* -tf  --print-static-func                  */
+  OPT_PRINT_STATIC_VAR,         /* -tv  --print-static-var                   */
+  OPT_PRINT_STRINGS,            /* -s   --print-strings                      */
+  OPT_PRINT_STR_OFFSETS,        /*      --print-str-offsets                  */
+  OPT_PRINT_TYPE,               /* -y   --print-type                         */
+  OPT_PRINT_WEAKNAME,           /* -w   --print-weakname                     */
 
-    /* Print Relocations Info                                               */
-    RELOC,                    /* -o   --reloc                               */
-    RELOC_ABBREV,             /* -oa  --reloc-abbrev                        */
-    RELOC_ARANGES,            /* -or  --reloc-aranges                       */
-    RELOC_FRAMES,             /* -of  --reloc-frames                        */
-    RELOC_INFO,               /* -oi  --reloc-info                          */
-    RELOC_LINE,               /* -ol  --reloc-line                          */
-    RELOC_LOC,                /* -oo  --reloc-loc                           */
-    RELOC_PUBNAMES,           /* -op  --reloc-pubnames                      */
-    RELOC_RANGES,             /* -oR  --reloc-ranges                        */
+  /* Print Relocations Info                                                  */
+  OPT_RELOC,                    /* -o   --reloc                              */
+  OPT_RELOC_ABBREV,             /* -oa  --reloc-abbrev                       */
+  OPT_RELOC_ARANGES,            /* -or  --reloc-aranges                      */
+  OPT_RELOC_FRAMES,             /* -of  --reloc-frames                       */
+  OPT_RELOC_INFO,               /* -oi  --reloc-info                         */
+  OPT_RELOC_LINE,               /* -ol  --reloc-line                         */
+  OPT_RELOC_LOC,                /* -oo  --reloc-loc                          */
+  OPT_RELOC_PUBNAMES,           /* -op  --reloc-pubnames                     */
+  OPT_RELOC_RANGES,             /* -oR  --reloc-ranges                       */
 
-    /* Search text in attributes                                            */
-    SEARCH_ANY,               /* -S any=<text>   --search-any=<text>        */
-    SEARCH_ANY_COUNT,         /* -Svany=<text>   --search-any-count=<text>  */
-    SEARCH_MATCH,             /* -S match=<text> --search-match=<text>      */
-    SEARCH_MATCH_COUNT,       /* -Svmatch=<text> --search-match-count<text> */
-    SEARCH_PRINT_CHILDREN,    /* -Wc --search-print-children                */
-    SEARCH_PRINT_PARENT,      /* -Wp --search-print-parent                  */
-    SEARCH_PRINT_TREE,        /* -W  --search-print-tree                    */
+  /* Search text in attributes                                               */
+  OPT_SEARCH_ANY,               /* -S any=<text>   --search-any=<text>       */
+  OPT_SEARCH_ANY_COUNT,         /* -Svany=<text>   --search-any-count=<text> */
+  OPT_SEARCH_MATCH,             /* -S match=<text> --search-match=<text>     */
+  OPT_SEARCH_MATCH_COUNT,       /* -Svmatch=<text> --search-match-count<text>*/
+  OPT_SEARCH_PRINT_CHILDREN,    /* -Wc --search-print-children               */
+  OPT_SEARCH_PRINT_PARENT,      /* -Wp --search-print-parent                 */
+  OPT_SEARCH_PRINT_TREE,        /* -W  --search-print-tree                   */
 #ifdef HAVE_REGEX
-    SEARCH_REGEX,             /* -S regex=<text> --search-regex=<text>      */
-    SEARCH_REGEX_COUNT,       /* -Svregex=<text> --search-regex-count<text> */
+  OPT_SEARCH_REGEX,             /* -S regex=<text> --search-regex=<text>     */
+  OPT_SEARCH_REGEX_COUNT,       /* -Svregex=<text> --search-regex-count<text>*/
 #endif /* HAVE_REGEX */
 
-    /* Help & Version                                                       */
-    HELP,                     /* -h  --help                                 */
-    VERBOSE,                  /* -v  --verbose                              */
-    VERBOSE_MORE,             /* -vv --verbose-more                         */
-    VERSION,                  /* -V  --version                              */
+  /* Help & Version                                                          */
+  OPT_HELP,                     /* -h  --help                                */
+  OPT_VERBOSE,                  /* -v  --verbose                             */
+  OPT_VERBOSE_MORE,             /* -vv --verbose-more                        */
+  OPT_VERSION,                  /* -V  --version                             */
 
-    /* Trace                                                                */
-    TRACE,                    /* -# --trace<num>                            */
+  /* Trace                                                                   */
+  OPT_TRACE,                    /* -# --trace<num>                           */
 
-    OPTIONS_END,
+  OPT_END,
 };
 
 static struct dwoption longopts[] =  {
 
-    /* Check DWARF Integrity */
-    {"check-abbrev",            dwno_argument, 0, CHECK_ABBREV               },      
-    {"check-all",               dwno_argument, 0, CHECK_ALL                  },      
-    {"check-aranges",           dwno_argument, 0, CHECK_ARANGES              },
-    {"check-attr-dup",          dwno_argument, 0, CHECK_ATTR_DUP             },
-    {"check-attr-encodings",    dwno_argument, 0, CHECK_ATTR_ENCODINGS       },
-    {"check-attr-names",        dwno_argument, 0, CHECK_ATTR_NAMES           },
-    {"check-constants",         dwno_argument, 0, CHECK_CONSTANTS            },
-    {"check-files-lines",       dwno_argument, 0, CHECK_FILES_LINES          },
-    {"check-forward-refs",      dwno_argument, 0, CHECK_FORWARD_REFS         },
-    {"check-frame-basic",       dwno_argument, 0, CHECK_FRAME_BASIC          },
-    {"check-frame-extended",    dwno_argument, 0, CHECK_FRAME_EXTENDED       },
-    {"check-frame-info",        dwno_argument, 0, CHECK_FRAME_INFO           },
-    {"check-gaps",              dwno_argument, 0, CHECK_GAPS                 },
-    {"check-loc",               dwno_argument, 0, CHECK_LOC                  },
-    {"check-macros",            dwno_argument, 0, CHECK_MACROS               },
-    {"check-pubnames",          dwno_argument, 0, CHECK_PUBNAMES             },
-    {"check-ranges",            dwno_argument, 0, CHECK_RANGES               },
-    {"check-self-refs",         dwno_argument, 0, CHECK_SELF_REFS            },
-    {"check-show",              dwno_argument, 0, CHECK_SHOW                 },
-    {"check-silent",            dwno_argument, 0, CHECK_SILENT               },
-    {"check-summary",           dwno_argument, 0, CHECK_SUMMARY              },
-    {"check-tag-attr",          dwno_argument, 0, CHECK_TAG_ATTR             },
-    {"check-tag-tag",           dwno_argument, 0, CHECK_TAG_TAG              },
-    {"check-type",              dwno_argument, 0, CHECK_TYPE                 },
-    {"check-unique",            dwno_argument, 0, CHECK_UNIQUE               },
+  /* Check DWARF Integrity. */
+  {"check-abbrev",         dwno_argument, 0, OPT_CHECK_ABBREV        },      
+  {"check-all",            dwno_argument, 0, OPT_CHECK_ALL           },      
+  {"check-aranges",        dwno_argument, 0, OPT_CHECK_ARANGES       },
+  {"check-attr-dup",       dwno_argument, 0, OPT_CHECK_ATTR_DUP      },
+  {"check-attr-encodings", dwno_argument, 0, OPT_CHECK_ATTR_ENCODINGS},
+  {"check-attr-names",     dwno_argument, 0, OPT_CHECK_ATTR_NAMES    },
+  {"check-constants",      dwno_argument, 0, OPT_CHECK_CONSTANTS     },
+  {"check-files-lines",    dwno_argument, 0, OPT_CHECK_FILES_LINES   },
+  {"check-forward-refs",   dwno_argument, 0, OPT_CHECK_FORWARD_REFS  },
+  {"check-frame-basic",    dwno_argument, 0, OPT_CHECK_FRAME_BASIC   },
+  {"check-frame-extended", dwno_argument, 0, OPT_CHECK_FRAME_EXTENDED},
+  {"check-frame-info",     dwno_argument, 0, OPT_CHECK_FRAME_INFO    },
+  {"check-gaps",           dwno_argument, 0, OPT_CHECK_GAPS          },
+  {"check-loc",            dwno_argument, 0, OPT_CHECK_LOC           },
+  {"check-macros",         dwno_argument, 0, OPT_CHECK_MACROS        },
+  {"check-pubnames",       dwno_argument, 0, OPT_CHECK_PUBNAMES      },
+  {"check-ranges",         dwno_argument, 0, OPT_CHECK_RANGES        },
+  {"check-self-refs",      dwno_argument, 0, OPT_CHECK_SELF_REFS     },
+  {"check-show",           dwno_argument, 0, OPT_CHECK_SHOW          },
+  {"check-silent",         dwno_argument, 0, OPT_CHECK_SILENT        },
+  {"check-summary",        dwno_argument, 0, OPT_CHECK_SUMMARY       },
+  {"check-tag-attr",       dwno_argument, 0, OPT_CHECK_TAG_ATTR      },
+  {"check-tag-tag",        dwno_argument, 0, OPT_CHECK_TAG_TAG       },
+  {"check-type",           dwno_argument, 0, OPT_CHECK_TYPE          },
+  {"check-unique",         dwno_argument, 0, OPT_CHECK_UNIQUE        },
 #ifdef HAVE_USAGE_TAG_ATTR
-    {"check-usage",             dwno_argument, 0, CHECK_USAGE                },
-    {"check-usage-extended",    dwno_argument, 0, CHECK_USAGE_EXTENDED       },
+  {"check-usage",          dwno_argument, 0, OPT_CHECK_USAGE         },
+  {"check-usage-extended", dwno_argument, 0, OPT_CHECK_USAGE_EXTENDED},
 #endif /* HAVE_USAGE_TAG_ATTR */
 
-    /* Print ELF sections header */
-    {"elf",                     dwno_argument, 0, ELF                        },
-    {"elf-abbrev",              dwno_argument, 0, ELF_ABBREV                 },
-    {"elf-aranges",             dwno_argument, 0, ELF_ARANGES                },
-    {"elf-default",             dwno_argument, 0, ELF_DEFAULT                },
-    {"elf-frames",              dwno_argument, 0, ELF_FRAMES                 },
-    {"elf-header",              dwno_argument, 0, ELF_HEADER                 },
-    {"elf-info",                dwno_argument, 0, ELF_INFO                   },
-    {"elf-line",                dwno_argument, 0, ELF_LINE                   },
-    {"elf-loc",                 dwno_argument, 0, ELF_LOC                    },
-    {"elf-pubnames",            dwno_argument, 0, ELF_PUBNAMES               },
-    {"elf-pubtypes",            dwno_argument, 0, ELF_PUBTYPES               },
-    {"elf-ranges",              dwno_argument, 0, ELF_RANGES                 },
-    {"elf-strings",             dwno_argument, 0, ELF_STRINGS                },
-    {"elf-text",                dwno_argument, 0, ELF_TEXT                   },
+  /* Print ELF sections header. */
+  {"elf",          dwno_argument, 0, OPT_ELF         },
+  {"elf-abbrev",   dwno_argument, 0, OPT_ELF_ABBREV  },
+  {"elf-aranges",  dwno_argument, 0, OPT_ELF_ARANGES },
+  {"elf-default",  dwno_argument, 0, OPT_ELF_DEFAULT },
+  {"elf-frames",   dwno_argument, 0, OPT_ELF_FRAMES  },
+  {"elf-header",   dwno_argument, 0, OPT_ELF_HEADER  },
+  {"elf-info",     dwno_argument, 0, OPT_ELF_INFO    },
+  {"elf-line",     dwno_argument, 0, OPT_ELF_LINE    },
+  {"elf-loc",      dwno_argument, 0, OPT_ELF_LOC     },
+  {"elf-pubnames", dwno_argument, 0, OPT_ELF_PUBNAMES},
+  {"elf-pubtypes", dwno_argument, 0, OPT_ELF_PUBTYPES},
+  {"elf-ranges",   dwno_argument, 0, OPT_ELF_RANGES  },
+  {"elf-strings",  dwno_argument, 0, OPT_ELF_STRINGS },
+  {"elf-text",     dwno_argument, 0, OPT_ELF_TEXT    },
 
-    /* File Specifications                                                  */
-    {"file-abi",                dwrequired_argument, 0, FILE_ABI             },
-    {"file-config",             dwrequired_argument, 0, FILE_CONFIG          },
-    {"file-output",             dwrequired_argument, 0, FILE_OUTPUT          },
-    {"file-tied",               dwrequired_argument, 0, FILE_TIED            },
+  /* File Specifications. */
+  {"file-abi",    dwrequired_argument, 0, OPT_FILE_ABI   },
+  {"file-config", dwrequired_argument, 0, OPT_FILE_CONFIG},
+  {"file-output", dwrequired_argument, 0, OPT_FILE_OUTPUT},
+  {"file-tied",   dwrequired_argument, 0, OPT_FILE_TIED  },
 
-    /* Print Output Qualifiers */
-    {"format-attr-name",        dwno_argument, 0, FORMAT_ATTR_NAME           },
-    {"format-dense",            dwno_argument, 0, FORMAT_DENSE               },
-    {"format-ellipsis",         dwno_argument, 0, FORMAT_ELLIPSIS            },
-    {"format-extensions",       dwno_argument, 0, FORMAT_EXTENSIONS          },
-    {"format-global-offsets",   dwno_argument, 0, FORMAT_GLOBAL_OFFSETS      },
-    {"format-loc",              dwno_argument, 0, FORMAT_LOC                 },
-    {"format-registers",        dwno_argument, 0, FORMAT_REGISTERS           },
-    {"format-suppress-data",    dwno_argument, 0, FORMAT_SUPPRESS_DATA       },
-    {"format-suppress-offsets", dwno_argument, 0, FORMAT_SUPPRESS_OFFSETS    },
-    {"format-suppress-lookup",  dwno_argument, 0, FORMAT_SUPPRESS_LOOKUP     },
+  /* Print Output Qualifiers. */
+  {"format-attr-name",        dwno_argument, 0, OPT_FORMAT_ATTR_NAME       },
+  {"format-dense",            dwno_argument, 0, OPT_FORMAT_DENSE           },
+  {"format-ellipsis",         dwno_argument, 0, OPT_FORMAT_ELLIPSIS        },
+  {"format-extensions",       dwno_argument, 0, OPT_FORMAT_EXTENSIONS      },
+  {"format-global-offsets",   dwno_argument, 0, OPT_FORMAT_GLOBAL_OFFSETS  },
+  {"format-loc",              dwno_argument, 0, OPT_FORMAT_LOC             },
+  {"format-registers",        dwno_argument, 0, OPT_FORMAT_REGISTERS       },
+  {"format-suppress-data",    dwno_argument, 0, OPT_FORMAT_SUPPRESS_DATA   },
+  {"format-suppress-offsets", dwno_argument, 0, OPT_FORMAT_SUPPRESS_OFFSETS},
+  {"format-suppress-lookup",  dwno_argument, 0, OPT_FORMAT_SUPPRESS_LOOKUP },
 
-    /* Print Output Limiters                                                */
-    {"format-file",             dwrequired_argument, 0, FORMAT_FILE          },
-    {"format-gcc",              dwno_argument,       0, FORMAT_GCC           },
-    {"format-group",            dwrequired_argument, 0, FORMAT_GROUP         },
-    {"format-limit",            dwrequired_argument, 0, FORMAT_LIMIT         },
-    {"format-producer",         dwrequired_argument, 0, FORMAT_PRODUCER      },
-    {"format-snc",              dwno_argument,       0, FORMAT_SNC           },
+  /* Print Output Limiters. */
+  {"format-file",     dwrequired_argument, 0, OPT_FORMAT_FILE    },
+  {"format-gcc",      dwno_argument,       0, OPT_FORMAT_GCC     },
+  {"format-group",    dwrequired_argument, 0, OPT_FORMAT_GROUP   },
+  {"format-limit",    dwrequired_argument, 0, OPT_FORMAT_LIMIT   },
+  {"format-producer", dwrequired_argument, 0, OPT_FORMAT_PRODUCER},
+  {"format-snc",      dwno_argument,       0, OPT_FORMAT_SNC     },
 
-    /* Print Debug Sections */
-    {"print-abbrev",            dwno_argument, 0, PRINT_ABBREV               },
-    {"print-aranges",           dwno_argument, 0, PRINT_ARANGES              },
-    {"print-debug-names",       dwno_argument, 0, PRINT_DEBUG_NAMES          },
-    {"print-eh-frame",          dwno_argument, 0, PRINT_EH_FRAME             },
-    {"print-fission",           dwno_argument, 0, PRINT_FISSION              },
-    {"print-frame",             dwno_argument, 0, PRINT_FRAME                },
-    {"print-info",              dwno_argument, 0, PRINT_INFO                 },
-    {"print-lines",             dwno_argument, 0, PRINT_LINES                },
-    {"print-lines-short",       dwno_argument, 0, PRINT_LINES_SHORT          },
-    {"print-loc",               dwno_argument, 0, PRINT_LOC                  },
-    {"print-macinfo",           dwno_argument, 0, PRINT_MACINFO              },
-    {"print-producers",         dwno_argument, 0, PRINT_PRODUCERS            },
-    {"print-pubnames",          dwno_argument, 0, PRINT_PUBNAMES             },
-    {"print-ranges",            dwno_argument, 0, PRINT_RANGES               },
-    {"print-static",            dwno_argument, 0, PRINT_STATIC               },
-    {"print-static-func",       dwno_argument, 0, PRINT_STATIC_FUNC          },
-    {"print-static-var",        dwno_argument, 0, PRINT_STATIC_VAR           },
-    {"print-strings",           dwno_argument, 0, PRINT_STRINGS              },
-    {"print-str-offsets",       dwno_argument, 0, PRINT_STR_OFFSETS          },
-    {"print-type",              dwno_argument, 0, PRINT_TYPE                 },
-    {"print-weakname",          dwno_argument, 0, PRINT_WEAKNAME             },
+  /* Print Debug Sections. */
+  {"print-abbrev",      dwno_argument, 0, OPT_PRINT_ABBREV     },
+  {"print-aranges",     dwno_argument, 0, OPT_PRINT_ARANGES    },
+  {"print-debug-names", dwno_argument, 0, OPT_PRINT_DEBUG_NAMES},
+  {"print-eh-frame",    dwno_argument, 0, OPT_PRINT_EH_FRAME   },
+  {"print-fission",     dwno_argument, 0, OPT_PRINT_FISSION    },
+  {"print-frame",       dwno_argument, 0, OPT_PRINT_FRAME      },
+  {"print-info",        dwno_argument, 0, OPT_PRINT_INFO       },
+  {"print-lines",       dwno_argument, 0, OPT_PRINT_LINES      },
+  {"print-lines-short", dwno_argument, 0, OPT_PRINT_LINES_SHORT},
+  {"print-loc",         dwno_argument, 0, OPT_PRINT_LOC        },
+  {"print-macinfo",     dwno_argument, 0, OPT_PRINT_MACINFO    },
+  {"print-producers",   dwno_argument, 0, OPT_PRINT_PRODUCERS  },
+  {"print-pubnames",    dwno_argument, 0, OPT_PRINT_PUBNAMES   },
+  {"print-ranges",      dwno_argument, 0, OPT_PRINT_RANGES     },
+  {"print-static",      dwno_argument, 0, OPT_PRINT_STATIC     },
+  {"print-static-func", dwno_argument, 0, OPT_PRINT_STATIC_FUNC},
+  {"print-static-var",  dwno_argument, 0, OPT_PRINT_STATIC_VAR },
+  {"print-strings",     dwno_argument, 0, OPT_PRINT_STRINGS    },
+  {"print-str-offsets", dwno_argument, 0, OPT_PRINT_STR_OFFSETS},
+  {"print-type",        dwno_argument, 0, OPT_PRINT_TYPE       },
+  {"print-weakname",    dwno_argument, 0, OPT_PRINT_WEAKNAME   },
 
-    /* Print Relocations Info */
-    {"reloc",                   dwno_argument, 0, RELOC                      },
-    {"reloc-abbrev",            dwno_argument, 0, RELOC_ABBREV               },
-    {"reloc-aranges",           dwno_argument, 0, RELOC_ARANGES              },
-    {"reloc-frames",            dwno_argument, 0, RELOC_FRAMES               },
-    {"reloc-info",              dwno_argument, 0, RELOC_INFO                 },
-    {"reloc-line",              dwno_argument, 0, RELOC_LINE                 },
-    {"reloc-loc",               dwno_argument, 0, RELOC_LOC                  },
-    {"reloc-pubnames",          dwno_argument, 0, RELOC_PUBNAMES             },
-    {"reloc-ranges",            dwno_argument, 0, RELOC_RANGES               },
+  /* Print Relocations Info. */
+  {"reloc",          dwno_argument, 0, OPT_RELOC         },
+  {"reloc-abbrev",   dwno_argument, 0, OPT_RELOC_ABBREV  },
+  {"reloc-aranges",  dwno_argument, 0, OPT_RELOC_ARANGES },
+  {"reloc-frames",   dwno_argument, 0, OPT_RELOC_FRAMES  },
+  {"reloc-info",     dwno_argument, 0, OPT_RELOC_INFO    },
+  {"reloc-line",     dwno_argument, 0, OPT_RELOC_LINE    },
+  {"reloc-loc",      dwno_argument, 0, OPT_RELOC_LOC     },
+  {"reloc-pubnames", dwno_argument, 0, OPT_RELOC_PUBNAMES},
+  {"reloc-ranges",   dwno_argument, 0, OPT_RELOC_RANGES  },
 
-    /* Search text in attributes                                            */
-    {"search-any",              dwrequired_argument, 0, SEARCH_ANY           },
-    {"search-any-count",        dwrequired_argument, 0, SEARCH_ANY_COUNT     },
-    {"search-match",            dwrequired_argument, 0, SEARCH_MATCH         },
-    {"search-match-count",      dwrequired_argument, 0, SEARCH_MATCH_COUNT   },
-    {"search-print-children",   dwno_argument,       0, SEARCH_PRINT_CHILDREN},
-    {"search-print-parent",     dwno_argument,       0, SEARCH_PRINT_PARENT  },
-    {"search-print-tree",       dwno_argument,       0, SEARCH_PRINT_TREE    },
+  /* Search text in attributes. */
+  {"search-any",            dwrequired_argument, 0, OPT_SEARCH_ANY           },
+  {"search-any-count",      dwrequired_argument, 0, OPT_SEARCH_ANY_COUNT     },
+  {"search-match",          dwrequired_argument, 0, OPT_SEARCH_MATCH         },
+  {"search-match-count",    dwrequired_argument, 0, OPT_SEARCH_MATCH_COUNT   },
+  {"search-print-children", dwno_argument,       0, OPT_SEARCH_PRINT_CHILDREN},
+  {"search-print-parent",   dwno_argument,       0, OPT_SEARCH_PRINT_PARENT  },
+  {"search-print-tree",     dwno_argument,       0, OPT_SEARCH_PRINT_TREE    },
 #ifdef HAVE_REGEX
-    {"search-regex",            dwrequired_argument, 0, SEARCH_REGEX         },
-    {"search-regex-count",      dwrequired_argument, 0, SEARCH_REGEX_COUNT   },
+  {"search-regex",          dwrequired_argument, 0, OPT_SEARCH_REGEX         },
+  {"search-regex-count",    dwrequired_argument, 0, OPT_SEARCH_REGEX_COUNT   },
 #endif /* HAVE_REGEX */
 
-    /* Help & Version                                                       */
-    {"help",                    dwno_argument,       0, HELP                 },
-    {"verbose",                 dwno_argument,       0, VERBOSE              },
-    {"version",                 dwno_argument,       0, VERSION              },
+  /* Help & Version. */
+  {"help",    dwno_argument, 0, OPT_HELP   },
+  {"verbose", dwno_argument, 0, OPT_VERBOSE},
+  {"version", dwno_argument, 0, OPT_VERSION},
 
-    /* Trace                                                                */
-    {"trace",                   dwrequired_argument, 0, TRACE                },
+  /* Trace. */
+  {"trace", dwrequired_argument, 0, OPT_TRACE},
 
-    {0,0,0,0}
+  {0,0,0,0}
 };
 
 /* process arguments and return object filename */
@@ -1042,132 +1042,132 @@ process_args(int argc, char *argv[])
         case 'z': option_z();     break;
 
         /* Check DWARF Integrity. */
-        case CHECK_ABBREV:          break;
-        case CHECK_ALL:             break;
-        case CHECK_ARANGES:         break;
-        case CHECK_ATTR_DUP:        break;
-        case CHECK_ATTR_ENCODINGS:  break;
-        case CHECK_ATTR_NAMES:      break;
-        case CHECK_CONSTANTS:       break;
-        case CHECK_FILES_LINES:     break;
-        case CHECK_FORWARD_REFS:    break;
-        case CHECK_FRAME_BASIC:     break;
-        case CHECK_FRAME_EXTENDED:  break;
-        case CHECK_FRAME_INFO:      break;
-        case CHECK_GAPS:            break;
-        case CHECK_LOC:             break;
-        case CHECK_MACROS:          break;
-        case CHECK_PUBNAMES:        break;
-        case CHECK_RANGES:          break;
-        case CHECK_SELF_REFS:       break;
-        case CHECK_SHOW:            break;
-        case CHECK_SILENT:          break;
-        case CHECK_SUMMARY:         break;
-        case CHECK_TAG_ATTR:        break;
-        case CHECK_TAG_TAG:         break;
-        case CHECK_TYPE:            break;
-        case CHECK_UNIQUE:          break;
+        case OPT_CHECK_ABBREV:          break;
+        case OPT_CHECK_ALL:             break;
+        case OPT_CHECK_ARANGES:         break;
+        case OPT_CHECK_ATTR_DUP:        break;
+        case OPT_CHECK_ATTR_ENCODINGS:  break;
+        case OPT_CHECK_ATTR_NAMES:      break;
+        case OPT_CHECK_CONSTANTS:       break;
+        case OPT_CHECK_FILES_LINES:     break;
+        case OPT_CHECK_FORWARD_REFS:    break;
+        case OPT_CHECK_FRAME_BASIC:     break;
+        case OPT_CHECK_FRAME_EXTENDED:  break;
+        case OPT_CHECK_FRAME_INFO:      break;
+        case OPT_CHECK_GAPS:            break;
+        case OPT_CHECK_LOC:             break;
+        case OPT_CHECK_MACROS:          break;
+        case OPT_CHECK_PUBNAMES:        break;
+        case OPT_CHECK_RANGES:          break;
+        case OPT_CHECK_SELF_REFS:       break;
+        case OPT_CHECK_SHOW:            break;
+        case OPT_CHECK_SILENT:          break;
+        case OPT_CHECK_SUMMARY:         break;
+        case OPT_CHECK_TAG_ATTR:        break;
+        case OPT_CHECK_TAG_TAG:         break;
+        case OPT_CHECK_TYPE:            break;
+        case OPT_CHECK_UNIQUE:          break;
 #ifdef HAVE_USAGE_TAG_ATTR
-        case CHECK_USAGE:           break;
-        case CHECK_USAGE_EXTENDED:  break;
+        case OPT_CHECK_USAGE:           break;
+        case OPT_CHECK_USAGE_EXTENDED:  break;
 #endif /* HAVE_USAGE_TAG_ATTR */
 
         /* Print ELF sections header. */
-        case ELF:           break;
-        case ELF_ABBREV:    break;
-        case ELF_ARANGES:   break;
-        case ELF_DEFAULT:   break;
-        case ELF_FRAMES:    break;
-        case ELF_HEADER:    break;
-        case ELF_INFO:      break;
-        case ELF_LINE:      break;
-        case ELF_LOC:       break;
-        case ELF_PUBNAMES:  break;
-        case ELF_PUBTYPES:  break;
-        case ELF_RANGES:    break;
-        case ELF_STRINGS:   break;
-        case ELF_TEXT:      break;
+        case OPT_ELF:           break;
+        case OPT_ELF_ABBREV:    break;
+        case OPT_ELF_ARANGES:   break;
+        case OPT_ELF_DEFAULT:   break;
+        case OPT_ELF_FRAMES:    break;
+        case OPT_ELF_HEADER:    break;
+        case OPT_ELF_INFO:      break;
+        case OPT_ELF_LINE:      break;
+        case OPT_ELF_LOC:       break;
+        case OPT_ELF_PUBNAMES:  break;
+        case OPT_ELF_PUBTYPES:  break;
+        case OPT_ELF_RANGES:    break;
+        case OPT_ELF_STRINGS:   break;
+        case OPT_ELF_TEXT:      break;
 
         /* File Specifications. */
-        case FILE_ABI:    break;
-        case FILE_CONFIG: break;
-        case FILE_OUTPUT: break;
-        case FILE_TIED:   break;
+        case OPT_FILE_ABI:    break;
+        case OPT_FILE_CONFIG: break;
+        case OPT_FILE_OUTPUT: break;
+        case OPT_FILE_TIED:   break;
 
         /* Print Output Qualifiers. */
-        case FORMAT_ATTR_NAME:        break;
-        case FORMAT_DENSE:            break;
-        case FORMAT_ELLIPSIS:         break;
-        case FORMAT_EXTENSIONS:       break;
-        case FORMAT_GLOBAL_OFFSETS:   break;
-        case FORMAT_LOC:              break;
-        case FORMAT_REGISTERS:        break;
-        case FORMAT_SUPPRESS_DATA:    break;
-        case FORMAT_SUPPRESS_OFFSETS: break;
-        case FORMAT_SUPPRESS_LOOKUP:  break;
+        case OPT_FORMAT_ATTR_NAME:        break;
+        case OPT_FORMAT_DENSE:            break;
+        case OPT_FORMAT_ELLIPSIS:         break;
+        case OPT_FORMAT_EXTENSIONS:       break;
+        case OPT_FORMAT_GLOBAL_OFFSETS:   break;
+        case OPT_FORMAT_LOC:              break;
+        case OPT_FORMAT_REGISTERS:        break;
+        case OPT_FORMAT_SUPPRESS_DATA:    break;
+        case OPT_FORMAT_SUPPRESS_OFFSETS: break;
+        case OPT_FORMAT_SUPPRESS_LOOKUP:  break;
 
         /* Print Output Limiters. */
-        case FORMAT_FILE:     break;
-        case FORMAT_GCC:      break;
-        case FORMAT_GROUP:    break;
-        case FORMAT_LIMIT:    break;
-        case FORMAT_PRODUCER: break;
-        case FORMAT_SNC:      break;
+        case OPT_FORMAT_FILE:     break;
+        case OPT_FORMAT_GCC:      break;
+        case OPT_FORMAT_GROUP:    break;
+        case OPT_FORMAT_LIMIT:    break;
+        case OPT_FORMAT_PRODUCER: break;
+        case OPT_FORMAT_SNC:      break;
 
         /* Print Debug Sections. */
-        case PRINT_ABBREV:                                  break;
-        case PRINT_ARANGES:                                 break;
-        case PRINT_DEBUG_NAMES: option_print_debug_names(); break;
-        case PRINT_EH_FRAME:                                break;
-        case PRINT_FISSION:                                 break;
-        case PRINT_FRAME:                                   break;
-        case PRINT_INFO:                                    break;
-        case PRINT_LINES:                                   break;
-        case PRINT_LINES_SHORT:                             break;
-        case PRINT_LOC:                                     break;
-        case PRINT_MACINFO:                                 break;
-        case PRINT_PRODUCERS:                               break;
-        case PRINT_PUBNAMES:                                break;
-        case PRINT_RANGES:                                  break;
-        case PRINT_STATIC:                                  break;
-        case PRINT_STATIC_FUNC:                             break;
-        case PRINT_STATIC_VAR:                              break;
-        case PRINT_STRINGS:                                 break;
-        case PRINT_STR_OFFSETS: option_print_str_offsets(); break;
-        case PRINT_TYPE:                                    break;
-        case PRINT_WEAKNAME:                                break;
+        case OPT_PRINT_ABBREV:                                  break;
+        case OPT_PRINT_ARANGES:                                 break;
+        case OPT_PRINT_DEBUG_NAMES: option_print_debug_names(); break;
+        case OPT_PRINT_EH_FRAME:                                break;
+        case OPT_PRINT_FISSION:                                 break;
+        case OPT_PRINT_FRAME:                                   break;
+        case OPT_PRINT_INFO:                                    break;
+        case OPT_PRINT_LINES:                                   break;
+        case OPT_PRINT_LINES_SHORT:                             break;
+        case OPT_PRINT_LOC:                                     break;
+        case OPT_PRINT_MACINFO:                                 break;
+        case OPT_PRINT_PRODUCERS:                               break;
+        case OPT_PRINT_PUBNAMES:                                break;
+        case OPT_PRINT_RANGES:                                  break;
+        case OPT_PRINT_STATIC:                                  break;
+        case OPT_PRINT_STATIC_FUNC:                             break;
+        case OPT_PRINT_STATIC_VAR:                              break;
+        case OPT_PRINT_STRINGS:                                 break;
+        case OPT_PRINT_STR_OFFSETS: option_print_str_offsets(); break;
+        case OPT_PRINT_TYPE:                                    break;
+        case OPT_PRINT_WEAKNAME:                                break;
 
         /* Print Relocations Info. */
-        case RELOC:           break;
-        case RELOC_ABBREV:    break;
-        case RELOC_ARANGES:   break;
-        case RELOC_FRAMES:    break;
-        case RELOC_INFO:      break;
-        case RELOC_LINE:      break;
-        case RELOC_LOC:       break;
-        case RELOC_PUBNAMES:  break;
-       case RELOC_RANGES:     break;
+        case OPT_RELOC:           break;
+        case OPT_RELOC_ABBREV:    break;
+        case OPT_RELOC_ARANGES:   break;
+        case OPT_RELOC_FRAMES:    break;
+        case OPT_RELOC_INFO:      break;
+        case OPT_RELOC_LINE:      break;
+        case OPT_RELOC_LOC:       break;
+        case OPT_RELOC_PUBNAMES:  break;
+        case OPT_RELOC_RANGES:    break;
 
         /* Search text in attributes. */
-        case SEARCH_ANY:            break;
-        case SEARCH_ANY_COUNT:      break;
-        case SEARCH_MATCH:          break;
-        case SEARCH_MATCH_COUNT:    break;
-        case SEARCH_PRINT_CHILDREN: break;
-        case SEARCH_PRINT_PARENT:   break;
-        case SEARCH_PRINT_TREE:     break;
+        case OPT_SEARCH_ANY:            break;
+        case OPT_SEARCH_ANY_COUNT:      break;
+        case OPT_SEARCH_MATCH:          break;
+        case OPT_SEARCH_MATCH_COUNT:    break;
+        case OPT_SEARCH_PRINT_CHILDREN: break;
+        case OPT_SEARCH_PRINT_PARENT:   break;
+        case OPT_SEARCH_PRINT_TREE:     break;
 #ifdef HAVE_REGEX
-        case SEARCH_REGEX:          break;
-        case SEARCH_REGEX_COUNT:    break;
+        case OPT_SEARCH_REGEX:          break;
+        case OPT_SEARCH_REGEX_COUNT:    break;
 #endif /* HAVE_REGEX */
 
         /* Help & Version. */
-        case HELP: option_h();    break;
-        case VERBOSE: option_v(); break;
-        case VERSION: option_V(); break;
+        case OPT_HELP: option_h();    break;
+        case OPT_VERBOSE: option_v(); break;
+        case OPT_VERSION: option_V(); break;
 
         /* Trace. */
-        case TRACE: option_trace(); break;
+        case OPT_TRACE: option_trace(); break;
 
         default: usage_error = TRUE; break;
         }
