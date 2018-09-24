@@ -56,9 +56,10 @@ static const char *usage_text[] = {
 "\t\t-d\tdense: one line per entry (info section only)",
 "\t\t-D\tdo not show offsets",  /* Do not show any offsets */
 "\t\t-e\tellipsis: short names for tags, attrs etc.",
-"\t\t-E[hliaprfoRstxd]\tprint object Header and/or section information",
+"\t\t-E[hliIamprfoRstxd]\tprint object Header and/or section information",
 "\t\t  \th=header,l=line,i=info,a=abbrev,p=pubnames,r=aranges,",
 "\t\t  \tf=frames,o=loc,R=Ranges,s=strings,t=pubtypes,x=text,",
+"\t\t  \tI=fission,m=macinfo & DW5 macros,",
 "\t\t  \td=default sections, same as -E and {liaprfoRstx}",
 "\t\t-f\tprint dwarf frame section",
 "\t\t-F\tprint gnu .eh_frame section",
@@ -69,8 +70,7 @@ static const char *usage_text[] = {
 "\t\t\t  example: to stop after <num> compilation units",
 "\t\t-i\tprint info section",
 "\t\t-I\tprint sections .gdb_index, .debug_cu_index, .debug_tu_index",
-/* FIXME -kw is check macros */
-"\t\t-k[abcdDeEfFgGilmMnrRsStu[f]x[e]y] check dwarf information",
+"\t\t-k[abcdDeEfFgGilmMnrRsStu[f]wx[e]y] check dwarf information",
 "\t\t   a\tdo all checks",
 "\t\t   b\tcheck abbreviations",     /* Check abbreviations */
 "\t\t   c\texamine DWARF constants", /* Check for valid DWARF constants */
@@ -96,6 +96,7 @@ static const char *usage_text[] = {
 "\t\t   u\tprint tag-tree and tag-attribute usage (basic format)",
 "\t\t   uf\tprint tag-tree and tag-attribute usage (full format)",
 #endif /* HAVE_USAGE_TAG_ATTR */
+"\t\t   w\tcheck macros",
 "\t\t   x\tbasic frames check (.eh_frame, .debug_frame)",
 "\t\t   xe\textensive frames check (.eh_frame, .debug_frame)",
 "\t\t   y\texamine type info",
