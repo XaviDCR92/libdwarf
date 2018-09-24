@@ -117,6 +117,7 @@ static const char *usage_text[] = {
 "\t\t--print-debug-names\tprint details from the .debug_names section",
 "\t\t--print-str-offsets\tprint details from the .debug_str_offsets section",
 "\t\t-P\tprint list of compile units per producer", /* List of CUs per compiler */
+"\t\t-q\tsuppress uri-did-translate notification",
 "\t\t-Q\tsuppress printing section data",
 "\t\t-r\tprint aranges section",
 "\t\t-R\tPrint frame register names as r33 etc",
@@ -139,12 +140,15 @@ static const char *usage_text[] = {
 "\t\t   f\tprint static func section",
 "\t\t   v\tprint static var section",
 "\t\t-u<file> print sections only for specified file",
+"\t\t-U\tsuppress uri-translate",
 "\t\t-v\tverbose: show more information",
 "\t\t-vv verbose: show even more information",
 "\t\t-V print version information",
 "\t\t-x abi=<abi>\tname abi in dwarfdump.conf",
 "\t\t-x groupnumber=<n>\tgroupnumber to print",
+"\t\t-f line5=<val>\ttable DWARF5 new interfaces",
 "\t\t-x name=<path>\tname dwarfdump.conf",
+"\t\t-x noprintsectiongroups\tdo not print section groups",
 "\t\t-x tied=<tiedpath>\tname an associated object file (Split DWARF)",
 #if 0
 "\t\t-x nosanitizestrings\tLet bogus string characters come thru printf",

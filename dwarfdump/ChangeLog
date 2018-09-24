@@ -1,5 +1,8 @@
 2018-09-24 Carlos Alberto Enciso
     * command_options.c: Add missing desriptions in the usage message for
+      -q, -U, -x line5 and -x noprintsettinggroups.
+2018-09-24 Carlos Alberto Enciso
+    * command_options.c: Add missing desriptions in the usage message for
       -EI, -Em and -kw.
 2018-09-20 Carlos Alberto Enciso
     * command_options.c: Move the code associated with each
