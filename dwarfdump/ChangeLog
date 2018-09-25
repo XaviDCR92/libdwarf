@@ -1,3 +1,8 @@
+2018-09-25 Carlos Alberto Enciso
+    * command_options.c: Add -he and --help-extended to display usage for
+      the long name options.
+2018-09-24 Carlos Alberto Enciso
+    * command_options.c: Add support for long name options.
 2018-09-24 Carlos Alberto Enciso
     * command_options.c: Add missing desriptions in the usage message for
       -q, -U, -x line5 and -x noprintsettinggroups.

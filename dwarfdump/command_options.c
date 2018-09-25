@@ -65,7 +65,8 @@ static const char *usage_text[] = {
 "\t\t-F\tprint gnu .eh_frame section",
 "\t\t-g\t(use incomplete loclist support)",
 "\t\t-G\tshow global die offsets",
-"\t\t-h\tprint the dwarfdump help message (this options list) (",
+"\t\t-h[e]\tprint the dwarfdump help message (this options list)",
+"\t\t   e\tprint the dwarfdump extended help message (long options list)",
 "\t\t-H <num>\tlimit output to the first <num> major units",
 "\t\t\t  example: to stop after <num> compilation units",
 "\t\t-i\tprint info section",
@@ -205,7 +206,7 @@ static const char *usage_long_text[] = {
 "-----------------------------------------------------------------------------",
 "Print Relocations Info",
 "-----------------------------------------------------------------------------",
-"-o   --reloc           Print relocation info [liaprfoR]",
+"-o   --reloc           Print relocation info [afiloprR]",
 "-oa  --reloc-abbrev    Print relocation .debug_abbrev section",
 "-or  --reloc-aranges   Print relocation .debug_aranges section",
 "-of  --reloc-frames    Print relocation .debug_frame section",
@@ -219,7 +220,7 @@ static const char *usage_long_text[] = {
 "Print ELF sections header",
 "-----------------------------------------------------------------------------",
 "-E   --elf           Print object Header and/or section information",
-"                       Same as -E[hliaprfoRstxd]",
+"                       Same as -E[adfhiIlmoprRstx]",
 "-Ea  --elf-abbrev    Print .debug_abbrev header",
 "-Er  --elf-aranges   Print .debug_aranges header",
 "-Ed  --elf-default   Same as -E and {liaprfoRstx}",
@@ -229,8 +230,8 @@ static const char *usage_long_text[] = {
 "-Eh  --elf-header    Print ELF header",
 "-Ei  --elf-info      Print .debug_info header",
 "-El  --elf-line      Print .debug_line header",
-"-Em  --elf-macinfo   Print old macinfo and dwarf5 macro header",
 "-Eo  --elf-loc       Print .debug_loc header",
+"-Em  --elf-macinfo   Print old macinfo and dwarf5 macro header",
 "-Ep  --elf-pubnames  Print .debug_pubnames header",
 "-Et  --elf-pubtypes  Print .debug_types header",
 "-ER  --elf-ranges    Print .debug_ranges header",
@@ -280,48 +281,50 @@ static const char *usage_long_text[] = {
 "-d   --format-dense            One line per entry (info section only)",
 "-e   --format-ellipsis         Short names for tags, attrs etc.",
 "-G   --format-global-offsets   Show global die offsets",
+"-g   --format-loc              Use incomplete loclist support",
 "-R   --format-registers        Print frame register names as r33 etc",
 "                                 and allow up to 1200 registers.",
 "                                 Print using a 'generic' register set.",
 "-Q   --format-suppress-data    Suppress printing section data",
-"-D   --format-suppress-offsets do not show offsets",
 "-x noprintsectiongroups",
 "     --format-suppress-group   do not print section groups",
 "-n   --format-suppress-lookup  Suppress frame information function name lookup",
 "                                 (when printing frame information from multi",
 "                                 gigabyte, object files this option may save",
 "                                 significant time).",
-"-U   --format-suppress-uri     Suppress uri-translate",
-"-q   --format-suppress-uri-msg Suppress uri-did-translate notification",
+"-D   --format-suppress-offsets do not show offsets",
 #if 0
 "-x nosanitizestrings",
 "     --format-suppress-sanitize Bogus string characters come thru printf",
 #endif
+"-U   --format-suppress-uri     Suppress uri-translate",
+"-q   --format-suppress-uri-msg Suppress uri-did-translate notification",
 "-C   --format-extensions       Activate printing (with -i) of warnings about",
 "                                 certain common extensions of DWARF.",
-"-g   --format-loc              Use incomplete loclist support",
 " ",
 "-----------------------------------------------------------------------------",
 "Print Output Limiters",
 "-----------------------------------------------------------------------------",
 "-u<file> --format-file=<file>    Print sections only for specified file",
+"-cg      --format-gcc            Check only GCC compiler objects",
+"-x<n>    --format-group=<n>      Groupnumber to print",
 "-H<num>  --format-limit=<num>    Limit output to the first <num> major units",
 "                                   stop after <num> compilation units",
 "-c<str>  --format-producer=<str> Check only specific compiler objects",
 "                                   <str> is described by 'DW_AT_producer'",
 "                                   -c'350.1' check only compiler objects with",
 "                                   350.1 in the CU name",
-"-cg      --format-gcc            Check only GCC compiler objects",
 "-cs      --format-snc            Check only SNC compiler objects",
-"-x<n>    --format-group=<n>      Groupnumber to print",
 " ",
 "-----------------------------------------------------------------------------",
 "File Specifications",
 "-----------------------------------------------------------------------------",
-"-O file=<path>   --file-output=<path>  Name the output file",
 "-x abi=<abi>     --file-abi=<abi>      Name abi in dwarfdump.conf",
-"-x line5=<val>   --file-line5=<val>    Table DWARF5 new interfaces",
 "-x name=<path>   --file-config=<path>  Name dwarfdump.conf",
+"-x line5=<val>   --file-line5=<val>    Table DWARF5 new interfaces",
+"                                         where <val> is:",
+"                                           std, s2l, orig or orig2l",
+"-O file=<path>   --file-output=<path>  Name the output file",
 "-x tied=<path>   --file-tied=<path>    Name an associated object file",
 "                                         (Split DWARF)",
 " ",
@@ -340,14 +343,15 @@ static const char *usage_long_text[] = {
 "                                         regex= only usable if the functions",
 "                                         required are found at configure time",
 " ",
-"-W   --search-print-tree     Print parent/children tree (wide format) with -S",
-"-Wp  --search-print-parent   Print parent tree (wide format) with -S",
 "-Wc  --search-print-children Print children tree (wide format) with -S",
+"-Wp  --search-print-parent   Print parent tree (wide format) with -S",
+"-W   --search-print-tree     Print parent/children tree (wide format) with -S",
 " ",
 "-----------------------------------------------------------------------------",
 "Help & Version",
 "-----------------------------------------------------------------------------",
-"-h   --help          Print the dwarfdump help message",
+"-h   --help          Print the dwarfdump help message (short option names)",
+"-he  --help-extended Print the dwarfdump help message (long option names)",
 "-v   --verbose       Show more information",
 "-vv  --verbose-more  Show even more information",
 "-V   --version       Print version information",
@@ -690,12 +694,14 @@ static void arg_search_print_parent(void);
 static void arg_search_print_tree(void);
 
 static void arg_help(void);
+static void arg_help_extended(void);
 static void arg_trace(void);
 static void arg_verbose(void);
 static void arg_version(void);
 
 static void arg_c_multiple_selection(void);
 static void arg_E_multiple_selection(void);
+static void arg_h_multiple_selection(void);
 static void arg_l_multiple_selection(void);
 static void arg_k_multiple_selection(void);
 static void arg_kx_multiple_selection(void);
@@ -846,6 +852,7 @@ enum longopts_vals {
 
   /* Help & Version                                                          */
   OPT_HELP,                     /* -h  --help                                */
+  OPT_HELP_EXTENDED,            /* -he --help-extended                       */
   OPT_VERBOSE,                  /* -v  --verbose                             */
   OPT_VERBOSE_MORE,             /* -vv --verbose-more                        */
   OPT_VERSION,                  /* -V  --version                             */
@@ -926,9 +933,7 @@ static struct dwoption longopts[] =  {
   {"format-suppress-group",    dwno_argument, 0, OPT_FORMAT_SUPPRESS_GROUP   },
   {"format-suppress-lookup",   dwno_argument, 0, OPT_FORMAT_SUPPRESS_LOOKUP  },
   {"format-suppress-offsets",  dwno_argument, 0, OPT_FORMAT_SUPPRESS_OFFSETS },
-//#if 0
   {"format-suppress-sanitize", dwno_argument, 0, OPT_FORMAT_SUPPRESS_SANITIZE},
-//#endif
   {"format-suppress-uri",      dwno_argument, 0, OPT_FORMAT_SUPPRESS_URI     },
   {"format-suppress-uri-msg",  dwno_argument, 0, OPT_FORMAT_SUPPRESS_URI_MSG },
 
@@ -989,9 +994,11 @@ static struct dwoption longopts[] =  {
 #endif /* HAVE_REGEX */
 
   /* Help & Version. */
-  {"help",    dwno_argument, 0, OPT_HELP   },
-  {"verbose", dwno_argument, 0, OPT_VERBOSE},
-  {"version", dwno_argument, 0, OPT_VERSION},
+  {"help",          dwno_argument, 0, OPT_HELP         },
+  {"help-extended", dwno_argument, 0, OPT_HELP_EXTENDED},
+  {"verbose",       dwno_argument, 0, OPT_VERBOSE      },
+  {"verbose-more",  dwno_argument, 0, OPT_VERBOSE_MORE },
+  {"version",       dwno_argument, 0, OPT_VERSION      },
 
   /* Trace. */
   {"trace", dwrequired_argument, 0, OPT_TRACE},
@@ -1008,7 +1015,7 @@ set_command_options(int argc, char *argv[])
 
     /* j unused */
     while ((arg_option = dwgetopt_long(argc, argv,
-        "#:abc::CdDeE::fFgGhH:iIk:l::mMnNo::O:pPqQrRsS:t:u:UvVwW::x:yz",
+        "#:abc::CdDeE::fFgGh:H:iIk:l::mMnNo::O:pPqQrRsS:t:u:UvVwW::x:yz",
         longopts,&longindex)) != EOF) {
 
         switch (arg_option) {
@@ -1025,7 +1032,7 @@ set_command_options(int argc, char *argv[])
         case 'F': arg_print_gnu_frame();         break;
         case 'g': arg_format_loc();              break;
         case 'G': arg_format_global_offsets();   break;
-        case 'h': arg_help();                    break;
+        case 'h': arg_h_multiple_selection();    break;
         case 'H': arg_format_limit();            break;
         case 'i': arg_print_info();              break;
         case 'I': arg_print_fission();           break;
@@ -1185,9 +1192,11 @@ set_command_options(int argc, char *argv[])
     #endif /* HAVE_REGEX */
 
         /* Help & Version. */
-        case OPT_HELP:    arg_help();    break;
-        case OPT_VERBOSE: arg_verbose(); break;
-        case OPT_VERSION: arg_version(); break;
+        case OPT_HELP:          arg_help();          break;
+        case OPT_HELP_EXTENDED: arg_help_extended(); break;
+        case OPT_VERBOSE:       arg_verbose();       break;
+        case OPT_VERBOSE_MORE:  arg_verbose();       break;
+        case OPT_VERSION:       arg_version();       break;
 
         /* Trace. */
         case OPT_TRACE: arg_trace(); break;
@@ -1580,10 +1589,30 @@ void arg_format_global_offsets(void)
     glflags.gf_show_global_offsets = TRUE;
 }
 
+/*  Option '-h[...]' */
+void arg_h_multiple_selection(void)
+{
+    if (dwoptarg) {
+        switch (dwoptarg[0]) {
+        case 'e': arg_help_extended();   break;
+        default: arg_usage_error = TRUE; break;
+        }
+    } else {
+      arg_help();
+    }
+}
+
 /*  Option '-h' */
 void arg_help(void)
 {
     print_usage_message(glflags.program_name,usage_text);
+    exit(OKAY);
+}
+
+/*  Option '-he' */
+void arg_help_extended(void)
+{
+    print_usage_message(glflags.program_name,usage_long_text);
     exit(OKAY);
 }
 
