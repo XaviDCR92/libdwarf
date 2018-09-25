@@ -320,7 +320,7 @@ static const char *usage_long_text[] = {
 "File Specifications",
 "-----------------------------------------------------------------------------",
 "-x abi=<abi>     --file-abi=<abi>      Name abi in dwarfdump.conf",
-"-x name=<path>   --file-config=<path>  Name dwarfdump.conf",
+"-x name=<path>   --file-name=<path>    Name dwarfdump.conf",
 "-x line5=<val>   --file-line5=<val>    Table DWARF5 new interfaces",
 "                                         where <val> is:",
 "                                           std, s2l, orig or orig2l",
@@ -773,8 +773,8 @@ enum longopts_vals {
 
   /* File Specifications                                                     */
   OPT_FILE_ABI,                 /* -x abi=<abi>    --file-abi=<abi>          */
-  OPT_FILE_CONFIG,              /* -x name=<path>  --file-config=<path>      */
   OPT_FILE_LINE5,               /* -x line5=<val>  --file-line5=<val>        */
+  OPT_FILE_NAME,                /* -x name=<path>  --file-name=<path>        */
   OPT_FILE_OUTPUT,              /* -O file=<path>  --file-output=<path>      */
   OPT_FILE_TIED,                /* -x tied=<path>  --file-tied=<path>        */
 
@@ -916,8 +916,8 @@ static struct dwoption longopts[] =  {
 
   /* File Specifications. */
   {"file-abi",    dwrequired_argument, 0, OPT_FILE_ABI   },
-  {"file-config", dwrequired_argument, 0, OPT_FILE_CONFIG},
   {"file-line5",  dwrequired_argument, 0, OPT_FILE_LINE5 },
+  {"file-name",   dwrequired_argument, 0, OPT_FILE_NAME  },
   {"file-output", dwrequired_argument, 0, OPT_FILE_OUTPUT},
   {"file-tied",   dwrequired_argument, 0, OPT_FILE_TIED  },
 
@@ -1114,8 +1114,8 @@ set_command_options(int argc, char *argv[])
 
         /* File Specifications. */
         case OPT_FILE_ABI:    arg_file_abi();    break;
-        case OPT_FILE_CONFIG: arg_file_name();   break;
         case OPT_FILE_LINE5:  arg_file_line5();  break;
+        case OPT_FILE_NAME:   arg_file_name();   break;
         case OPT_FILE_OUTPUT: arg_file_output(); break;
         case OPT_FILE_TIED:   arg_file_tied();   break;
 
@@ -1307,7 +1307,7 @@ void arg_print_str_offsets(void)
 /*  Option '-#' */
 void arg_trace(void)
 {
-    int nTraceLevel =  atoi(dwoptarg);
+    int nTraceLevel = atoi(dwoptarg);
     if (nTraceLevel >= 0 && nTraceLevel <= MAX_TRACE_LEVEL) {
         glflags.nTrace[nTraceLevel] = 1;
     }
@@ -1419,21 +1419,21 @@ void arg_E_multiple_selection(void)
     /* Selected printing of section info */
     if (dwoptarg) {
         switch (dwoptarg[0]) {
-        case 'a': arg_elf_abbrev(); break;
-        case 'd': arg_elf_default(); break;
-        case 'f': arg_elf_frames(); break;
-        case 'h': arg_elf_header(); break;
-        case 'i': arg_elf_info(); break;
-        case 'I': arg_elf_fission(); break;
-        case 'l': arg_elf_line(); break;
-        case 'm': arg_elf_macinfo(); break;
-        case 'o': arg_elf_loc(); break;
-        case 'p': arg_elf_pubnames(); break;
-        case 'r': arg_elf_aranges(); break;
-        case 'R': arg_elf_ranges(); break;
-        case 's': arg_elf_strings(); break;
-        case 't': arg_elf_pubtypes(); break;
-        case 'x': arg_elf_text(); break;
+        case 'a': arg_elf_abbrev();      break;
+        case 'd': arg_elf_default();     break;
+        case 'f': arg_elf_frames();      break;
+        case 'h': arg_elf_header();      break;
+        case 'i': arg_elf_info();        break;
+        case 'I': arg_elf_fission();     break;
+        case 'l': arg_elf_line();        break;
+        case 'm': arg_elf_macinfo();     break;
+        case 'o': arg_elf_loc();         break;
+        case 'p': arg_elf_pubnames();    break;
+        case 'r': arg_elf_aranges();     break;
+        case 'R': arg_elf_ranges();      break;
+        case 's': arg_elf_strings();     break;
+        case 't': arg_elf_pubtypes();    break;
+        case 'x': arg_elf_text();        break;
         default: arg_usage_error = TRUE; break;
         }
     } else {
@@ -1619,7 +1619,7 @@ void arg_help_extended(void)
 /*  Option '-H' */
 void arg_format_limit(void)
 {
-    int break_val =  atoi(dwoptarg);
+    int break_val = atoi(dwoptarg);
     if (break_val > 0) {
         glflags.break_after_n_units = break_val;
     }
@@ -1644,34 +1644,34 @@ void arg_print_fission(void)
 void arg_k_multiple_selection(void)
 {
     switch (dwoptarg[0]) {
-    case 'a': arg_check_all(); break;
-    case 'b': arg_check_abbrev(); break;
-    case 'c': arg_check_constants(); break;
-    case 'd': arg_check_show(); break;
-    case 'D': arg_check_attr_dup(); break;
-    case 'e': arg_check_pubnames(); break;
-    case 'E': arg_check_attr_encodings(); break;
-    case 'f': arg_check_frame_info(); break;
-    case 'F': arg_check_files_lines(); break;
-    case 'g': arg_check_gaps(); break;
-    case 'G': arg_check_unique(); break;
-    case 'i': arg_check_summary(); break;
-    case 'l': arg_check_loc(); break;
-    case 'm': arg_check_ranges(); break;
-    case 'M': arg_check_aranges(); break;
-    case 'n': arg_check_attr_names(); break;
-    case 'r': arg_check_tag_attr(); break;
-    case 'R': arg_check_forward_refs(); break;
-    case 's': arg_check_silent(); break;
-    case 'S': arg_check_self_refs(); break;
-    case 't': arg_check_tag_tag(); break;
+    case 'a': arg_check_all();             break;
+    case 'b': arg_check_abbrev();          break;
+    case 'c': arg_check_constants();       break;
+    case 'd': arg_check_show();            break;
+    case 'D': arg_check_attr_dup();        break;
+    case 'e': arg_check_pubnames();        break;
+    case 'E': arg_check_attr_encodings();  break;
+    case 'f': arg_check_frame_info();      break;
+    case 'F': arg_check_files_lines();     break;
+    case 'g': arg_check_gaps();            break;
+    case 'G': arg_check_unique();          break;
+    case 'i': arg_check_summary();         break;
+    case 'l': arg_check_loc();             break;
+    case 'm': arg_check_ranges();          break;
+    case 'M': arg_check_aranges();         break;
+    case 'n': arg_check_attr_names();      break;
+    case 'r': arg_check_tag_attr();        break;
+    case 'R': arg_check_forward_refs();    break;
+    case 's': arg_check_silent();          break;
+    case 'S': arg_check_self_refs();       break;
+    case 't': arg_check_tag_tag();         break;
 #ifdef HAVE_USAGE_TAG_ATTR
-    case 'u': arg_ku(); break;
+    case 'u': arg_ku();                    break;
 #endif /* HAVE_USAGE_TAG_ATTR */
-    case 'w': arg_check_macros(); break;
+    case 'w': arg_check_macros();          break;
     case 'x': arg_kx_multiple_selection(); break;
-    case 'y': arg_check_type(); break;
-    default: arg_usage_error = TRUE; break;
+    case 'y': arg_check_type();            break;
+    default: arg_usage_error = TRUE;       break;
     }
 }
 
@@ -1917,7 +1917,7 @@ void arg_ku(void)
     if (dwoptarg[1]) {
         switch (dwoptarg[1]) {
         case 'f': arg_check_usage_extended(); break;
-        default: arg_usage_error = TRUE; break;
+        default: arg_usage_error = TRUE;      break;
         }
     } else {
       arg_check_usage();
@@ -1959,7 +1959,7 @@ void arg_kx_multiple_selection(void)
     if (dwoptarg[1]) {
         switch (dwoptarg[1]) {
         case 'e': arg_check_frame_extended(); break;
-        default: arg_usage_error = TRUE; break;
+        default: arg_usage_error = TRUE;      break;
         }
     } else {
       arg_check_frame_basic();
@@ -2004,7 +2004,7 @@ void arg_l_multiple_selection(void)
     if (dwoptarg) {
         switch (dwoptarg[0]) {
         case 's': arg_print_lines_short(); break;
-        default: arg_usage_error = TRUE; break;
+        default: arg_usage_error = TRUE;   break;
         }
     } else {
       arg_print_lines();
@@ -2059,14 +2059,14 @@ void arg_o_multiple_selection(void)
 {
     if (dwoptarg) {
         switch (dwoptarg[0]) {
-        case 'a': arg_reloc_abbrev(); break;
-        case 'i': arg_reloc_info(); break;
-        case 'l': arg_reloc_line(); break;
-        case 'p': arg_reloc_pubnames(); break;
-        case 'r': arg_reloc_aranges(); break;
-        case 'f': arg_reloc_frames(); break;
-        case 'o': arg_reloc_loc(); break;
-        case 'R': arg_reloc_ranges(); break;
+        case 'a': arg_reloc_abbrev();    break;
+        case 'i': arg_reloc_info();      break;
+        case 'l': arg_reloc_line();      break;
+        case 'p': arg_reloc_pubnames();  break;
+        case 'r': arg_reloc_aranges();   break;
+        case 'f': arg_reloc_frames();    break;
+        case 'o': arg_reloc_loc();       break;
+        case 'R': arg_reloc_ranges();    break;
         default: arg_usage_error = TRUE; break;
         }
     } else {
@@ -2148,6 +2148,7 @@ void arg_O_multiple_selection(void)
     /* Output filename */
     /*  -O file=<filename> */
     if (strncmp(dwoptarg,"file=",5) == 0) {
+        dwoptarg = &dwoptarg[5];
         arg_file_output();
     } else {
         arg_usage_error = TRUE;
@@ -2157,7 +2158,9 @@ void arg_O_multiple_selection(void)
 /*  Option '-O file=' */
 void arg_file_output(void)
 {
-    const char *path = do_uri_translation(&dwoptarg[5],"-O file=");
+    const char *ctx = arg_option > OPT_BEGIN ? "--file-output=" : "-O file=";
+
+    const char *path = do_uri_translation(dwoptarg,"-O file=");
     if (strlen(path) > 0) {
         glflags.output_file = path;
     } else {
@@ -2219,16 +2222,20 @@ void arg_S_multiple_selection(void)
     /* 'v' option, to print number of occurrences */
     /* -S[v]match|any|regex=text*/
     if (dwoptarg[0] == 'v') {
+        ++dwoptarg;
         arg_search_count();
     }
 
     if (strncmp(dwoptarg,"match=",6) == 0) {
+        dwoptarg = &dwoptarg[6];
         arg_search_match();
     } else if (strncmp(dwoptarg,"any=",4) == 0) {
+        dwoptarg = &dwoptarg[4];
         arg_search_any();
     }
 #ifdef HAVE_REGEX
     else if (strncmp(dwoptarg,"regex=",6) == 0) {
+        dwoptarg = &dwoptarg[6];
         arg_search_regex();
     }
 #endif /* HAVE_REGEX */
@@ -2240,11 +2247,13 @@ void arg_S_multiple_selection(void)
 /*  Option '-S any=' */
 void arg_search_any(void)
 {
+    const char *ctx = arg_option > OPT_BEGIN ? "--search-any=" : "-S any=";
+
     /* -S any=<text> */
     glflags.gf_search_is_on = TRUE;
-    glflags.search_any_text = makename(&dwoptarg[4]);
+    glflags.search_any_text = makename(dwoptarg);
     const char *tempstr = remove_quotes_pair(glflags.search_any_text);
-    glflags.search_any_text = do_uri_translation(tempstr,"-S any=");
+    glflags.search_any_text = do_uri_translation(tempstr,ctx);
     if (strlen(glflags.search_any_text) <= 0) {
         arg_search_invalid();
     }
@@ -2260,11 +2269,13 @@ void arg_search_any_count(void)
 /*  Option '-S match=' */
 void arg_search_match(void)
 {
+    const char *ctx = arg_option > OPT_BEGIN ? "--search-match=" : "-S match=";
+
     /* -S match=<text> */
     glflags.gf_search_is_on = TRUE;
-    glflags.search_match_text = makename(&dwoptarg[6]);
+    glflags.search_match_text = makename(dwoptarg);
     const char *tempstr = remove_quotes_pair(glflags.search_match_text);
-    glflags.search_match_text = do_uri_translation(tempstr, "-S match=");
+    glflags.search_match_text = do_uri_translation(tempstr,ctx);
     if (strlen(glflags.search_match_text) <= 0) {
         arg_search_invalid();
     }
@@ -2281,11 +2292,13 @@ void arg_search_match_count(void)
 /*  Option '-S regex=' */
 void arg_search_regex(void)
 {
+    const char *ctx = arg_option > OPT_BEGIN ? "--search-regex=" : "-S regex=";
+
     /* -S regex=<regular expression> */
     glflags.gf_search_is_on = TRUE;
-    glflags.search_regex_text = makename(&dwoptarg[6]);
+    glflags.search_regex_text = makename(dwoptarg);
     const char *tempstr = remove_quotes_pair(glflags.search_regex_text);
-    glflags.search_regex_text = do_uri_translation(tempstr, "-S regex=");
+    glflags.search_regex_text = do_uri_translation(tempstr,ctx);
     if (strlen(glflags.search_regex_text) > 0) {
         if (regcomp(glflags.search_re,
             glflags.search_regex_text,
@@ -2310,7 +2323,6 @@ void arg_search_regex_count(void)
 /*  Option '-Sv' */
 void arg_search_count(void)
 {
-    ++dwoptarg;
     glflags.gf_search_print_results = TRUE;
 }
 
@@ -2353,10 +2365,12 @@ void arg_print_static_var(void)
 /*  Option '-u' */
 void arg_format_file(void)
 {
+    const char *ctx = arg_option > OPT_BEGIN ? "--format-file=" : "-u<cu name>";
+
     /* compile unit */
     const char *tstr = 0;
     glflags.gf_cu_name_flag = TRUE;
-    tstr = do_uri_translation(dwoptarg,"-u<cu name>");
+    tstr = do_uri_translation(dwoptarg,ctx);
     esb_append(glflags.cu_name,tstr);
 }
 
@@ -2395,7 +2409,7 @@ void arg_W_multiple_selection(void)
         switch (dwoptarg[0]) {
         case 'c': arg_search_print_children(); break;
         case 'p': arg_search_print_parent();   break;
-        default: arg_usage_error = TRUE; break;
+        default: arg_usage_error = TRUE;       break;
         }
     } else {
         arg_search_print_tree();
@@ -2434,17 +2448,22 @@ void arg_search_print_parent(void)
 /*  Option '-x[...]' */
 void arg_x_multiple_selection(void)
 {
-    if (strncmp(dwoptarg, "name=", 5) == 0) {
+    if (strncmp(dwoptarg,"name=",5) == 0) {
+        dwoptarg = &dwoptarg[5];
         arg_file_name();
-    } else if (strncmp(dwoptarg, "abi=", 4) == 0) {
+    } else if (strncmp(dwoptarg,"abi=",4) == 0) {
+        dwoptarg = &dwoptarg[4];
         arg_file_abi();
-    } else if (strncmp(dwoptarg, "groupnumber=", 12) == 0) {
+    } else if (strncmp(dwoptarg,"groupnumber=",12) == 0) {
+        dwoptarg = &dwoptarg[12];
         arg_format_groupnumber();
-    } else if (strncmp(dwoptarg, "tied=", 5) == 0) {
+    } else if (strncmp(dwoptarg,"tied=",5) == 0) {
+        dwoptarg = &dwoptarg[5];
         arg_file_tied();
-    } else if (strncmp(dwoptarg, "line5=", 6) == 0) {
+    } else if (strncmp(dwoptarg,"line5=",6) == 0) {
+        dwoptarg = &dwoptarg[6];
         arg_file_line5();
-    } else if (strcmp(dwoptarg, "nosanitizestrings") == 0) {
+    } else if (strcmp(dwoptarg,"nosanitizestrings") == 0) {
         arg_format_suppress_sanitize();
     } else if (strcmp(dwoptarg,"noprintsectiongroups") == 0) {
         arg_format_suppress_group();
@@ -2456,13 +2475,15 @@ void arg_x_multiple_selection(void)
 /*  Option '-x abi=' */
 void arg_file_abi(void)
 {
+    const char *ctx = arg_option > OPT_BEGIN ? "--file-abi=" : "-x abi=";
+
     /*  -x abi=<abi> meaning select abi from dwarfdump.conf
         file. Must always select abi to use dwarfdump.conf */
-    const char *abi = do_uri_translation(&dwoptarg[4],"-x abi=");
-    if (strlen(abi) < 1) {
-        arg_x_invalid();
-    } else {
+    const char *abi = do_uri_translation(dwoptarg,ctx);
+    if (strlen(abi) > 0) {
         config_file_abi = abi;
+    } else {
+        arg_x_invalid();
     }
 }
 
@@ -2477,7 +2498,7 @@ void arg_format_groupnumber(void)
             -x groupnumber=2 */
     long int gnum = 0;
 
-    int res = get_number_value(dwoptarg+12,&gnum);
+    int res = get_number_value(dwoptarg,&gnum);
     if (res == DW_DLV_OK) {
         glflags.group_number = gnum;
     } else {
@@ -2490,13 +2511,13 @@ void arg_file_line5(void)
 {
     if (strlen(dwoptarg) < 6) {
         arg_x_invalid();
-    } else if (!strcmp(&dwoptarg[6],"std")) {
+    } else if (!strcmp(dwoptarg,"std")) {
         glflags.gf_line_flag_selection = singledw5;
-    } else if (!strcmp(&dwoptarg[6],"s2l")) {
+    } else if (!strcmp(dwoptarg,"s2l")) {
         glflags.gf_line_flag_selection= s2l;
-    } else if (!strcmp(&dwoptarg[6],"orig")) {
+    } else if (!strcmp(dwoptarg,"orig")) {
         glflags.gf_line_flag_selection= orig;
-    } else if (!strcmp(&dwoptarg[6],"orig2l")) {
+    } else if (!strcmp(dwoptarg,"orig2l")) {
         glflags.gf_line_flag_selection= orig2l;
     } else {
         arg_x_invalid();
@@ -2506,13 +2527,15 @@ void arg_file_line5(void)
 /*  Option '-x name=' */
 void arg_file_name(void)
 {
+    const char *ctx = arg_option > OPT_BEGIN ? "--file-name=" : "-x name=";
+
     /*  -x name=<path> meaning name dwarfdump.conf file. */
-    const char *path = do_uri_translation(&dwoptarg[5],"-x name=");
-    if (strlen(path) < 1) {
-        arg_x_invalid();
-    } else {
+    const char *path = do_uri_translation(dwoptarg,ctx);
+    if (strlen(path) > 0) {
         esb_empty_string(glflags.config_file_path);
         esb_append(glflags.config_file_path,path);
+    } else {
+        arg_x_invalid();
     }
 }
 
@@ -2531,12 +2554,14 @@ void arg_format_suppress_sanitize(void)
 /*  Option '-x tied=' */
 void arg_file_tied(void)
 {
-    const char *tiedpath = do_uri_translation(&dwoptarg[5],"-x tied=");
-    if (strlen(tiedpath) < 1) {
-        arg_x_invalid();
-    } else {
+    const char *ctx = arg_option > OPT_BEGIN ? "--file-tied=" : "-x tied=";
+
+    const char *tiedpath = do_uri_translation(dwoptarg,ctx);
+    if (strlen(tiedpath) > 0) {
         esb_empty_string(glflags.config_file_tiedpath);
         esb_append(glflags.config_file_tiedpath,tiedpath);
+    } else {
+        arg_x_invalid();
     }
 }
 

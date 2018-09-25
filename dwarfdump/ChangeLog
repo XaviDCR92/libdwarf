@@ -1,4 +1,7 @@
 2018-09-25 Carlos Alberto Enciso
+    * command_options.c: Add support for long name options that expect
+      an argument by using the same code from the short options.
+2018-09-25 Carlos Alberto Enciso
     * command_options.c: Add -he and --help-extended to display usage for
       the long name options.
 2018-09-24 Carlos Alberto Enciso
