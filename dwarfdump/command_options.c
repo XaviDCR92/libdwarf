@@ -41,6 +41,371 @@ static void suppress_check_dwarf();
 
 extern char *dwoptarg;
 
+/*  These configure items are for the
+    frame data.  We're flexible in
+    the path to dwarfdump.conf .
+    The HOME strings here are transformed in
+    dwconf.c to reference the environment
+    variable $HOME .
+
+    As of August 2018 CONFPREFIX is always set as it
+    comes from autoconf --prefix, aka  $prefix
+    which defaults to /usr/local
+
+    The install puts the .conf file in
+    CONFPREFIX/dwarfdump/
+*/
+static char *config_file_defaults[] = {
+    "dwarfdump.conf",
+    "./dwarfdump.conf",
+    "HOME/.dwarfdump.conf",
+    "HOME/dwarfdump.conf",
+#ifdef CONFPREFIX
+/* See Makefile.am dwarfdump_CFLAGS. This prefix
+    is the --prefix option (defaults to /usr/local
+    and Makefile.am adds /share/dwarfdump ) */
+/* We need 2 levels of macro to get the name turned into
+   the string we want. */
+#define STR2(s) # s
+#define STR(s)  STR2(s)
+    STR(CONFPREFIX) "/dwarfdump.conf",
+#else
+    /*  This no longer used as of August 2018. */
+    "/usr/lib/dwarfdump.conf",
+#endif
+    0
+};
+static const char *config_file_abi = 0;
+
+/* Do printing of most sections.
+   Do not do detailed checking.
+*/
+static void
+do_all(void)
+{
+    glflags.gf_frame_flag = TRUE;
+    glflags.gf_info_flag = TRUE;
+    glflags.gf_types_flag =  TRUE; /* .debug_types */
+    glflags.gf_line_flag = TRUE;
+    glflags.gf_pubnames_flag = TRUE;
+    glflags.gf_macinfo_flag = TRUE;
+    glflags.gf_macro_flag = TRUE;
+    glflags.gf_aranges_flag = TRUE;
+    /*  Do not do
+        glflags.gf_loc_flag = TRUE
+        glflags.gf_abbrev_flag = TRUE;
+        glflags.gf_ranges_flag = TRUE;
+        because nothing in
+        the DWARF spec guarantees the sections are free of random bytes
+        in areas not referenced by .debug_info */
+    glflags.gf_string_flag = TRUE;
+    /*  Do not do
+        glflags.gf_reloc_flag = TRUE;
+        as print_relocs makes no sense for non-elf dwarfdump users.  */
+    glflags.gf_static_func_flag = TRUE; /* SGI only*/
+    glflags.gf_static_var_flag = TRUE; /* SGI only*/
+    glflags.gf_pubtypes_flag = TRUE;  /* both SGI typenames and dwarf_pubtypes. */
+    glflags.gf_weakname_flag = TRUE; /* SGI only*/
+    glflags.gf_header_flag = TRUE; /* Dump header info */
+    glflags.gf_debug_names_flag = TRUE;
+}
+
+static int
+get_number_value(char *v_in,long int *v_out)
+{
+    long int v= 0;
+    size_t len = strlen(v_in);
+    char *endptr = 0;
+
+    if (len < 1) {
+        return DW_DLV_ERROR;
+    }
+    v = strtol(v_in,&endptr,10);
+    if (endptr == v_in) {
+        return DW_DLV_NO_ENTRY;
+    }
+    if (*endptr != '\0') {
+        return DW_DLV_ERROR;
+    }
+    *v_out = v;
+    return DW_DLV_OK;
+}
+
+static void suppress_print_dwarf()
+{
+    glflags.gf_do_print_dwarf = FALSE;
+    glflags.gf_do_check_dwarf = TRUE;
+}
+
+/* Remove matching leading/trailing quotes.
+   Does not alter the passed in string.
+   If quotes removed does a makename on a modified string. */
+static const char *
+remove_quotes_pair(const char *text)
+{
+    static char single_quote = '\'';
+    static char double_quote = '\"';
+    char quote = 0;
+    const char *p = text;
+    int len = strlen(text);
+
+    if (len < 2) {
+        return p;
+    }
+
+    /* Compare first character with ' or " */
+    if (p[0] == single_quote) {
+        quote = single_quote;
+    } else {
+        if (p[0] == double_quote) {
+            quote = double_quote;
+        }
+        else {
+            return p;
+        }
+    }
+    {
+        if (p[len - 1] == quote) {
+            char *altered = calloc(1,len+1);
+            const char *str2 = 0;
+            strcpy(altered,p+1);
+            altered[len - 2] = '\0';
+            str2 =  makename(altered);
+            free(altered);
+            return str2;
+        }
+    }
+    return p;
+}
+
+/*  By trimming a /dwarfdump.O
+    down to /dwarfdump  (keeping any prefix
+    or suffix)
+    we can avoid a sed command in
+    regressiontests/DWARFTEST.sh
+    and save 12 minutes run time of a regression
+    test.
+
+    The effect is, when nothing has changed in the
+    normal output, that the program_name matches too.
+    Because we don't want a different name of dwarfdump
+    to cause a mismatch.  */
+static char *
+special_program_name(char *n)
+{
+    char * mp = "/dwarfdump.O";
+    char * revstr = "/dwarfdump";
+    char *cp = n;
+    size_t mslen = strlen(mp);
+
+    for(  ; *cp; ++cp ) {
+        if (*cp == *mp) {
+            if(!strncmp(cp,mp,mslen)){
+                esb_append(glflags.newprogname,revstr);
+                cp += mslen-1;
+            } else {
+                esb_appendn(glflags.newprogname,cp,1);
+            }
+        } else {
+            esb_appendn(glflags.newprogname,cp,1);
+        }
+    }
+    return esb_get_string(glflags.newprogname);
+}
+
+static void suppress_check_dwarf()
+{
+    glflags.gf_do_print_dwarf = TRUE;
+    if (glflags.gf_do_check_dwarf) {
+        printf("Warning: check flag turned off, "
+            "checking and printing are separate.\n");
+    }
+    glflags.gf_do_check_dwarf = FALSE;
+    set_checks_off();
+}
+
+/*  The strings whose pointers are returned here
+    from makename are never destructed, but
+    that is ok since there are only about 10 created at most.  */
+const char *
+do_uri_translation(const char *s,const char *context)
+{
+    struct esb_s str;
+    char *finalstr = 0;
+    if (!glflags.gf_uri_options_translation) {
+        return makename(s);
+    }
+    esb_constructor(&str);
+    translate_from_uri(s,&str);
+    if (glflags.gf_do_print_uri_in_input) {
+        if (strcmp(s,esb_get_string(&str))) {
+            printf("Uri Translation on option %s\n",context);
+            printf("    \'%s\'\n",s);
+            printf("    \'%s\'\n",esb_get_string(&str));
+        }
+    }
+    finalstr = makename(esb_get_string(&str));
+    esb_destructor(&str);
+    return finalstr;
+}
+
+/*  Support for short (-option) and long (--option) names options.
+    These functions implement the individual options. They are called from
+    short names and long names options. Implementation code is shared for
+    both types of formats. */
+
+/*  Handlers for the short/long names options. */
+static void arg_check_abbrev(void);
+static void arg_check_all(void);
+static void arg_check_aranges(void);
+static void arg_check_attr_dup(void);
+static void arg_check_attr_encodings(void);
+static void arg_check_attr_names(void);
+static void arg_check_constants(void);
+static void arg_check_files_lines(void);
+static void arg_check_forward_refs(void);
+static void arg_check_frame_basic(void);
+static void arg_check_frame_extended(void);
+static void arg_check_frame_info(void);
+static void arg_check_gaps(void);
+static void arg_check_loc(void);
+static void arg_check_macros(void);
+static void arg_check_pubnames(void);
+static void arg_check_ranges(void);
+static void arg_check_self_refs(void);
+static void arg_check_show(void);
+static void arg_check_silent(void);
+static void arg_check_summary(void);
+static void arg_check_tag_attr(void);
+static void arg_check_tag_tag(void);
+static void arg_check_type(void);
+static void arg_check_unique(void);
+
+#ifdef HAVE_USAGE_TAG_ATTR
+static void arg_check_usage(void);
+static void arg_check_usage_extended(void);
+#endif /* HAVE_USAGE_TAG_ATTR */
+
+static void arg_elf(void);
+static void arg_elf_abbrev(void);
+static void arg_elf_aranges(void);
+static void arg_elf_default(void);
+static void arg_elf_fission(void);
+static void arg_elf_frames(void);
+static void arg_elf_header(void);
+static void arg_elf_info(void);
+static void arg_elf_line(void);
+static void arg_elf_loc(void);
+static void arg_elf_macinfo(void);
+static void arg_elf_pubnames(void);
+static void arg_elf_pubtypes(void);
+static void arg_elf_ranges(void);
+static void arg_elf_strings(void);
+static void arg_elf_text(void);
+
+static void arg_file_abi();
+static void arg_file_line5();
+static void arg_file_name();
+static void arg_file_output(void);
+static void arg_file_tied();
+
+static void arg_format_attr_name(void);
+static void arg_format_dense(void);
+static void arg_format_ellipsis(void);
+static void arg_format_extensions(void);
+static void arg_format_global_offsets(void);
+static void arg_format_loc(void);
+static void arg_format_registers(void);
+static void arg_format_suppress_data(void);
+static void arg_format_suppress_group();
+static void arg_format_suppress_lookup(void);
+static void arg_format_suppress_offsets(void);
+static void arg_format_suppress_sanitize(void);
+static void arg_format_suppress_uri(void);
+static void arg_format_suppress_uri_msg(void);
+
+static void arg_format_file(void);
+static void arg_format_gcc(void);
+static void arg_format_groupnumber();
+static void arg_format_limit(void);
+static void arg_format_producer(void);
+static void arg_format_snc(void);
+
+static void arg_print_all(void);
+static void arg_print_abbrev(void);
+static void arg_print_aranges(void);
+static void arg_print_debug_frame(void);
+static void arg_print_debug_names(void);
+static void arg_print_fission(void);
+static void arg_print_gnu_frame(void);
+static void arg_print_info(void);
+static void arg_print_lines(void);
+static void arg_print_lines_short(void);
+static void arg_print_loc(void);
+static void arg_print_macinfo(void);
+static void arg_print_pubnames(void);
+static void arg_print_producers(void);
+static void arg_print_ranges(void);
+static void arg_print_static(void);
+static void arg_print_static_func(void);
+static void arg_print_static_var(void);
+static void arg_print_str_offsets(void);
+static void arg_print_strings(void);
+static void arg_print_types(void);
+static void arg_print_weaknames(void);
+
+static void arg_reloc(void);
+static void arg_reloc_abbrev(void);
+static void arg_reloc_aranges(void);
+static void arg_reloc_frames(void);
+static void arg_reloc_info(void);
+static void arg_reloc_line(void);
+static void arg_reloc_loc(void);
+static void arg_reloc_pubnames(void);
+static void arg_reloc_ranges(void);
+
+static void arg_search_any(void);
+static void arg_search_any_count(void);
+static void arg_search_match(void);
+static void arg_search_match_count(void);
+static void arg_search_regex(void);
+static void arg_search_regex_count(void);
+static void arg_search_count(void);
+static void arg_search_invalid(void);
+
+static void arg_search_print_children(void);
+static void arg_search_print_parent(void);
+static void arg_search_print_tree(void);
+
+static void arg_help(void);
+static void arg_help_extended(void);
+static void arg_trace(void);
+static void arg_verbose(void);
+static void arg_version(void);
+
+static void arg_c_multiple_selection(void);
+static void arg_E_multiple_selection(void);
+static void arg_h_multiple_selection(void);
+static void arg_l_multiple_selection(void);
+static void arg_k_multiple_selection(void);
+static void arg_kx_multiple_selection(void);
+#ifdef HAVE_USAGE_TAG_ATTR
+static void arg_ku_multiple_selection(void);
+#endif /* HAVE_USAGE_TAG_ATTR */
+static void arg_o_multiple_selection(void);
+static void arg_O_multiple_selection(void);
+static void arg_S_multiple_selection(void);
+static void arg_t_multiple_selection(void);
+static void arg_W_multiple_selection(void);
+static void arg_x_multiple_selection(void);
+
+static void arg_not_supported(void);
+static void arg_x_invalid(void);
+
+/*  Extracted from 'process_args', as they are used by option handlers. */
+static boolean arg_usage_error = FALSE;
+static int arg_option = 0;
+
 static const char *usage_text[] = {
 "Usage: DwarfDump <options> <object file>",
 "options:\t-a\tprint all .debug_* sections",
@@ -358,367 +723,6 @@ static const char *usage_long_text[] = {
 "",
 };
 
-/*  These configure items are for the
-    frame data.  We're flexible in
-    the path to dwarfdump.conf .
-    The HOME strings here are transformed in
-    dwconf.c to reference the environment
-    variable $HOME .
-
-    As of August 2018 CONFPREFIX is always set as it
-    comes from autoconf --prefix, aka  $prefix
-    which defaults to /usr/local
-
-    The install puts the .conf file in
-    CONFPREFIX/dwarfdump/
-*/
-static char *config_file_defaults[] = {
-    "dwarfdump.conf",
-    "./dwarfdump.conf",
-    "HOME/.dwarfdump.conf",
-    "HOME/dwarfdump.conf",
-#ifdef CONFPREFIX
-/* See Makefile.am dwarfdump_CFLAGS. This prefix
-    is the --prefix option (defaults to /usr/local
-    and Makefile.am adds /share/dwarfdump ) */
-/* We need 2 levels of macro to get the name turned into
-   the string we want. */
-#define STR2(s) # s
-#define STR(s)  STR2(s)
-    STR(CONFPREFIX) "/dwarfdump.conf",
-#else
-    /*  This no longer used as of August 2018. */
-    "/usr/lib/dwarfdump.conf",
-#endif
-    0
-};
-static const char *config_file_abi = 0;
-
-/* Do printing of most sections.
-   Do not do detailed checking.
-*/
-static void
-do_all(void)
-{
-    glflags.gf_frame_flag = TRUE;
-    glflags.gf_info_flag = TRUE;
-    glflags.gf_types_flag =  TRUE; /* .debug_types */
-    glflags.gf_line_flag = TRUE;
-    glflags.gf_pubnames_flag = TRUE;
-    glflags.gf_macinfo_flag = TRUE;
-    glflags.gf_macro_flag = TRUE;
-    glflags.gf_aranges_flag = TRUE;
-    /*  Do not do
-        glflags.gf_loc_flag = TRUE
-        glflags.gf_abbrev_flag = TRUE;
-        glflags.gf_ranges_flag = TRUE;
-        because nothing in
-        the DWARF spec guarantees the sections are free of random bytes
-        in areas not referenced by .debug_info */
-    glflags.gf_string_flag = TRUE;
-    /*  Do not do
-        glflags.gf_reloc_flag = TRUE;
-        as print_relocs makes no sense for non-elf dwarfdump users.  */
-    glflags.gf_static_func_flag = TRUE; /* SGI only*/
-    glflags.gf_static_var_flag = TRUE; /* SGI only*/
-    glflags.gf_pubtypes_flag = TRUE;  /* both SGI typenames and dwarf_pubtypes. */
-    glflags.gf_weakname_flag = TRUE; /* SGI only*/
-    glflags.gf_header_flag = TRUE; /* Dump header info */
-    glflags.gf_debug_names_flag = TRUE;
-}
-
-static int
-get_number_value(char *v_in,long int *v_out)
-{
-    long int v= 0;
-    size_t len = strlen(v_in);
-    char *endptr = 0;
-
-    if (len < 1) {
-        return DW_DLV_ERROR;
-    }
-    v = strtol(v_in,&endptr,10);
-    if (endptr == v_in) {
-        return DW_DLV_NO_ENTRY;
-    }
-    if (*endptr != '\0') {
-        return DW_DLV_ERROR;
-    }
-    *v_out = v;
-    return DW_DLV_OK;
-}
-
-static void suppress_print_dwarf()
-{
-    glflags.gf_do_print_dwarf = FALSE;
-    glflags.gf_do_check_dwarf = TRUE;
-}
-
-/* Remove matching leading/trailing quotes.
-   Does not alter the passed in string.
-   If quotes removed does a makename on a modified string. */
-static const char *
-remove_quotes_pair(const char *text)
-{
-    static char single_quote = '\'';
-    static char double_quote = '\"';
-    char quote = 0;
-    const char *p = text;
-    int len = strlen(text);
-
-    if (len < 2) {
-        return p;
-    }
-
-    /* Compare first character with ' or " */
-    if (p[0] == single_quote) {
-        quote = single_quote;
-    } else {
-        if (p[0] == double_quote) {
-            quote = double_quote;
-        }
-        else {
-            return p;
-        }
-    }
-    {
-        if (p[len - 1] == quote) {
-            char *altered = calloc(1,len+1);
-            const char *str2 = 0;
-            strcpy(altered,p+1);
-            altered[len - 2] = '\0';
-            str2 =  makename(altered);
-            free(altered);
-            return str2;
-        }
-    }
-    return p;
-}
-
-/*  By trimming a /dwarfdump.O
-    down to /dwarfdump  (keeping any prefix
-    or suffix)
-    we can avoid a sed command in
-    regressiontests/DWARFTEST.sh
-    and save 12 minutes run time of a regression
-    test.
-
-    The effect is, when nothing has changed in the
-    normal output, that the program_name matches too.
-    Because we don't want a different name of dwarfdump
-    to cause a mismatch.  */
-static char *
-special_program_name(char *n)
-{
-    char * mp = "/dwarfdump.O";
-    char * revstr = "/dwarfdump";
-    char *cp = n;
-    size_t mslen = strlen(mp);
-
-    for(  ; *cp; ++cp ) {
-        if (*cp == *mp) {
-            if(!strncmp(cp,mp,mslen)){
-                esb_append(glflags.newprogname,revstr);
-                cp += mslen-1;
-            } else {
-                esb_appendn(glflags.newprogname,cp,1);
-            }
-        } else {
-            esb_appendn(glflags.newprogname,cp,1);
-        }
-    }
-    return esb_get_string(glflags.newprogname);
-}
-
-static void suppress_check_dwarf()
-{
-    glflags.gf_do_print_dwarf = TRUE;
-    if (glflags.gf_do_check_dwarf) {
-        printf("Warning: check flag turned off, "
-            "checking and printing are separate.\n");
-    }
-    glflags.gf_do_check_dwarf = FALSE;
-    set_checks_off();
-}
-
-/*  The strings whose pointers are returned here
-    from makename are never destructed, but
-    that is ok since there are only about 10 created at most.  */
-const char *
-do_uri_translation(const char *s,const char *context)
-{
-    struct esb_s str;
-    char *finalstr = 0;
-    if (!glflags.gf_uri_options_translation) {
-        return makename(s);
-    }
-    esb_constructor(&str);
-    translate_from_uri(s,&str);
-    if (glflags.gf_do_print_uri_in_input) {
-        if (strcmp(s,esb_get_string(&str))) {
-            printf("Uri Translation on option %s\n",context);
-            printf("    \'%s\'\n",s);
-            printf("    \'%s\'\n",esb_get_string(&str));
-        }
-    }
-    finalstr = makename(esb_get_string(&str));
-    esb_destructor(&str);
-    return finalstr;
-}
-
-/*  These functions implement the individual options. They are called from
-    short names and long names options. */
-
-/*  Handlers for the long names options. */
-static void arg_check_abbrev(void);
-static void arg_check_all(void);
-static void arg_check_aranges(void);
-static void arg_check_attr_dup(void);
-static void arg_check_attr_encodings(void);
-static void arg_check_attr_names(void);
-static void arg_check_constants(void);
-static void arg_check_files_lines(void);
-static void arg_check_forward_refs(void);
-static void arg_check_frame_basic(void);
-static void arg_check_frame_extended(void);
-static void arg_check_frame_info(void);
-static void arg_check_gaps(void);
-static void arg_check_loc(void);
-static void arg_check_macros(void);
-static void arg_check_pubnames(void);
-static void arg_check_ranges(void);
-static void arg_check_self_refs(void);
-static void arg_check_show(void);
-static void arg_check_silent(void);
-static void arg_check_summary(void);
-static void arg_check_tag_attr(void);
-static void arg_check_tag_tag(void);
-static void arg_check_type(void);
-static void arg_check_unique(void);
-
-#ifdef HAVE_USAGE_TAG_ATTR
-static void arg_ku(void);
-static void arg_check_usage(void);
-static void arg_check_usage_extended(void);
-#endif /* HAVE_USAGE_TAG_ATTR */
-
-static void arg_elf(void);
-static void arg_elf_abbrev(void);
-static void arg_elf_aranges(void);
-static void arg_elf_default(void);
-static void arg_elf_fission(void);
-static void arg_elf_frames(void);
-static void arg_elf_header(void);
-static void arg_elf_info(void);
-static void arg_elf_line(void);
-static void arg_elf_loc(void);
-static void arg_elf_macinfo(void);
-static void arg_elf_pubnames(void);
-static void arg_elf_pubtypes(void);
-static void arg_elf_ranges(void);
-static void arg_elf_strings(void);
-static void arg_elf_text(void);
-
-static void arg_file_abi();
-static void arg_file_line5();
-static void arg_file_name();
-static void arg_file_output(void);
-static void arg_file_tied();
-
-static void arg_format_attr_name(void);
-static void arg_format_dense(void);
-static void arg_format_ellipsis(void);
-static void arg_format_extensions(void);
-static void arg_format_global_offsets(void);
-static void arg_format_loc(void);
-static void arg_format_registers(void);
-static void arg_format_suppress_data(void);
-static void arg_format_suppress_group();
-static void arg_format_suppress_lookup(void);
-static void arg_format_suppress_offsets(void);
-static void arg_format_suppress_sanitize(void);
-static void arg_format_suppress_uri(void);
-static void arg_format_suppress_uri_msg(void);
-
-static void arg_format_file(void);
-static void arg_format_gcc(void);
-static void arg_format_groupnumber();
-static void arg_format_limit(void);
-static void arg_format_producer(void);
-static void arg_format_snc(void);
-
-static void arg_print_all(void);
-static void arg_print_abbrev(void);
-static void arg_print_aranges(void);
-static void arg_print_debug_frame(void);
-static void arg_print_debug_names(void);
-static void arg_print_fission(void);
-static void arg_print_gnu_frame(void);
-static void arg_print_info(void);
-static void arg_print_lines(void);
-static void arg_print_lines_short(void);
-static void arg_print_loc(void);
-static void arg_print_macinfo(void);
-static void arg_print_pubnames(void);
-static void arg_print_producers(void);
-static void arg_print_ranges(void);
-static void arg_print_static(void);
-static void arg_print_static_func(void);
-static void arg_print_static_var(void);
-static void arg_print_str_offsets(void);
-static void arg_print_strings(void);
-static void arg_print_types(void);
-static void arg_print_weaknames(void);
-
-static void arg_reloc(void);
-static void arg_reloc_abbrev(void);
-static void arg_reloc_aranges(void);
-static void arg_reloc_frames(void);
-static void arg_reloc_info(void);
-static void arg_reloc_line(void);
-static void arg_reloc_loc(void);
-static void arg_reloc_pubnames(void);
-static void arg_reloc_ranges(void);
-
-static void arg_search_any(void);
-static void arg_search_any_count(void);
-static void arg_search_match(void);
-static void arg_search_match_count(void);
-static void arg_search_regex(void);
-static void arg_search_regex_count(void);
-static void arg_search_count(void);
-static void arg_search_invalid(void);
-
-static void arg_search_print_children(void);
-static void arg_search_print_parent(void);
-static void arg_search_print_tree(void);
-
-static void arg_help(void);
-static void arg_help_extended(void);
-static void arg_trace(void);
-static void arg_verbose(void);
-static void arg_version(void);
-
-static void arg_c_multiple_selection(void);
-static void arg_E_multiple_selection(void);
-static void arg_h_multiple_selection(void);
-static void arg_l_multiple_selection(void);
-static void arg_k_multiple_selection(void);
-static void arg_kx_multiple_selection(void);
-static void arg_o_multiple_selection(void);
-static void arg_O_multiple_selection(void);
-static void arg_S_multiple_selection(void);
-static void arg_t_multiple_selection(void);
-static void arg_W_multiple_selection(void);
-static void arg_x_multiple_selection(void);
-
-static void arg_not_supported(void);
-static void arg_x_invalid(void);
-
-/*  Extracted from 'process_args', as they are used by option handlers. */
-static boolean arg_usage_error = FALSE;
-static int arg_option = 0;
-
 enum longopts_vals {
   OPT_BEGIN = 999,
 
@@ -1005,290 +1009,6 @@ static struct dwoption longopts[] =  {
 
   {0,0,0,0}
 };
-
-/*  Process the command line arguments and sets the appropiated options. All
-    the options are within the global flags structure. */
-void
-set_command_options(int argc, char *argv[])
-{
-    int longindex = 0;
-
-    /* j unused */
-    while ((arg_option = dwgetopt_long(argc, argv,
-        "#:abc::CdDeE::fFgGh:H:iIk:l::mMnNo::O:pPqQrRsS:t:u:UvVwW::x:yz",
-        longopts,&longindex)) != EOF) {
-
-        switch (arg_option) {
-        case '#': arg_trace();                   break;
-        case 'a': arg_print_all();               break;
-        case 'b': arg_print_abbrev();            break;
-        case 'c': arg_c_multiple_selection();    break;
-        case 'C': arg_format_extensions();       break;
-        case 'd': arg_format_dense();            break;
-        case 'D': arg_format_suppress_offsets(); break;
-        case 'e': arg_format_ellipsis();         break;
-        case 'E': arg_E_multiple_selection();    break;
-        case 'f': arg_print_debug_frame();       break;
-        case 'F': arg_print_gnu_frame();         break;
-        case 'g': arg_format_loc();              break;
-        case 'G': arg_format_global_offsets();   break;
-        case 'h': arg_h_multiple_selection();    break;
-        case 'H': arg_format_limit();            break;
-        case 'i': arg_print_info();              break;
-        case 'I': arg_print_fission();           break;
-        case 'k': arg_k_multiple_selection();    break;
-        case 'l': arg_l_multiple_selection();    break;
-        case 'm': arg_print_macinfo();           break;
-        case 'M': arg_format_attr_name();        break;
-        case 'n': arg_format_suppress_lookup();  break;
-        case 'N': arg_print_ranges();            break;
-        case 'o': arg_o_multiple_selection();    break;
-        case 'O': arg_O_multiple_selection();    break;
-        case 'p': arg_print_pubnames();          break;
-        case 'P': arg_print_producers();         break;
-        case 'q': arg_format_suppress_uri_msg(); break;
-        case 'Q': arg_format_suppress_data();    break;
-        case 'r': arg_print_aranges();           break;
-        case 'R': arg_format_registers();        break;
-        case 's': arg_print_strings();           break;
-        case 'S': arg_S_multiple_selection();    break;
-        case 't': arg_t_multiple_selection();    break;
-        case 'u': arg_format_file();             break;
-        case 'U': arg_format_suppress_uri();     break;
-        case 'v': arg_verbose();                 break;
-        case 'V': arg_version();                 break;
-        case 'w': arg_print_weaknames();         break;
-        case 'W': arg_W_multiple_selection();    break;
-        case 'x': arg_x_multiple_selection();    break;
-        case 'y': arg_print_types();             break;
-        case 'z': arg_not_supported();           break;
-
-        /* Check DWARF Integrity. */
-        case OPT_CHECK_ABBREV:         arg_check_abbrev();         break;
-        case OPT_CHECK_ALL:            arg_check_all();            break;
-        case OPT_CHECK_ARANGES:        arg_check_aranges();        break;
-        case OPT_CHECK_ATTR_DUP:       arg_check_attr_dup();       break;
-        case OPT_CHECK_ATTR_ENCODINGS: arg_check_attr_encodings(); break;
-        case OPT_CHECK_ATTR_NAMES:     arg_check_attr_names();     break;
-        case OPT_CHECK_CONSTANTS:      arg_check_constants();      break;
-        case OPT_CHECK_FILES_LINES:    arg_check_files_lines();    break;
-        case OPT_CHECK_FORWARD_REFS:   arg_check_forward_refs();   break;
-        case OPT_CHECK_FRAME_BASIC:    arg_check_frame_basic();    break;
-        case OPT_CHECK_FRAME_EXTENDED: arg_check_frame_extended(); break;
-        case OPT_CHECK_FRAME_INFO:     arg_check_frame_info();     break;
-        case OPT_CHECK_GAPS:           arg_check_gaps();           break;
-        case OPT_CHECK_LOC:            arg_check_loc();            break;
-        case OPT_CHECK_MACROS:         arg_check_macros();         break;
-        case OPT_CHECK_PUBNAMES:       arg_check_pubnames();       break;
-        case OPT_CHECK_RANGES:         arg_check_ranges();         break;
-        case OPT_CHECK_SELF_REFS:      arg_check_self_refs();      break;
-        case OPT_CHECK_SHOW:           arg_check_show();           break;
-        case OPT_CHECK_SILENT:         arg_check_silent();         break;
-        case OPT_CHECK_SUMMARY:        arg_check_summary();        break;
-        case OPT_CHECK_TAG_ATTR:       arg_check_tag_attr();       break;
-        case OPT_CHECK_TAG_TAG:        arg_check_tag_tag();        break;
-        case OPT_CHECK_TYPE:           arg_check_type();           break;
-        case OPT_CHECK_UNIQUE:         arg_check_unique();         break;
-    #ifdef HAVE_USAGE_TAG_ATTR
-        case OPT_CHECK_USAGE:          arg_check_usage();          break;
-        case OPT_CHECK_USAGE_EXTENDED: arg_check_usage_extended(); break;
-    #endif /* HAVE_USAGE_TAG_ATTR */
-
-        /* Print ELF sections header. */
-        case OPT_ELF:           arg_elf();          break;
-        case OPT_ELF_ABBREV:    arg_elf_abbrev();   break;
-        case OPT_ELF_ARANGES:   arg_elf_aranges();  break;
-        case OPT_ELF_DEFAULT:   arg_elf_default();  break;
-        case OPT_ELF_FISSION:   arg_elf_fission();  break;
-        case OPT_ELF_FRAMES:    arg_elf_frames();   break;
-        case OPT_ELF_HEADER:    arg_elf_header();   break;
-        case OPT_ELF_INFO:      arg_elf_info();     break;
-        case OPT_ELF_LINE:      arg_elf_line();     break;
-        case OPT_ELF_LOC:       arg_elf_loc();      break;
-        case OPT_ELF_MACINFO:   arg_elf_macinfo();  break;
-        case OPT_ELF_PUBNAMES:  arg_elf_pubnames(); break;
-        case OPT_ELF_PUBTYPES:  arg_elf_pubtypes(); break;
-        case OPT_ELF_RANGES:    arg_elf_ranges();   break;
-        case OPT_ELF_STRINGS:   arg_elf_strings();  break;
-        case OPT_ELF_TEXT:      arg_elf_text();     break;
-
-        /* File Specifications. */
-        case OPT_FILE_ABI:    arg_file_abi();    break;
-        case OPT_FILE_LINE5:  arg_file_line5();  break;
-        case OPT_FILE_NAME:   arg_file_name();   break;
-        case OPT_FILE_OUTPUT: arg_file_output(); break;
-        case OPT_FILE_TIED:   arg_file_tied();   break;
-
-        /* Print Output Qualifiers. */
-        case OPT_FORMAT_ATTR_NAME:        arg_format_attr_name();        break;
-        case OPT_FORMAT_DENSE:            arg_format_dense();            break;
-        case OPT_FORMAT_ELLIPSIS:         arg_format_ellipsis();         break;
-        case OPT_FORMAT_EXTENSIONS:       arg_format_extensions();       break;
-        case OPT_FORMAT_GLOBAL_OFFSETS:   arg_format_global_offsets();   break;
-        case OPT_FORMAT_LOC:              arg_format_loc();              break;
-        case OPT_FORMAT_REGISTERS:        arg_format_registers();        break;
-        case OPT_FORMAT_SUPPRESS_DATA:    arg_format_suppress_data();    break;
-        case OPT_FORMAT_SUPPRESS_GROUP:   arg_format_suppress_group();   break;
-        case OPT_FORMAT_SUPPRESS_OFFSETS: arg_format_suppress_offsets(); break;
-        case OPT_FORMAT_SUPPRESS_LOOKUP:  arg_format_suppress_lookup();  break;
-        case OPT_FORMAT_SUPPRESS_SANITIZE:arg_format_suppress_sanitize();break;
-        case OPT_FORMAT_SUPPRESS_URI:     arg_format_suppress_uri();     break;
-        case OPT_FORMAT_SUPPRESS_URI_MSG: arg_format_suppress_uri_msg(); break;
-
-        /* Print Output Limiters. */
-        case OPT_FORMAT_FILE:         arg_format_file();        break;
-        case OPT_FORMAT_GCC:          arg_format_gcc();         break;
-        case OPT_FORMAT_GROUP_NUMBER: arg_format_groupnumber(); break;
-        case OPT_FORMAT_LIMIT:        arg_format_limit();       break;
-        case OPT_FORMAT_PRODUCER:     arg_format_producer();    break;
-        case OPT_FORMAT_SNC:          arg_format_snc();         break;
-
-        /* Print Debug Sections. */
-        case OPT_PRINT_ABBREV:      arg_print_abbrev();      break;
-        case OPT_PRINT_ALL:         arg_print_all();         break;
-        case OPT_PRINT_ARANGES:     arg_print_aranges();     break;
-        case OPT_PRINT_DEBUG_NAMES: arg_print_debug_names(); break;
-        case OPT_PRINT_EH_FRAME:    arg_print_gnu_frame();   break;
-        case OPT_PRINT_FISSION:     arg_print_fission();     break;
-        case OPT_PRINT_FRAME:       arg_print_debug_frame(); break;
-        case OPT_PRINT_INFO:        arg_print_info();        break;
-        case OPT_PRINT_LINES:       arg_print_lines();       break;
-        case OPT_PRINT_LINES_SHORT: arg_print_lines_short(); break;
-        case OPT_PRINT_LOC:         arg_print_loc();         break;
-        case OPT_PRINT_MACINFO:     arg_print_macinfo();     break;
-        case OPT_PRINT_PRODUCERS:   arg_print_producers();   break;
-        case OPT_PRINT_PUBNAMES:    arg_print_pubnames();    break;
-        case OPT_PRINT_RANGES:      arg_print_ranges();      break;
-        case OPT_PRINT_STATIC:      arg_print_static();      break;
-        case OPT_PRINT_STATIC_FUNC: arg_print_static_func(); break;
-        case OPT_PRINT_STATIC_VAR:  arg_print_static_var();  break;
-        case OPT_PRINT_STRINGS:     arg_print_strings();     break;
-        case OPT_PRINT_STR_OFFSETS: arg_print_str_offsets(); break;
-        case OPT_PRINT_TYPE:        arg_print_types();       break;
-        case OPT_PRINT_WEAKNAME:    arg_print_weaknames();   break;
-
-        /* Print Relocations Info. */
-        case OPT_RELOC:          arg_reloc();          break;
-        case OPT_RELOC_ABBREV:   arg_reloc_abbrev();   break;
-        case OPT_RELOC_ARANGES:  arg_reloc_aranges();  break;
-        case OPT_RELOC_FRAMES:   arg_reloc_frames();   break;
-        case OPT_RELOC_INFO:     arg_reloc_info();     break;
-        case OPT_RELOC_LINE:     arg_reloc_line();     break;
-        case OPT_RELOC_LOC:      arg_reloc_loc();      break;
-        case OPT_RELOC_PUBNAMES: arg_reloc_pubnames(); break;
-        case OPT_RELOC_RANGES:   arg_reloc_ranges();   break;
-
-        /* Search text in attributes. */
-        case OPT_SEARCH_ANY:            arg_search_any();            break;
-        case OPT_SEARCH_ANY_COUNT:      arg_search_any_count();      break;
-        case OPT_SEARCH_MATCH:          arg_search_match();          break;
-        case OPT_SEARCH_MATCH_COUNT:    arg_search_match_count();    break;
-        case OPT_SEARCH_PRINT_CHILDREN: arg_search_print_children(); break;
-        case OPT_SEARCH_PRINT_PARENT:   arg_search_print_parent();   break;
-        case OPT_SEARCH_PRINT_TREE:     arg_search_print_tree();     break;
-    #ifdef HAVE_REGEX
-        case OPT_SEARCH_REGEX:          arg_search_regex();          break;
-        case OPT_SEARCH_REGEX_COUNT:    arg_search_regex_count();    break;
-    #endif /* HAVE_REGEX */
-
-        /* Help & Version. */
-        case OPT_HELP:          arg_help();          break;
-        case OPT_HELP_EXTENDED: arg_help_extended(); break;
-        case OPT_VERBOSE:       arg_verbose();       break;
-        case OPT_VERBOSE_MORE:  arg_verbose();       break;
-        case OPT_VERSION:       arg_version();       break;
-
-        /* Trace. */
-        case OPT_TRACE: arg_trace(); break;
-
-        default: arg_usage_error = TRUE; break;
-        }
-    }
-}
-
-/* process arguments and return object filename */
-const char *
-process_args(int argc, char *argv[])
-{
-    glflags.program_name = special_program_name(argv[0]);
-    glflags.program_fullname = argv[0];
-
-    suppress_check_dwarf();
-    if (argv[1] != NULL && argv[1][0] != '-') {
-        do_all();
-    }
-    glflags.gf_section_groups_flag = TRUE;
-
-    /*  Process the arguments and sets the appropiated option */
-    set_command_options(argc, argv);
-
-    init_conf_file_data(glflags.config_file_data);
-    if (config_file_abi && glflags.gf_generic_1200_regs) {
-        printf("Specifying both -R and -x abi= is not allowed. Use one "
-            "or the other.  -x abi= ignored.\n");
-        config_file_abi = FALSE;
-    }
-    if (glflags.gf_generic_1200_regs) {
-        init_generic_config_1200_regs(glflags.config_file_data);
-    }
-    if (config_file_abi &&
-        (glflags.gf_frame_flag || glflags.gf_eh_frame_flag)) {
-        int res = 0;
-        res = find_conf_file_and_read_config(
-            esb_get_string(glflags.config_file_path),
-            config_file_abi,
-            config_file_defaults,
-            glflags.config_file_data);
-
-        if (res > 0) {
-            printf
-                ("Frame not configured due to error(s). Giving up.\n");
-            glflags.gf_eh_frame_flag = FALSE;
-            glflags.gf_frame_flag = FALSE;
-        }
-    }
-    if (arg_usage_error ) {
-        printf("%s option error.\n",glflags.program_name);
-        printf("To see the options list: %s -h\n",glflags.program_name);
-        exit(FAILED);
-    }
-    if (dwoptind != (argc - 1)) {
-        printf("No object file name provided to %s\n",glflags.program_name);
-        printf("To see the options list: %s -h\n",glflags.program_name);
-        exit(FAILED);
-    }
-    /*  FIXME: it seems silly to be printing section names
-        where the section does not exist in the object file.
-        However we continue the long-standard practice
-        of printing such by default in most cases. For now. */
-    if (glflags.group_number == DW_GROUPNUMBER_DWO) {
-        /*  For split-dwarf/DWO some sections make no sense.
-            This prevents printing of meaningless headers where no
-            data can exist. */
-        glflags.gf_pubnames_flag = FALSE;
-        glflags.gf_eh_frame_flag = FALSE;
-        glflags.gf_frame_flag    = FALSE;
-        glflags.gf_macinfo_flag  = FALSE;
-        glflags.gf_aranges_flag  = FALSE;
-        glflags.gf_ranges_flag   = FALSE;
-        glflags.gf_static_func_flag = FALSE;
-        glflags.gf_static_var_flag = FALSE;
-        glflags.gf_weakname_flag = FALSE;
-    }
-    if (glflags.group_number > DW_GROUPNUMBER_BASE) {
-        /* These no longer apply, no one uses. */
-        glflags.gf_static_func_flag = FALSE;
-        glflags.gf_static_var_flag = FALSE;
-        glflags.gf_weakname_flag = FALSE;
-        glflags.gf_pubnames_flag = FALSE;
-    }
-
-    if (glflags.gf_do_check_dwarf) {
-        /* Reduce verbosity when checking (checking means checking-only). */
-        glflags.verbose = 1;
-    }
-    return do_uri_translation(argv[dwoptind],"file-to-process");
-}
 
 /*  Handlers for the command line options. */
 
@@ -1666,7 +1386,7 @@ void arg_k_multiple_selection(void)
     case 'S': arg_check_self_refs();       break;
     case 't': arg_check_tag_tag();         break;
 #ifdef HAVE_USAGE_TAG_ATTR
-    case 'u': arg_ku();                    break;
+    case 'u': arg_ku_multiple_selection(); break;
 #endif /* HAVE_USAGE_TAG_ATTR */
     case 'w': arg_check_macros();          break;
     case 'x': arg_kx_multiple_selection(); break;
@@ -1911,7 +1631,7 @@ void arg_check_tag_tag(void)
 
 #ifdef HAVE_USAGE_TAG_ATTR
 /*  Option '-ku[...]' */
-void arg_ku(void)
+void arg_ku_multiple_selection(void)
 {
     /* Tag-Tree and Tag-Attr usage */
     if (dwoptarg[1]) {
@@ -2160,7 +1880,7 @@ void arg_file_output(void)
 {
     const char *ctx = arg_option > OPT_BEGIN ? "--file-output=" : "-O file=";
 
-    const char *path = do_uri_translation(dwoptarg,"-O file=");
+    const char *path = do_uri_translation(dwoptarg,ctx);
     if (strlen(path) > 0) {
         glflags.output_file = path;
     } else {
@@ -2509,9 +2229,7 @@ void arg_format_groupnumber(void)
 /*  Option '-x line5=' */
 void arg_file_line5(void)
 {
-    if (strlen(dwoptarg) < 6) {
-        arg_x_invalid();
-    } else if (!strcmp(dwoptarg,"std")) {
+    if (!strcmp(dwoptarg,"std")) {
         glflags.gf_line_flag_selection = singledw5;
     } else if (!strcmp(dwoptarg,"s2l")) {
         glflags.gf_line_flag_selection= s2l;
@@ -2604,4 +2322,288 @@ void arg_x_invalid(void)
     fprintf(stderr, "-x nosanitizestrings \n");
     fprintf(stderr, "are legal, not -x %s\n", dwoptarg);
     arg_usage_error = TRUE;
+}
+
+/*  Process the command line arguments and sets the appropiated options. All
+    the options are within the global flags structure. */
+void
+set_command_options(int argc, char *argv[])
+{
+    int longindex = 0;
+
+    /* j unused */
+    while ((arg_option = dwgetopt_long(argc, argv,
+        "#:abc::CdDeE::fFgGh:H:iIk:l::mMnNo::O:pPqQrRsS:t:u:UvVwW::x:yz",
+        longopts,&longindex)) != EOF) {
+
+        switch (arg_option) {
+        case '#': arg_trace();                   break;
+        case 'a': arg_print_all();               break;
+        case 'b': arg_print_abbrev();            break;
+        case 'c': arg_c_multiple_selection();    break;
+        case 'C': arg_format_extensions();       break;
+        case 'd': arg_format_dense();            break;
+        case 'D': arg_format_suppress_offsets(); break;
+        case 'e': arg_format_ellipsis();         break;
+        case 'E': arg_E_multiple_selection();    break;
+        case 'f': arg_print_debug_frame();       break;
+        case 'F': arg_print_gnu_frame();         break;
+        case 'g': arg_format_loc();              break;
+        case 'G': arg_format_global_offsets();   break;
+        case 'h': arg_h_multiple_selection();    break;
+        case 'H': arg_format_limit();            break;
+        case 'i': arg_print_info();              break;
+        case 'I': arg_print_fission();           break;
+        case 'k': arg_k_multiple_selection();    break;
+        case 'l': arg_l_multiple_selection();    break;
+        case 'm': arg_print_macinfo();           break;
+        case 'M': arg_format_attr_name();        break;
+        case 'n': arg_format_suppress_lookup();  break;
+        case 'N': arg_print_ranges();            break;
+        case 'o': arg_o_multiple_selection();    break;
+        case 'O': arg_O_multiple_selection();    break;
+        case 'p': arg_print_pubnames();          break;
+        case 'P': arg_print_producers();         break;
+        case 'q': arg_format_suppress_uri_msg(); break;
+        case 'Q': arg_format_suppress_data();    break;
+        case 'r': arg_print_aranges();           break;
+        case 'R': arg_format_registers();        break;
+        case 's': arg_print_strings();           break;
+        case 'S': arg_S_multiple_selection();    break;
+        case 't': arg_t_multiple_selection();    break;
+        case 'u': arg_format_file();             break;
+        case 'U': arg_format_suppress_uri();     break;
+        case 'v': arg_verbose();                 break;
+        case 'V': arg_version();                 break;
+        case 'w': arg_print_weaknames();         break;
+        case 'W': arg_W_multiple_selection();    break;
+        case 'x': arg_x_multiple_selection();    break;
+        case 'y': arg_print_types();             break;
+        case 'z': arg_not_supported();           break;
+
+        /* Check DWARF Integrity. */
+        case OPT_CHECK_ABBREV:         arg_check_abbrev();         break;
+        case OPT_CHECK_ALL:            arg_check_all();            break;
+        case OPT_CHECK_ARANGES:        arg_check_aranges();        break;
+        case OPT_CHECK_ATTR_DUP:       arg_check_attr_dup();       break;
+        case OPT_CHECK_ATTR_ENCODINGS: arg_check_attr_encodings(); break;
+        case OPT_CHECK_ATTR_NAMES:     arg_check_attr_names();     break;
+        case OPT_CHECK_CONSTANTS:      arg_check_constants();      break;
+        case OPT_CHECK_FILES_LINES:    arg_check_files_lines();    break;
+        case OPT_CHECK_FORWARD_REFS:   arg_check_forward_refs();   break;
+        case OPT_CHECK_FRAME_BASIC:    arg_check_frame_basic();    break;
+        case OPT_CHECK_FRAME_EXTENDED: arg_check_frame_extended(); break;
+        case OPT_CHECK_FRAME_INFO:     arg_check_frame_info();     break;
+        case OPT_CHECK_GAPS:           arg_check_gaps();           break;
+        case OPT_CHECK_LOC:            arg_check_loc();            break;
+        case OPT_CHECK_MACROS:         arg_check_macros();         break;
+        case OPT_CHECK_PUBNAMES:       arg_check_pubnames();       break;
+        case OPT_CHECK_RANGES:         arg_check_ranges();         break;
+        case OPT_CHECK_SELF_REFS:      arg_check_self_refs();      break;
+        case OPT_CHECK_SHOW:           arg_check_show();           break;
+        case OPT_CHECK_SILENT:         arg_check_silent();         break;
+        case OPT_CHECK_SUMMARY:        arg_check_summary();        break;
+        case OPT_CHECK_TAG_ATTR:       arg_check_tag_attr();       break;
+        case OPT_CHECK_TAG_TAG:        arg_check_tag_tag();        break;
+        case OPT_CHECK_TYPE:           arg_check_type();           break;
+        case OPT_CHECK_UNIQUE:         arg_check_unique();         break;
+    #ifdef HAVE_USAGE_TAG_ATTR
+        case OPT_CHECK_USAGE:          arg_check_usage();          break;
+        case OPT_CHECK_USAGE_EXTENDED: arg_check_usage_extended(); break;
+    #endif /* HAVE_USAGE_TAG_ATTR */
+
+        /* Print ELF sections header. */
+        case OPT_ELF:           arg_elf();          break;
+        case OPT_ELF_ABBREV:    arg_elf_abbrev();   break;
+        case OPT_ELF_ARANGES:   arg_elf_aranges();  break;
+        case OPT_ELF_DEFAULT:   arg_elf_default();  break;
+        case OPT_ELF_FISSION:   arg_elf_fission();  break;
+        case OPT_ELF_FRAMES:    arg_elf_frames();   break;
+        case OPT_ELF_HEADER:    arg_elf_header();   break;
+        case OPT_ELF_INFO:      arg_elf_info();     break;
+        case OPT_ELF_LINE:      arg_elf_line();     break;
+        case OPT_ELF_LOC:       arg_elf_loc();      break;
+        case OPT_ELF_MACINFO:   arg_elf_macinfo();  break;
+        case OPT_ELF_PUBNAMES:  arg_elf_pubnames(); break;
+        case OPT_ELF_PUBTYPES:  arg_elf_pubtypes(); break;
+        case OPT_ELF_RANGES:    arg_elf_ranges();   break;
+        case OPT_ELF_STRINGS:   arg_elf_strings();  break;
+        case OPT_ELF_TEXT:      arg_elf_text();     break;
+
+        /* File Specifications. */
+        case OPT_FILE_ABI:    arg_file_abi();    break;
+        case OPT_FILE_LINE5:  arg_file_line5();  break;
+        case OPT_FILE_NAME:   arg_file_name();   break;
+        case OPT_FILE_OUTPUT: arg_file_output(); break;
+        case OPT_FILE_TIED:   arg_file_tied();   break;
+
+        /* Print Output Qualifiers. */
+        case OPT_FORMAT_ATTR_NAME:        arg_format_attr_name();        break;
+        case OPT_FORMAT_DENSE:            arg_format_dense();            break;
+        case OPT_FORMAT_ELLIPSIS:         arg_format_ellipsis();         break;
+        case OPT_FORMAT_EXTENSIONS:       arg_format_extensions();       break;
+        case OPT_FORMAT_GLOBAL_OFFSETS:   arg_format_global_offsets();   break;
+        case OPT_FORMAT_LOC:              arg_format_loc();              break;
+        case OPT_FORMAT_REGISTERS:        arg_format_registers();        break;
+        case OPT_FORMAT_SUPPRESS_DATA:    arg_format_suppress_data();    break;
+        case OPT_FORMAT_SUPPRESS_GROUP:   arg_format_suppress_group();   break;
+        case OPT_FORMAT_SUPPRESS_OFFSETS: arg_format_suppress_offsets(); break;
+        case OPT_FORMAT_SUPPRESS_LOOKUP:  arg_format_suppress_lookup();  break;
+        case OPT_FORMAT_SUPPRESS_SANITIZE:arg_format_suppress_sanitize();break;
+        case OPT_FORMAT_SUPPRESS_URI:     arg_format_suppress_uri();     break;
+        case OPT_FORMAT_SUPPRESS_URI_MSG: arg_format_suppress_uri_msg(); break;
+
+        /* Print Output Limiters. */
+        case OPT_FORMAT_FILE:         arg_format_file();        break;
+        case OPT_FORMAT_GCC:          arg_format_gcc();         break;
+        case OPT_FORMAT_GROUP_NUMBER: arg_format_groupnumber(); break;
+        case OPT_FORMAT_LIMIT:        arg_format_limit();       break;
+        case OPT_FORMAT_PRODUCER:     arg_format_producer();    break;
+        case OPT_FORMAT_SNC:          arg_format_snc();         break;
+
+        /* Print Debug Sections. */
+        case OPT_PRINT_ABBREV:      arg_print_abbrev();      break;
+        case OPT_PRINT_ALL:         arg_print_all();         break;
+        case OPT_PRINT_ARANGES:     arg_print_aranges();     break;
+        case OPT_PRINT_DEBUG_NAMES: arg_print_debug_names(); break;
+        case OPT_PRINT_EH_FRAME:    arg_print_gnu_frame();   break;
+        case OPT_PRINT_FISSION:     arg_print_fission();     break;
+        case OPT_PRINT_FRAME:       arg_print_debug_frame(); break;
+        case OPT_PRINT_INFO:        arg_print_info();        break;
+        case OPT_PRINT_LINES:       arg_print_lines();       break;
+        case OPT_PRINT_LINES_SHORT: arg_print_lines_short(); break;
+        case OPT_PRINT_LOC:         arg_print_loc();         break;
+        case OPT_PRINT_MACINFO:     arg_print_macinfo();     break;
+        case OPT_PRINT_PRODUCERS:   arg_print_producers();   break;
+        case OPT_PRINT_PUBNAMES:    arg_print_pubnames();    break;
+        case OPT_PRINT_RANGES:      arg_print_ranges();      break;
+        case OPT_PRINT_STATIC:      arg_print_static();      break;
+        case OPT_PRINT_STATIC_FUNC: arg_print_static_func(); break;
+        case OPT_PRINT_STATIC_VAR:  arg_print_static_var();  break;
+        case OPT_PRINT_STRINGS:     arg_print_strings();     break;
+        case OPT_PRINT_STR_OFFSETS: arg_print_str_offsets(); break;
+        case OPT_PRINT_TYPE:        arg_print_types();       break;
+        case OPT_PRINT_WEAKNAME:    arg_print_weaknames();   break;
+
+        /* Print Relocations Info. */
+        case OPT_RELOC:          arg_reloc();          break;
+        case OPT_RELOC_ABBREV:   arg_reloc_abbrev();   break;
+        case OPT_RELOC_ARANGES:  arg_reloc_aranges();  break;
+        case OPT_RELOC_FRAMES:   arg_reloc_frames();   break;
+        case OPT_RELOC_INFO:     arg_reloc_info();     break;
+        case OPT_RELOC_LINE:     arg_reloc_line();     break;
+        case OPT_RELOC_LOC:      arg_reloc_loc();      break;
+        case OPT_RELOC_PUBNAMES: arg_reloc_pubnames(); break;
+        case OPT_RELOC_RANGES:   arg_reloc_ranges();   break;
+
+        /* Search text in attributes. */
+        case OPT_SEARCH_ANY:            arg_search_any();            break;
+        case OPT_SEARCH_ANY_COUNT:      arg_search_any_count();      break;
+        case OPT_SEARCH_MATCH:          arg_search_match();          break;
+        case OPT_SEARCH_MATCH_COUNT:    arg_search_match_count();    break;
+        case OPT_SEARCH_PRINT_CHILDREN: arg_search_print_children(); break;
+        case OPT_SEARCH_PRINT_PARENT:   arg_search_print_parent();   break;
+        case OPT_SEARCH_PRINT_TREE:     arg_search_print_tree();     break;
+    #ifdef HAVE_REGEX
+        case OPT_SEARCH_REGEX:          arg_search_regex();          break;
+        case OPT_SEARCH_REGEX_COUNT:    arg_search_regex_count();    break;
+    #endif /* HAVE_REGEX */
+
+        /* Help & Version. */
+        case OPT_HELP:          arg_help();          break;
+        case OPT_HELP_EXTENDED: arg_help_extended(); break;
+        case OPT_VERBOSE:       arg_verbose();       break;
+        case OPT_VERBOSE_MORE:  arg_verbose();       break;
+        case OPT_VERSION:       arg_version();       break;
+
+        /* Trace. */
+        case OPT_TRACE: arg_trace(); break;
+
+        default: arg_usage_error = TRUE; break;
+        }
+    }
+}
+
+/* process arguments and return object filename */
+const char *
+process_args(int argc, char *argv[])
+{
+    glflags.program_name = special_program_name(argv[0]);
+    glflags.program_fullname = argv[0];
+
+    suppress_check_dwarf();
+    if (argv[1] != NULL && argv[1][0] != '-') {
+        do_all();
+    }
+    glflags.gf_section_groups_flag = TRUE;
+
+    /*  Process the arguments and sets the appropiated option */
+    set_command_options(argc, argv);
+
+    init_conf_file_data(glflags.config_file_data);
+    if (config_file_abi && glflags.gf_generic_1200_regs) {
+        printf("Specifying both -R and -x abi= is not allowed. Use one "
+            "or the other.  -x abi= ignored.\n");
+        config_file_abi = FALSE;
+    }
+    if (glflags.gf_generic_1200_regs) {
+        init_generic_config_1200_regs(glflags.config_file_data);
+    }
+    if (config_file_abi &&
+        (glflags.gf_frame_flag || glflags.gf_eh_frame_flag)) {
+        int res = 0;
+        res = find_conf_file_and_read_config(
+            esb_get_string(glflags.config_file_path),
+            config_file_abi,
+            config_file_defaults,
+            glflags.config_file_data);
+
+        if (res > 0) {
+            printf
+                ("Frame not configured due to error(s). Giving up.\n");
+            glflags.gf_eh_frame_flag = FALSE;
+            glflags.gf_frame_flag = FALSE;
+        }
+    }
+    if (arg_usage_error ) {
+        printf("%s option error.\n",glflags.program_name);
+        printf("To see the options list: %s -h\n",glflags.program_name);
+        exit(FAILED);
+    }
+    if (dwoptind != (argc - 1)) {
+        printf("No object file name provided to %s\n",glflags.program_name);
+        printf("To see the options list: %s -h\n",glflags.program_name);
+        exit(FAILED);
+    }
+    /*  FIXME: it seems silly to be printing section names
+        where the section does not exist in the object file.
+        However we continue the long-standard practice
+        of printing such by default in most cases. For now. */
+    if (glflags.group_number == DW_GROUPNUMBER_DWO) {
+        /*  For split-dwarf/DWO some sections make no sense.
+            This prevents printing of meaningless headers where no
+            data can exist. */
+        glflags.gf_pubnames_flag = FALSE;
+        glflags.gf_eh_frame_flag = FALSE;
+        glflags.gf_frame_flag    = FALSE;
+        glflags.gf_macinfo_flag  = FALSE;
+        glflags.gf_aranges_flag  = FALSE;
+        glflags.gf_ranges_flag   = FALSE;
+        glflags.gf_static_func_flag = FALSE;
+        glflags.gf_static_var_flag = FALSE;
+        glflags.gf_weakname_flag = FALSE;
+    }
+    if (glflags.group_number > DW_GROUPNUMBER_BASE) {
+        /* These no longer apply, no one uses. */
+        glflags.gf_static_func_flag = FALSE;
+        glflags.gf_static_var_flag = FALSE;
+        glflags.gf_weakname_flag = FALSE;
+        glflags.gf_pubnames_flag = FALSE;
+    }
+
+    if (glflags.gf_do_check_dwarf) {
+        /* Reduce verbosity when checking (checking means checking-only). */
+        glflags.verbose = 1;
+    }
+    return do_uri_translation(argv[dwoptind],"file-to-process");
 }
