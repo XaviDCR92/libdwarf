@@ -37,7 +37,7 @@
 
 static const char *remove_quotes_pair(const char *text);
 static char *special_program_name(char *n);
-static void suppress_check_dwarf();
+static void suppress_check_dwarf(void);
 
 extern char *dwoptarg;
 
@@ -131,7 +131,7 @@ get_number_value(char *v_in,long int *v_out)
     return DW_DLV_OK;
 }
 
-static void suppress_print_dwarf()
+static void suppress_print_dwarf(void)
 {
     glflags.gf_do_print_dwarf = FALSE;
     glflags.gf_do_check_dwarf = TRUE;
@@ -213,7 +213,7 @@ special_program_name(char *n)
     return esb_get_string(glflags.newprogname);
 }
 
-static void suppress_check_dwarf()
+static void suppress_check_dwarf(void)
 {
     glflags.gf_do_print_dwarf = TRUE;
     if (glflags.gf_do_check_dwarf) {
@@ -303,11 +303,11 @@ static void arg_elf_ranges(void);
 static void arg_elf_strings(void);
 static void arg_elf_text(void);
 
-static void arg_file_abi();
-static void arg_file_line5();
-static void arg_file_name();
+static void arg_file_abi(void);
+static void arg_file_line5(void);
+static void arg_file_name(void);
 static void arg_file_output(void);
-static void arg_file_tied();
+static void arg_file_tied(void);
 
 static void arg_format_attr_name(void);
 static void arg_format_dense(void);
@@ -317,7 +317,7 @@ static void arg_format_global_offsets(void);
 static void arg_format_loc(void);
 static void arg_format_registers(void);
 static void arg_format_suppress_data(void);
-static void arg_format_suppress_group();
+static void arg_format_suppress_group(void);
 static void arg_format_suppress_lookup(void);
 static void arg_format_suppress_offsets(void);
 static void arg_format_suppress_sanitize(void);
@@ -326,7 +326,7 @@ static void arg_format_suppress_uri_msg(void);
 
 static void arg_format_file(void);
 static void arg_format_gcc(void);
-static void arg_format_groupnumber();
+static void arg_format_groupnumber(void);
 static void arg_format_limit(void);
 static void arg_format_producer(void);
 static void arg_format_snc(void);
@@ -870,8 +870,8 @@ enum longopts_vals {
 static struct dwoption longopts[] =  {
 
   /* Check DWARF Integrity. */
-  {"check-abbrev",         dwno_argument, 0, OPT_CHECK_ABBREV        },      
-  {"check-all",            dwno_argument, 0, OPT_CHECK_ALL           },      
+  {"check-abbrev",         dwno_argument, 0, OPT_CHECK_ABBREV        },
+  {"check-all",            dwno_argument, 0, OPT_CHECK_ALL           },
   {"check-aranges",        dwno_argument, 0, OPT_CHECK_ARANGES       },
   {"check-attr-dup",       dwno_argument, 0, OPT_CHECK_ATTR_DUP      },
   {"check-attr-encodings", dwno_argument, 0, OPT_CHECK_ATTR_ENCODINGS},
@@ -1318,7 +1318,7 @@ void arg_h_multiple_selection(void)
         default: arg_usage_error = TRUE; break;
         }
     } else {
-      arg_help();
+        arg_help();
     }
 }
 
@@ -1640,7 +1640,7 @@ void arg_ku_multiple_selection(void)
         default: arg_usage_error = TRUE;      break;
         }
     } else {
-      arg_check_usage();
+        arg_check_usage();
     }
 }
 
@@ -1682,7 +1682,7 @@ void arg_kx_multiple_selection(void)
         default: arg_usage_error = TRUE;      break;
         }
     } else {
-      arg_check_frame_basic();
+        arg_check_frame_basic();
     }
 }
 
@@ -1727,7 +1727,7 @@ void arg_l_multiple_selection(void)
         default: arg_usage_error = TRUE;   break;
         }
     } else {
-      arg_print_lines();
+        arg_print_lines();
     }
 }
 
@@ -1967,12 +1967,13 @@ void arg_S_multiple_selection(void)
 /*  Option '-S any=' */
 void arg_search_any(void)
 {
+    const char *tempstr = 0;
     const char *ctx = arg_option > OPT_BEGIN ? "--search-any=" : "-S any=";
 
     /* -S any=<text> */
     glflags.gf_search_is_on = TRUE;
     glflags.search_any_text = makename(dwoptarg);
-    const char *tempstr = remove_quotes_pair(glflags.search_any_text);
+    tempstr = remove_quotes_pair(glflags.search_any_text);
     glflags.search_any_text = do_uri_translation(tempstr,ctx);
     if (strlen(glflags.search_any_text) <= 0) {
         arg_search_invalid();
@@ -1989,12 +1990,13 @@ void arg_search_any_count(void)
 /*  Option '-S match=' */
 void arg_search_match(void)
 {
+    const char *tempstr = 0;
     const char *ctx = arg_option > OPT_BEGIN ? "--search-match=" : "-S match=";
 
     /* -S match=<text> */
     glflags.gf_search_is_on = TRUE;
     glflags.search_match_text = makename(dwoptarg);
-    const char *tempstr = remove_quotes_pair(glflags.search_match_text);
+    tempstr = remove_quotes_pair(glflags.search_match_text);
     glflags.search_match_text = do_uri_translation(tempstr,ctx);
     if (strlen(glflags.search_match_text) <= 0) {
         arg_search_invalid();
@@ -2012,12 +2014,13 @@ void arg_search_match_count(void)
 /*  Option '-S regex=' */
 void arg_search_regex(void)
 {
+    const char *tempstr = 0;
     const char *ctx = arg_option > OPT_BEGIN ? "--search-regex=" : "-S regex=";
 
     /* -S regex=<regular expression> */
     glflags.gf_search_is_on = TRUE;
     glflags.search_regex_text = makename(dwoptarg);
-    const char *tempstr = remove_quotes_pair(glflags.search_regex_text);
+    tempstr = remove_quotes_pair(glflags.search_regex_text);
     glflags.search_regex_text = do_uri_translation(tempstr,ctx);
     if (strlen(glflags.search_regex_text) > 0) {
         if (regcomp(glflags.search_re,
@@ -2193,7 +2196,8 @@ void arg_x_multiple_selection(void)
 }
 
 /*  Option '-x abi=' */
-void arg_file_abi(void)
+static void
+arg_file_abi(void)
 {
     const char *ctx = arg_option > OPT_BEGIN ? "--file-abi=" : "-x abi=";
 
@@ -2208,7 +2212,8 @@ void arg_file_abi(void)
 }
 
 /*  Option '-x groupnumber=' */
-void arg_format_groupnumber(void)
+static void
+arg_format_groupnumber(void)
 {
     /*  By default prints the lowest groupnumber in the object.
         Default is  -x groupnumber=0
@@ -2227,7 +2232,8 @@ void arg_format_groupnumber(void)
 }
 
 /*  Option '-x line5=' */
-void arg_file_line5(void)
+static void
+arg_file_line5(void)
 {
     if (!strcmp(dwoptarg,"std")) {
         glflags.gf_line_flag_selection = singledw5;
@@ -2243,7 +2249,7 @@ void arg_file_line5(void)
 }
 
 /*  Option '-x name=' */
-void arg_file_name(void)
+static void arg_file_name(void)
 {
     const char *ctx = arg_option > OPT_BEGIN ? "--file-name=" : "-x name=";
 
@@ -2258,19 +2264,19 @@ void arg_file_name(void)
 }
 
 /*  Option '-x noprintsectiongroups' */
-void arg_format_suppress_group(void)
+static void arg_format_suppress_group(void)
 {
     glflags.gf_section_groups_flag = FALSE;
 }
 
 /*  Option '-x nosanitizestrings' */
-void arg_format_suppress_sanitize(void)
+static void arg_format_suppress_sanitize(void)
 {
     no_sanitize_string_garbage = TRUE;
 }
 
 /*  Option '-x tied=' */
-void arg_file_tied(void)
+static void arg_file_tied(void)
 {
     const char *ctx = arg_option > OPT_BEGIN ? "--file-tied=" : "-x tied=";
 
@@ -2284,7 +2290,7 @@ void arg_file_tied(void)
 }
 
 /*  Option '-y' */
-void arg_print_types(void)
+static void arg_print_types(void)
 {
     /* .debug_pubtypes */
     /* Also for SGI-only, and obsolete, .debug_typenames */
@@ -2293,13 +2299,13 @@ void arg_print_types(void)
 }
 
 /*  Option not supported */
-void arg_not_supported(void)
+static void arg_not_supported(void)
 {
     fprintf(stderr, "-%c is no longer supported:ignored\n",arg_option);
 }
 
 /*  Error message for invalid '-S' option. */
-void arg_search_invalid(void)
+static void arg_search_invalid(void)
 {
     fprintf(stderr,
         "-S any=<text> or -S match=<text> or"
@@ -2309,7 +2315,7 @@ void arg_search_invalid(void)
 }
 
 /*  Error message for invalid '-x' option. */
-void arg_x_invalid(void)
+static void arg_x_invalid(void)
 {
     fprintf(stderr, "-x name=<path-to-conf> \n");
     fprintf(stderr, " and  \n");
@@ -2326,7 +2332,7 @@ void arg_x_invalid(void)
 
 /*  Process the command line arguments and sets the appropiated options. All
     the options are within the global flags structure. */
-void
+static void
 set_command_options(int argc, char *argv[])
 {
     int longindex = 0;
