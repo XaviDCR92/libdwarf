@@ -1,6 +1,6 @@
 /*
   Copyright (C) 2000,2004,2006 Silicon Graphics, Inc.  All Rights Reserved.
-  Portions Copyright (C) 2007-2017 David Anderson. All Rights Reserved.
+  Portions Copyright (C) 2007-2019 David Anderson. All Rights Reserved.
   Portions Copyright 2002-2010 Sun Microsystems, Inc. All rights reserved.
   Portions Copyright 2012 SN Systems Ltd. All rights reserved.
 
@@ -40,6 +40,14 @@
 #include <stdlib.h>
 #endif
 #include "pro_incl.h"
+#include <stddef.h>
+#include "dwarf.h"
+#include "libdwarf.h"
+#include "pro_opaque.h"
+#include "pro_error.h"
+#include "pro_util.h"
+#include "pro_encode_nm.h"
+#include "pro_alloc.h"
 #include "pro_section.h"
 #include "pro_line.h"
 #include "pro_frame.h"
@@ -48,6 +56,10 @@
 #include "pro_types.h"
 #include "pro_dnames.h"
 
+
+#ifndef SHN_UNDEF
+#define SHN_UNDEF 0
+#endif /* SHN_UNDEF */
 
 #ifndef SHF_MIPS_NOSTRIP
 /* if this is not defined, we probably don't need it: just use 0 */
@@ -64,9 +76,39 @@
 #define FALSE 0
 #endif
 
+#ifdef WORDS_BIGENDIAN
+#define ASNOUT(t,s,l)                       \
+    do {                                    \
+        unsigned sbyte = 0;                 \
+        char *p = 0;                        \
+        if (l > sizeof(s)) {                \
+            _dwarf_p_error(dbg, error, DW_DLE_DEBUG_FRAME_LENGTH_BAD);\
+            return DW_DLV_ERROR;            \
+        }                                   \
+        sbyte = sizeof(s) - l;              \
+        p = (const char *)(&s);             \
+        memcpy(t,(const void *)(p+sbyte),l);\
+    } while (0)
+#else /* LITTLEENDIAN */
+#define ASNOUT(t,s,l)                       \
+    do {                                    \
+        const char *p = 0;                  \
+        if (l > sizeof(s)) {                \
+            _dwarf_p_error(dbg, error, DW_DLE_DEBUG_FRAME_LENGTH_BAD);\
+            return DW_DLV_ERROR;            \
+        }                                   \
+        p = (const char *)(&s);             \
+        memcpy(t,(const void *)p,l);        \
+    } while (0)
+#endif /* ENDIANNESS */
+
+
+#define SIZEOFT32 4
+
 struct Dwarf_Sort_Abbrev_s {
-    unsigned dsa_attr;
-    unsigned dsa_form;
+    Dwarf_Unsigned dsa_attr;
+    Dwarf_Unsigned dsa_form;
+    Dwarf_Signed dsa_implicitvalue;
     Dwarf_P_Attribute dsa_attrp;
 };
 
@@ -185,7 +227,7 @@ dump_bytes(char * msg,Dwarf_Small * start, long len)
     Dwarf_Small *end = start + len;
     Dwarf_Small *cur = start;
 
-    printf("%s ",msg);
+    printf("%s len %ld ",msg,len);
     for (; cur < end; cur++) {
         printf("%02x ", *cur);
     }
@@ -205,10 +247,11 @@ print_single_abbrev(Dwarf_P_Abbrev c, unsigned idx)
         (unsigned)c->abb_n_attr);
 
     for ( ; j < (unsigned)c->abb_n_attr; ++j) {
-        printf("  %2u attr 0x%2x  form 0x%2x\n",
+        printf("  %2u attr 0x%2x  form 0x%2x impl val %" DW_PR_DSd "\n",
             j,
             (unsigned)c->abb_attrs[j],
             (unsigned)c->abb_forms[j]);
+            (unsigned)c->abb_implicits[j]);
     }
 }
 static void
@@ -966,11 +1009,11 @@ determine_file_content_size(Dwarf_P_Debug dbg,
                     }
                     break;
                 case DW_FORM_data2:
-                    calculated_size += 2;
+                    calculated_size += DWARF_HALF_SIZE;
                     if (write_out) {
                         Dwarf_Half uh = cur->dfe_index;
-                        memcpy(data,&uh,2);
-                        data += 2;
+                        memcpy(data,&uh,DWARF_HALF_SIZE);
+                        data += DWARF_HALF_SIZE;
                     }
                     break;
                 case DW_FORM_udata: {
@@ -1018,11 +1061,11 @@ determine_file_content_size(Dwarf_P_Debug dbg,
                     }
                     break;
                 case DW_FORM_data4: {
-                    calculated_size += 4;
+                    calculated_size += DWARF_32BIT_SIZE;
                     if (write_out) {
-                        Dwarf_ufixed u4 = cur->dfe_timestamp;
-                        memcpy(data,&u4,4);
-                        data += 4;
+                        ASNOUT(data,cur->dfe_timestamp,
+                            DWARF_32BIT_SIZE);
+                        data += DWARF_32BIT_SIZE;
                     }
                     }
                     break;
@@ -1030,13 +1073,13 @@ determine_file_content_size(Dwarf_P_Debug dbg,
                     /*  As of 2017 there is no 8 byte timestamp
                         defined, though it does have to happen.
                         before 2038. */
-                    calculated_size += 8;
+                    calculated_size += DWARF_64BIT_SIZE;
                     if (write_out) {
                         Dwarf_Unsigned u8 = cur->dfe_index;
                         WRITE_UNALIGNED(dbg, (void *) data,
                             (const void *) &u8,
-                            sizeof(u8), 8);
-                        data += 8;
+                            sizeof(u8), DWARF_64BIT_SIZE);
+                        data += DWARF_64BIT_SIZE;
                     }
                     break;
                 case DW_FORM_block:
@@ -1057,29 +1100,29 @@ determine_file_content_size(Dwarf_P_Debug dbg,
                     }
                     break;
                 case DW_FORM_data2:
-                    calculated_size += 2;
+                    calculated_size += DWARF_HALF_SIZE;
                     if (write_out) {
                         Dwarf_Half uh = cur->dfe_index;
-                        memcpy(data,&uh,2);
+                        memcpy(data,&uh,DWARF_HALF_SIZE);
 
                     }
                     break;
                 case DW_FORM_data4:
-                    calculated_size += 4;
+                    calculated_size += DWARF_32BIT_SIZE;
                     if (write_out) {
-                        Dwarf_ufixed u4 = cur->dfe_index;
-                        memcpy(data,&u4,4);
-                        data += 4;
+                        ASNOUT(data,cur->dfe_index,
+                            DWARF_32BIT_SIZE);
+                        data += DWARF_32BIT_SIZE;
                     }
                     break;
                 case DW_FORM_data8:
-                    calculated_size += 8;
+                    calculated_size += DWARF_64BIT_SIZE;
                     if (write_out) {
                         Dwarf_Unsigned u8 = cur->dfe_index;
                         WRITE_UNALIGNED(dbg, (void *) data,
                             (const void *) &u8,
-                            sizeof(u8), 8);
-                        data += 8;
+                            sizeof(u8), DWARF_64BIT_SIZE);
+                        data += DWARF_64BIT_SIZE;
                     }
                     break;
                 case DW_FORM_udata: {
@@ -1327,10 +1370,10 @@ _dwarf_pro_generate_debugline(Dwarf_P_Debug dbg,
     /* total_length */
     du = 0;
     if (extension_size) {
-        Dwarf_Word x = DISTINGUISHED_VALUE;
+        DISTINGUISHED_VALUE_ARRAY(v4);
 
-        WRITE_UNALIGNED(dbg, (void *) data, (const void *) &x,
-        sizeof(x), extension_size);
+        WRITE_UNALIGNED(dbg, (void *) data, (const void *) &v4[0],
+        SIZEOFT32, extension_size);
         data += extension_size;
     }
 
@@ -1829,6 +1872,9 @@ _dwarf_pro_generate_debugline(Dwarf_P_Debug dbg,
                         elfsectno,
                         &writelen,
                         error);
+                    if (res != DW_DLV_OK) {
+                        return res;
+                    }
                     sum_bytes += writelen;
                     res = write_sval(line_adv,dbg,
                         elfsectno,
@@ -1881,7 +1927,6 @@ _dwarf_pro_generate_debugframe(Dwarf_P_Debug dbg,
     Dwarf_P_Cie curcie = 0;
     Dwarf_P_Fde curfde = 0;
     unsigned char *data = 0;
-    Dwarf_sfixed dsw = 0;
     Dwarf_Unsigned du = 0;
     Dwarf_Ubyte db = 0;
     long *cie_offs = 0;   /* Holds byte offsets for links to fde's */
@@ -1897,7 +1942,6 @@ _dwarf_pro_generate_debugframe(Dwarf_P_Debug dbg,
 
     curcie = dbg->de_frame_cies;
     cie_length = 0;
-    cur_off = 0;
     cie_offs = (long *)
         _dwarf_p_get_alloc(dbg, sizeof(long) * dbg->de_n_cie);
     if (cie_offs == NULL) {
@@ -2001,11 +2045,11 @@ _dwarf_pro_generate_debugframe(Dwarf_P_Debug dbg,
             OFFSET_PLUS_EXTENSION_SIZE,
             error);
         if (extension_size) {
-            Dwarf_Unsigned x = DISTINGUISHED_VALUE;
+            DISTINGUISHED_VALUE_ARRAY(v4);
 
             WRITE_UNALIGNED(dbg, (void *) data,
-                (const void *) &x,
-                sizeof(x), extension_size);
+                (const void *) &v4[0],
+                SIZEOFT32, extension_size);
             data += extension_size;
 
         }
@@ -2083,9 +2127,9 @@ _dwarf_pro_generate_debugframe(Dwarf_P_Debug dbg,
         long fde_length = 0;
         int pad2 = 0;
         Dwarf_P_Cie cie_ptr = 0;
-        Dwarf_Word cie_index = 0;
+        Dwarf_Unsigned cie_index = 0;
         /* index is a global in string.h, so don't name anything index. */
-        Dwarf_Word indx = 0;
+        Dwarf_Unsigned indx = 0;
         int oet_length = 0;
         int afl_length = 0;
         int res = 0;
@@ -2113,7 +2157,7 @@ _dwarf_pro_generate_debugframe(Dwarf_P_Debug dbg,
             strcmp(cie_ptr->cie_aug, DW_CIE_AUGMENTER_STRING_V0) == 0) {
 
             v0_augmentation = 1;
-            oet_length = sizeof(Dwarf_sfixed);
+            oet_length = DWARF_32BIT_SIZE;
             /* encode the length of augmented fields. */
             res = _dwarf_pro_encode_leb128_nm(oet_length,
                 &afl_length, afl_buff,
@@ -2130,11 +2174,13 @@ _dwarf_pro_generate_debugframe(Dwarf_P_Debug dbg,
 
         if (curfde->fde_die) {
             /*  IRIX/MIPS extension:
-                Using fde offset, generate DW_AT_MIPS_fde attribute for the
+                Using fde offset, generate DW_AT_MIPS_fde
+                attribute for the
                 die corresponding to this fde.  */
-            if (_dwarf_pro_add_AT_fde(dbg, curfde->fde_die, cur_off,
-                error) < 0) {
-                return DW_DLV_ERROR;
+            res = _dwarf_pro_add_AT_fde(dbg, curfde->fde_die, cur_off,
+                error);
+            if (res != DW_DLV_OK) {
+                return res;
             }
         }
 
@@ -2173,7 +2219,7 @@ _dwarf_pro_generate_debugframe(Dwarf_P_Debug dbg,
                     afl_length,
                 curfde->fde_exception_table_symbol,
                 dwarf_drt_segment_rel,
-                sizeof(Dwarf_sfixed));
+                DWARF_32BIT_SIZE);
             if (res != DW_DLV_OK) {
                 DWARF_P_DBG_ERROR(dbg, DW_DLE_CHUNK_ALLOC, res);
             }
@@ -2191,11 +2237,11 @@ _dwarf_pro_generate_debugframe(Dwarf_P_Debug dbg,
         du = fde_length;
         {
             if (extension_size) {
-                Dwarf_Word x = DISTINGUISHED_VALUE;
+                DISTINGUISHED_VALUE_ARRAY(v4);
 
                 WRITE_UNALIGNED(dbg, (void *) data,
-                    (const void *) &x,
-                    sizeof(x), extension_size);
+                    (const void *) &v4[0],
+                    SIZEOFT32, extension_size);
                 data += extension_size;
             }
             /* length */
@@ -2260,14 +2306,16 @@ _dwarf_pro_generate_debugframe(Dwarf_P_Debug dbg,
         if (v0_augmentation) {
             /* IRIX only. */
             /* write the encoded augmented field length. */
+            Dwarf_Signed dsw = 0;
+
             memcpy((void *) data, (const void *) afl_buff, afl_length);
             data += afl_length;
             /* write the offset_into_exception_tables field. */
-            dsw =
-                (Dwarf_sfixed) curfde->fde_offset_into_exception_tables;
-            WRITE_UNALIGNED(dbg, (void *) data, (const void *) &dsw,
-                sizeof(dsw), sizeof(Dwarf_sfixed));
-            data += sizeof(Dwarf_sfixed);
+            dsw = (Dwarf_Signed)curfde->fde_offset_into_exception_tables;
+            WRITE_UNALIGNED(dbg, (void *) data,
+                (const void *) &dsw,
+                sizeof(dsw), DWARF_32BIT_SIZE);
+            data += DWARF_32BIT_SIZE;
         }
 
         curinst = curfde->fde_inst;
@@ -2319,10 +2367,10 @@ marker_init(Dwarf_P_Debug dbg,
             sizeof(struct Dwarf_P_Marker_s) * dbg->de_marker_n_alloc);
         if (dbg->de_markers == NULL) {
             dbg->de_marker_n_alloc = 0;
-            return -1;
+            return DW_DLV_ERROR;
         }
     }
-    return 0;
+    return DW_DLV_OK;
 }
 
 static int
@@ -2334,10 +2382,9 @@ marker_add(Dwarf_P_Debug dbg,
         unsigned n = dbg->de_marker_n_used++;
         dbg->de_markers[n].ma_offset = offset;
         dbg->de_markers[n].ma_marker = marker;
-        return 0;
+        return DW_DLV_OK;
     }
-
-    return -1;
+    return DW_DLV_ERROR;
 }
 
 Dwarf_Signed
@@ -2346,11 +2393,27 @@ dwarf_get_die_markers(Dwarf_P_Debug dbg,
     Dwarf_Unsigned * marker_count,
     Dwarf_Error * error)
 {
+    int res = 0;
+
+    res = dwarf_get_die_markers_a(dbg,marker_list,marker_count,
+        error);
+    if (res == DW_DLV_ERROR) {
+        return DW_DLV_BADADDR;
+    }
+    return 0;
+}
+
+int
+dwarf_get_die_markers_a(Dwarf_P_Debug dbg,
+    Dwarf_P_Marker * marker_list, /* pointer to a pointer */
+    Dwarf_Unsigned * marker_count,
+    Dwarf_Error * error)
+{
     if (marker_list == NULL || marker_count == NULL) {
-        DWARF_P_DBG_ERROR(dbg, DW_DLE_IA, DW_DLV_BADADDR);
+        DWARF_P_DBG_ERROR(dbg, DW_DLE_IA, DW_DLV_ERROR);
     }
     if (dbg->de_marker_n_used != dbg->de_marker_n_alloc) {
-        DWARF_P_DBG_ERROR(dbg, DW_DLE_MAF, DW_DLV_BADADDR);
+        DWARF_P_DBG_ERROR(dbg, DW_DLE_MAF, DW_DLV_ERROR);
     }
 
     *marker_list = dbg->de_markers;
@@ -2497,6 +2560,22 @@ _dwarf_pro_match_attr(Dwarf_P_Attribute attr,
             curatp->ar_attribute_form != abbrev->abb_forms[i]) {
             return 0;
         }
+        /*  If either is implicit_const need special
+            check for matching val. */
+        if (curatp->ar_attribute_form == DW_FORM_implicit_const) {
+            if (abbrev->abb_forms[i] == DW_FORM_implicit_const) {
+                if (curatp->ar_implicit_const !=
+                    abbrev->abb_implicits[i]) {
+                    return 0;
+                }
+            } else {
+                return 0;
+            }
+        } else {
+            if (abbrev->abb_forms[i] == DW_FORM_implicit_const) {
+                return 0;
+            }
+        }
     }
     return 1;
 }
@@ -2560,8 +2639,9 @@ _dwarf_pro_getabbrev(Dwarf_P_Debug dbg,
     Dwarf_P_Abbrev curabbrev = 0;
     Dwarf_P_Attribute curattr = 0;
     int match = 0;
-    Dwarf_ufixed *forms = 0;
-    Dwarf_ufixed *attrs = 0;
+    Dwarf_Unsigned *forms = 0;
+    Dwarf_Unsigned *attrs = 0;
+    Dwarf_Signed *implicits = 0;
     int attrcount = die->di_n_attr;
 
     curabbrev = head;
@@ -2594,16 +2674,22 @@ _dwarf_pro_getabbrev(Dwarf_P_Debug dbg,
     }
     /* no match, create new abbreviation */
     if (attrcount) {
-        forms = (Dwarf_ufixed *)
+        forms = (Dwarf_Unsigned *)
             _dwarf_p_get_alloc(die->di_dbg,
-                sizeof(Dwarf_ufixed) * attrcount);
+                sizeof(Dwarf_Unsigned) * attrcount);
         if (forms == NULL) {
             DWARF_P_DBG_ERROR(dbg, DW_DLE_ABBREV_ALLOC, DW_DLV_ERROR);
         }
-        attrs = (Dwarf_ufixed *)
+        attrs = (Dwarf_Unsigned *)
             _dwarf_p_get_alloc(die->di_dbg,
-                sizeof(Dwarf_ufixed) * attrcount);
+                sizeof(Dwarf_Unsigned) * attrcount);
         if (attrs == NULL) {
+            DWARF_P_DBG_ERROR(dbg, DW_DLE_ABBREV_ALLOC, DW_DLV_ERROR);
+        }
+        implicits = (Dwarf_Signed *)
+            _dwarf_p_get_alloc(die->di_dbg,
+                sizeof(Dwarf_Signed) * attrcount);
+        if (implicits == NULL) {
             DWARF_P_DBG_ERROR(dbg, DW_DLE_ABBREV_ALLOC, DW_DLV_ERROR);
         }
     }
@@ -2624,6 +2710,7 @@ _dwarf_pro_getabbrev(Dwarf_P_Debug dbg,
         for(; curattr; ++ap, curattr = curattr->ar_next) {
             ap->dsa_attr = curattr->ar_attribute;
             ap->dsa_form = curattr->ar_attribute_form;
+            ap->dsa_implicitvalue = curattr->ar_implicit_const;
             ap->dsa_attrp = 0;
         }
 
@@ -2638,6 +2725,7 @@ _dwarf_pro_getabbrev(Dwarf_P_Debug dbg,
         for( ; k < attrcount; ++k,++ap) {
             attrs[k] = ap->dsa_attr;
             forms[k] = ap->dsa_form;
+            implicits[k] = ap->dsa_implicitvalue;
         }
         free(sortab);
     }
@@ -2656,6 +2744,7 @@ _dwarf_pro_getabbrev(Dwarf_P_Debug dbg,
     curabbrev->abb_tag = die->di_tag;
     curabbrev->abb_attrs = attrs;
     curabbrev->abb_forms = forms;
+    curabbrev->abb_implicits = implicits;
     curabbrev->abb_n_attr = attrcount;
     curabbrev->abb_idx = 0;
     curabbrev->abb_next = NULL;
@@ -2678,8 +2767,8 @@ generate_debuginfo_header_2(Dwarf_P_Debug dbg,
     Dwarf_Ubyte address_size,
     Dwarf_Error * error)
 {
-    unsigned abbrev_offset = *abbrev_offset_io;
-    unsigned char * data = *data_io;
+    unsigned abbrev_offset = 0;
+    unsigned char * data = 0;
     int offset_size = dbg->de_offset_size;
     int elfsectno_of_debug_info = dbg->de_elf_sects[DEBUG_INFO];
     int cu_header_size = 0;
@@ -2698,9 +2787,10 @@ generate_debuginfo_header_2(Dwarf_P_Debug dbg,
         error);
     if (extension_size) {
         /* This for a dwarf-standard 64bit offset. */
-        du = DISTINGUISHED_VALUE;
+        DISTINGUISHED_VALUE_ARRAY(v4);
+
         WRITE_UNALIGNED(dbg, (void *) data,
-            (const void *) &du, sizeof(du), extension_size);
+            (const void *) &v4[0], SIZEOFT32, extension_size);
         data += extension_size;
     }
     abbr_off_ptr = data;
@@ -2750,8 +2840,8 @@ generate_debuginfo_header_5(Dwarf_P_Debug dbg,
     Dwarf_Error    *error)
 {
     int offset_size = dbg->de_offset_size;
-    unsigned abbrev_offset = *abbrev_offset_io;
-    unsigned char * data = *data_io;
+    unsigned abbrev_offset = 0;
+    unsigned char * data = 0;
     int elfsectno_of_debug_info = dbg->de_elf_sects[DEBUG_INFO];
     int cu_header_size = 0;
     Dwarf_Unsigned du = 0;
@@ -2770,9 +2860,10 @@ generate_debuginfo_header_5(Dwarf_P_Debug dbg,
         error);
     if (extension_size) {
         /* Impossible in DW5, really, is for IRIX64. But we allow it. */
-        du = DISTINGUISHED_VALUE;
+        DISTINGUISHED_VALUE_ARRAY(v4);
+
         WRITE_UNALIGNED(dbg, (void *) data,
-            (const void *) &du, sizeof(du), extension_size);
+            (const void *) &v4[0], SIZEOFT32, extension_size);
         data += extension_size;
     }
     abbr_off_ptr = data;
@@ -2861,6 +2952,14 @@ write_out_debug_abbrev(Dwarf_P_Debug dbg,
                 &lebcount,error);
             if (res != DW_DLV_OK) {
                 return res;
+            }
+            if (curabbrev->abb_forms[idx] == DW_FORM_implicit_const){
+                res =write_sval(curabbrev->abb_implicits[idx],
+                    dbg,abbrevsectno,
+                    &lebcount,error);
+                if (res != DW_DLV_OK) {
+                    return res;
+                }
             }
         }
         /* Two zeros, for last entry, see dwarf2 sec 7.5.3 */
@@ -2952,7 +3051,7 @@ _dwarf_pro_generate_debuginfo(Dwarf_P_Debug dbg,
     Dwarf_P_Abbrev abbrev_tail = 0;
     Dwarf_P_Die curdie = 0;
     Dwarf_P_Die first_child = 0;
-    Dwarf_Word dw = 0;
+    Dwarf_Unsigned dw = 0;
     Dwarf_Unsigned du = 0;
     Dwarf_Half dh = 0;
     Dwarf_Unsigned die_off = 0; /* Offset of die in debug_info. */
@@ -3120,7 +3219,6 @@ _dwarf_pro_generate_debuginfo(Dwarf_P_Debug dbg,
         curdie->di_abbrev_nbytes = nbytes;
         die_off += nbytes;
 
-        curattr = curdie->di_attrs;
         /*  The abbrev and DIE attr lists match, so the die
             abbrevs are in the correct order,
             curdie->di_attrs.  */
@@ -3190,9 +3288,10 @@ _dwarf_pro_generate_debuginfo(Dwarf_P_Debug dbg,
         } else {
             while (curdie != NULL && curdie->di_right == NULL) {
                 curdie = curdie->di_parent;
-                die_off++; /* since we are writing a
-                    null die at the end of each
-                    sibling chain */
+                /* See -nonrootsibling- below */
+                if (curdie != NULL) {
+                    die_off++;
+                }
             }
             if (curdie != NULL) {
                 curdie = curdie->di_right;
@@ -3202,7 +3301,7 @@ _dwarf_pro_generate_debuginfo(Dwarf_P_Debug dbg,
     } /* end while (curdie != NULL), the per-die loop */
 
     res = marker_init(dbg, marker_count);
-    if (res == -1) {
+    if (res == DW_DLV_ERROR) {
         DWARF_P_DBG_ERROR(dbg, DW_DLE_REL_ALLOC, DW_DLV_ERROR);
     }
     res = string_attr_init(dbg, DEBUG_INFO, string_attr_count);
@@ -3218,7 +3317,7 @@ _dwarf_pro_generate_debuginfo(Dwarf_P_Debug dbg,
 
         if (curdie->di_marker != 0) {
             res = marker_add(dbg, curdie->di_offset, curdie->di_marker);
-            if (res == -1) {
+            if (res == DW_DLV_ERROR) {
                 DWARF_P_DBG_ERROR(dbg, DW_DLE_REL_ALLOC, DW_DLV_ERROR);
             }
         }
@@ -3226,15 +3325,14 @@ _dwarf_pro_generate_debuginfo(Dwarf_P_Debug dbg,
         /* Index to abbreviation table */
         GET_CHUNK_ERR(dbg, elfsectno_of_debug_info,
             data, curdie->di_abbrev_nbytes, error);
-
         memcpy((void *) data,
             (const void *) curdie->di_abbrev,
             curdie->di_abbrev_nbytes);
 
         /* Attribute values - need to fill in all form attributes */
         curattr = curdie->di_attrs;
-        string_attr_offset = curdie->di_offset + curdie->di_abbrev_nbytes;
-
+        string_attr_offset = curdie->di_offset +
+            curdie->di_abbrev_nbytes;
         while (curattr) {
             GET_CHUNK_ERR(dbg, elfsectno_of_debug_info, data,
                 (unsigned long) curattr->ar_nbytes, error);
@@ -3283,42 +3381,43 @@ _dwarf_pro_generate_debuginfo(Dwarf_P_Debug dbg,
                         DWARF_P_DBG_ERROR(dbg, DW_DLE_OFFSET_UFLW,
                             DW_DLV_ERROR);
                     }
-                    dw = (Dwarf_Word) curattr->ar_ref_die->di_offset;
+                    dw = (Dwarf_Unsigned) curattr->ar_ref_die->di_offset;
                     WRITE_UNALIGNED(dbg, (void *) data,
                         (const void *) &dw,
-                        sizeof(dw), sizeof(Dwarf_ufixed));
+                        sizeof(dw), DWARF_32BIT_SIZE);
                     break;
                 }
             case DW_FORM_ref8:
                 du = curattr->ar_ref_die->di_offset;
                 WRITE_UNALIGNED(dbg, (void *) data,
                     (const void *) &du,
-                    sizeof(du), sizeof(Dwarf_Unsigned));
+                    sizeof(du), DWARF_64BIT_SIZE);
                 break;
             case DW_FORM_ref_udata:
-                {               /* unsigned leb128 offset */
+                {   /* unsigned leb128 offset */
 
-                    int nbytes;
+                    int nbytesx;
                     char buff1[ENCODE_SPACE_NEEDED];
 
                     res =
                         _dwarf_pro_encode_leb128_nm(curattr->
                             ar_ref_die->
-                            di_offset, &nbytes,
+                            di_offset, &nbytesx,
                             buff1,
                             sizeof(buff1));
                     if (res != DW_DLV_OK) {
                         DWARF_P_DBG_ERROR(dbg, DW_DLE_ABBREV_ALLOC,
                             DW_DLV_ERROR);
                     }
-
-                    memcpy(data, buff1, nbytes);
+                    memcpy(data, buff1, nbytesx);
                     break;
                 }
             default:
-                memcpy((void *) data,
-                    (const void *) curattr->ar_data,
-                    curattr->ar_nbytes);
+                if(curattr->ar_nbytes) {
+                    memcpy((void *) data,
+                        (const void *) curattr->ar_data,
+                        curattr->ar_nbytes);
+                }
                 break;
             }
             if (curattr->ar_attribute_form == DW_FORM_string) {
@@ -3329,10 +3428,21 @@ _dwarf_pro_generate_debuginfo(Dwarf_P_Debug dbg,
         }
 
         /* depth first search */
-        if (curdie->di_child)
+        if (curdie->di_child) {
             curdie = curdie->di_child;
-        else {
+        } else {
             while (curdie != NULL && curdie->di_right == NULL) {
+                /*  -nonrootsibling-
+                    A null die should only be written for terminating
+                    siblings, not the root.  Adding a terminating die
+                    for the root will cause, after object files are
+                    linked, warnings to be generated with newer
+                    versions of readelf. */
+                if (!curdie->di_parent) {
+                    /*  The parent is not a DIE so ending a sibling
+                        chain makes no sense (wastes a byte). */
+                    break;
+                }
                 GET_CHUNK_ERR(dbg, elfsectno_of_debug_info, data, 1, error);
                 *data = '\0';
                 curdie = curdie->di_parent;

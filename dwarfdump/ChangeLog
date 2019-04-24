@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 2018-09-29 David Anderson
     * command_options.c: Fixed indent issues.
 2018-09-26 Carlos Alberto Enciso
@@ -492,3 +493,136 @@
 2018-01-29 David Anderson
     * common.c,dwarfdump.c,tag_attr.c,tag_tree.c:
       Update version string
+=======
+2019-04-22 David Anderson
+     * dwarfdump.c: Prevent the -a option from requesting
+       Elf section data printing (no section
+       data was printed anyway as the request was
+       incomplete).
+2019-04-22 David Anderson
+     * dwarfdump.c: Add test for _MSC_VER for Windows MSVC.
+     * print_die.c: Using uintptr_t to suppress a warning.
+2019-04-22 David Anderson
+     * checkutil.c: Now uses uintptr_t so we can avoid
+       compile-time warnings about converting pointer to
+       integer.
+     * command_options.h: Ifdef a couple of static
+       function prototypes so, when regex missing,
+       we do not get warnings of undefined static functions.
+     * dwarf_tsearchbal.c: Add ifdef-d stdint.h and
+       inttypes.h so we can avoid some conversion warnings
+       from printf calls.
+     * dwarf_alloc.c:  Add ifdef-d stdint.h and
+       inttypes.h so we can avoid some conversion warnings
+       from printf calls.
+2019-04-19 David Anderson
+     * Apology. This enhances pubnames-like printing
+       and uses non-libelf elf access as much as possible
+       (even if libelf present). With --disable-libelf
+       it allows all but printing Elf section headers
+       and relocation records.  It's excessively large
+       for one commit(mainly in libdwarf). Sorry.
+     * command_options.c: Conditionalize the help message
+       so the Elf section printing is not shown if
+       --disable-libelf chosen at configure time.
+     * dwarfdump.1: Mention that --disable-libelf removes
+       certain elf section header printing options.
+     * dwarfdump.c: Implements the elf reading changes.
+     * print_strings.c: Fixed a printf to use sanitized()
+       so we don't print non-ascii (we use uri form instead).
+2019-03-08 David Anderson
+     * print_pubnames.c: Remove trailing whitespace.
+2019-03-07 David Anderson
+     * print_pubnames.c(print_all_pubnames_style_records): A
+       struct esb_s was constructed and filled but then never
+       destructed, leading to a memory leak. Eliminated it 
+       entirely.
+2019-03-04 David Anderson
+     * dwarf_names.c,dwarf_names.h,dwarfdump-ta-ext-table.h,
+       dwarfdump-ta-table.h,dwarfdump-tt-ext-table.h,
+       dwarfdump-tt-table.h,dwarf_names_enum.h,
+       dwarf_names_new.h: Regenerated with latest date string
+       and version.
+     * dwarfdump.c: Corrected indent mistakes.
+     * glflags.h: Removed blank line.
+     * globals.h: Added print_all_pubnames_style_records() declaration
+       so all the pubnames-like sections are printed by just one
+       function.
+     * print_die.c: Fixed indents. Removed trailing whitespace.
+     * print_pubnames.c: Now has the print code for all the
+       pubnames-like sections. The pubnames-like section
+       names only print if there is some data.  We now
+       also (for those sections) print the section CU-headers
+       if dwarfdump -v.   Some error messages modified slightly
+       to show the correct section name (as opposed to leaving it
+       off). Now can do the coded checks instead of ignoring them.  
+     * print_sections.c: Moved deal_with_name_offset_err() over
+       to print_pubnames.c, where it is now a static function.
+     * print_sections.h: Removed declarations of deal_with_name_offset_err()
+       and print_pubname_style_entry() as those are now static functions
+       in print_pubnames.c.
+     * print_static_funcs.c, print_static_vars.c: Now only print 
+       section name if there
+       is content. Corrected a long-incorrect section name of this
+       SGI-extension section you most likely have never seen.
+       Deleted the old printing code, do it via call into
+       print_pubnames.c.
+     * print_types.c,print_weaknames.c: Now only prints 
+       section name if there is content.
+       Deleted the old printing code, do it via call into
+       print_pubnames.c.
+
+2019-02-24 David Anderson
+     * dwarf_names.c,dwarf_names.h,dwarfdump-ta-ext-table.h,
+       dwarfdump-ta-table.h,dwarfdump-tt-ext-table.h,
+       dwarfdump-tt-table.h,dwarf_names_enum.h,
+       dwarf_names_new.h: Regenerated with latest date string
+       and version.
+2019-02-19 David Anderson
+     * configure.cmake: Now defines DWARF_WITH_LIBELF
+       so builds work as always.
+     * dwarfdump.c,globals.h,print_reloc.c: Now uses
+       DWARF_WITH_LIBELF to determine how to build
+       with or without libelf.
+2019-02-12 David Anderson
+     * print_die.c: Delete _dwarf_memcpy_swap_bytes() as it
+       is no longer needed. Use the new 
+       dwarf_uncompress_integer_block_a() interface as it
+       is easier to use.
+2019-02-07 David Anderson
+     * dwarf_names.c,dwarf_names.h,dwarfdump-ta-table.h,
+       dwarfdump-tt-ext-table.h, dwarfdump-tt-table.h:
+       Just a changed version string.
+2019-02-07 David Anderson
+     * dwarfdump.c: Use ifdef HAVE_ELF_H so non-elf
+       builds work.
+     * print_reloc.c: ifdef HAVE_ELF_H, eliminating
+       the entire file of elf-header printing if elf.h
+       missing.
+2019-01-31 David Anderson
+     * dwarfdump.c,dwconf.c,esb.c,print_abbrevs.c,
+       print_aranges.c,print_die.c,print_macro.c,
+       print_reloc.c,print_str_offsets.c: Fix warnings
+       emitted by llvm's scan-build tool.
+2019-01-20 David Anderson
+    * globals.h: Remove the code for *UINT* and
+      all the ifdefs involved. No longer needed.
+    * print_die.c(get_FLAG_BLOCK_string): Remove 
+      the__int32_t from this function (associated with
+      DW_AT_SUN_func_offsets).  Simplify the printing
+      of these offsets. 
+2019-01-14 David Anderson
+    * dwarf_names.c, dwarf_names.h,dwarfdump-ta-ext-table.h,
+      dwarfdump-ta-table.h,dwarfdump-tt-ext-table.h,
+      dwarfdump-tt-table.h: Regenerated.
+    * print_lines.c: If missing a line number do not
+      supply a meaningless -1, supply 0.
+      If line table access gets an error, print the error
+      and attempt to continue.
+    * dwarfdump.c: We try to continue after major errors
+      in more places. If any major errors were seen
+      a final line of text is reported to standard-out.
+2019-01-02 David Anderson
+    * ChangeLog: renamed ChangeLog 2018.
+    * Makefile.am: Added ChangeLog2018 to distribution files.  
+>>>>>>> master

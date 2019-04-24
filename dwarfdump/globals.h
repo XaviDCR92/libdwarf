@@ -40,46 +40,9 @@ extern "C" {
 
 #include "warningcontrol.h"
 
-/*  We want __uint32_t and __uint64_t and __int32_t __int64_t
-    properly defined but not duplicated, since duplicate typedefs
-    are not legal C.
-    HAVE___UINT32_T
-    HAVE___UINT64_T will be set by configure if
-    our 4 types are predefined in compiler
-*/
-
-
-#if (!defined(HAVE___UINT32_T)) && defined(HAVE_SGIDEFS_H)
-#include <sgidefs.h> /* sgidefs.h defines them */
-#define HAVE___UINT32_T 1
-#define HAVE___UINT64_T 1
-#endif
-
-
-
-#if (!defined(HAVE___UINT32_T)) && defined(HAVE_SYS_TYPES_H) && defined(HAVE___UINT32_T_IN_SYS_TYPES_H)
-#  include <sys/types.h>
-/* we assume __[u]int32_t and __[u]int64_t defined
-   since __uint32_t defined in the sys/types.h in use */
-#define HAVE___UINT32_T 1
-#define HAVE___UINT64_T 1
-#endif
-
-#ifndef HAVE___UINT32_T
-typedef int __int32_t;
-typedef unsigned  __uint32_t;
-#define HAVE___UINT32_T 1
-#endif
-#ifndef HAVE___UINT64_T
-typedef long long __int64_t;
-typedef unsigned long long  __uint64_t;
-#define HAVE___UINT64_T 1
-#endif
-
 #define DWARF_SECNAME_BUFFER_SIZE 50
 
 #include <stdio.h>
-#include <stdarg.h>   /* For va_start va_arg va_list */
 #include <stdlib.h>
 #include <string.h>
 
@@ -87,16 +50,18 @@ typedef unsigned long long  __uint64_t;
 #include "stdafx.h"
 #endif /* HAVE_STDAFX_H */
 
+#ifdef DWARF_WITH_LIBELF
 #ifdef HAVE_ELF_H
 #include <elf.h>
-#endif
+#endif /* HAVE_ELF_H */
 #ifdef HAVE_LIBELF_H
-#include <libelf.h>
-#else
-#ifdef HAVE_LIBELF_LIBELF_H
-#include <libelf/libelf.h>
-#endif
-#endif
+# include <libelf.h>
+#else /* !HAVE_LIBELF_H */
+# ifdef HAVE_LIBELF_LIBELF_H
+# include <libelf/libelf.h>
+# endif /* HAVE_LIBELF_LIBELF_H */
+#endif /* HAVE_LIB_ELF */
+#endif /* DWARF_WITH_LIBELF */
 #include <dwarf.h>
 #include <libdwarf.h>
 
@@ -107,9 +72,6 @@ typedef unsigned long long  __uint64_t;
 #include "checkutil.h"
 #include "defined_types.h"
 #include "glflags.h"
-
-struct dwconf_s;
-struct esb_s;
 
 /* Used to try to avoid leakage when we hide errors. */
 #define DROP_ERROR_INSTANCE(d,r,e)       \
@@ -139,6 +101,7 @@ extern void print_line_numbers_this_cu (Dwarf_Debug dbg, Dwarf_Die in_die);
 
 extern void print_frames (Dwarf_Debug dbg, int print_debug_frame,
     int print_eh_frame,struct dwconf_s *);
+extern void printreg(Dwarf_Unsigned reg,struct dwconf_s *config_data);
 extern void print_ranges (Dwarf_Debug dbg);
 extern void print_pubnames (Dwarf_Debug dbg);
 extern void print_macinfo (Dwarf_Debug dbg);
@@ -147,7 +110,6 @@ extern void print_locs (Dwarf_Debug dbg);
 extern void print_abbrevs (Dwarf_Debug dbg);
 extern void print_strings (Dwarf_Debug dbg);
 extern void print_aranges (Dwarf_Debug dbg);
-extern void print_relocinfo (Dwarf_Debug dbg);
 extern void print_static_funcs(Dwarf_Debug dbg);
 extern void print_static_vars(Dwarf_Debug dbg);
 enum type_type_e {SGI_TYPENAME, DWARF_PUBTYPES} ;
@@ -155,6 +117,17 @@ extern void print_types(Dwarf_Debug dbg,enum type_type_e type_type);
 extern void print_weaknames(Dwarf_Debug dbg);
 extern void print_exception_tables(Dwarf_Debug dbg);
 extern void print_debug_names(Dwarf_Debug dbg);
+int print_all_pubnames_style_records(Dwarf_Debug dbg,
+    const char * linetitle,
+    const char * section_true_name,
+    Dwarf_Global *globbuf,
+    Dwarf_Signed count,
+    Dwarf_Error *err);
+
+/*  These three ELF only */
+extern void print_object_header(Dwarf_Debug dbg);
+extern void print_relocinfo (Dwarf_Debug dbg);
+void clean_up_syms_malloc_data(void);
 
 /*  Space used to record range information */
 extern void allocate_range_array_info(void);
@@ -163,12 +136,6 @@ extern void record_range_array_info_entry(Dwarf_Off die_off,
     Dwarf_Off range_off);
 extern void check_range_array_info(Dwarf_Debug dbg);
 
-extern void print_ranges_list_to_extra(Dwarf_Debug dbg,
-    Dwarf_Unsigned off,
-    Dwarf_Ranges *rangeset,
-    Dwarf_Signed rangecount,
-    Dwarf_Unsigned bytecount,
-    struct esb_s *stringbuf);
 boolean should_skip_this_cu(Dwarf_Debug dbg, Dwarf_Die cu_die);
 
 void get_address_size_and_max(Dwarf_Debug dbg,
@@ -180,9 +147,6 @@ void get_address_size_and_max(Dwarf_Debug dbg,
 int get_cu_name(Dwarf_Debug dbg,Dwarf_Die cu_die,
     Dwarf_Off  dieprint_cu_offset,
     char **short_name,char **long_name);
-int get_producer_name(Dwarf_Debug dbg,Dwarf_Die cu_die,
-    Dwarf_Off  dieprint_cu_offset,
-    struct esb_s *producername);
 
 /* Get number of abbreviations for a CU */
 extern void get_abbrev_array_info(Dwarf_Debug dbg,Dwarf_Unsigned offset);
@@ -235,41 +199,20 @@ extern Dwarf_Die current_cu_die_for_print_frames; /* This is
 /* defined in print_sections.c, die for the current compile unit,
    used in get_fde_proc_name() */
 
-extern void printreg(Dwarf_Unsigned reg,struct dwconf_s *config_data);
 
 int get_proc_name(Dwarf_Debug dbg, Dwarf_Die die, Dwarf_Addr low_pc,
     char *proc_name_buf, int proc_name_buf_len, void **pcMap);
 
-void get_attr_value(Dwarf_Debug dbg, Dwarf_Half tag,
-    Dwarf_Die die,
-    Dwarf_Off die_cu_offset,
-    Dwarf_Attribute attrib,
-    char **srcfiles,
-    Dwarf_Signed cnt, struct esb_s *esbp,
-    int show_form,int local_verbose);
-
 extern void dump_block(char *prefix, char *data, Dwarf_Signed len);
-
-extern void format_sig8_string(Dwarf_Sig8 *data,struct esb_s *out);
 
 extern void print_gdb_index(Dwarf_Debug dbg);
 extern void print_debugfission_index(Dwarf_Debug dbg,const char *type);
 
-void dwarfdump_print_one_locdesc(Dwarf_Debug dbg,
-    Dwarf_Locdesc * llbuf, /* 2014 interface */
-    Dwarf_Locdesc_c  locs, /* 2015 interface */
-    Dwarf_Unsigned llent, /* Which locdesc is this */
-    Dwarf_Unsigned entrycount, /* count of DW_OP operators */
-    Dwarf_Addr baseaddr,
-    struct esb_s *string_out);
 void clean_up_die_esb(void);
-void clean_up_syms_malloc_data(void);
 void safe_strcpy(char *out, long outlen, const char *in, long inlen);
 
 void print_macros_5style_this_cu(Dwarf_Debug dbg, Dwarf_Die cu_die,
     Dwarf_Bool in_import_list, Dwarf_Unsigned offset);
-
-void format_sig8_string(Dwarf_Sig8*data, struct esb_s *out);
 
 /* Detailed attributes encoding space */
 void print_attributes_encoding(Dwarf_Debug dbg);
@@ -284,20 +227,6 @@ void groups_restore_subsidiary_flags(void);
 void print_str_offsets_section(Dwarf_Debug dbg);
 
 void print_any_harmless_errors(Dwarf_Debug dbg);
-void get_true_section_name(Dwarf_Debug dbg,
-    const char *standard_name,
-    struct esb_s *name_out,
-    Dwarf_Bool add_compr);
-
-
-#include "section_bitmaps.h"
-
-
-#ifdef HAVE_UNUSED_ATTRIBUTE
-#define  UNUSEDARG __attribute__ ((unused))
-#else
-#define  UNUSEDARG
-#endif
 
 #ifdef __cplusplus
 }

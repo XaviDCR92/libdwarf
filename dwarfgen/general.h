@@ -32,6 +32,8 @@
 */
 // general.h
 // The following needed in code using this.
+#ifndef GENERAL_H
+#define GENERAL_H
 #include <sstream>
 #include <iomanip> // iomanip for setw etc
 
@@ -41,6 +43,9 @@ extern struct CmdOptions {
     int  defaultInfoStringForm;
     bool showrelocdetails;
     bool adddata16;
+    bool addimplicitconst;
+    bool addframeadvanceloc;
+    bool addSUNfuncoffsets;
 } cmdoptions;
 
 template <typename T >
@@ -73,3 +78,4 @@ std::string  BldName(const std::string & prefix, T v)
     s << v;
     return s.str();
 }
+#endif /* GENERAL_H */

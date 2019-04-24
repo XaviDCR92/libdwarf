@@ -26,32 +26,19 @@
 
 */
 
-
-#include <stddef.h>
-
-/*
-    Sgidefs included to define __uint32_t,
-    a guaranteed 4-byte quantity.
-*/
 #include "libdwarfdefs.h"
 
 #define true                    1
 #define false                   0
 
+/*  The DISTINGUISHED VALUE is 4 byte value defined by DWARF
+    since DWARF3. */
+#define DISTINGUISHED_VALUE_ARRAY(x)  unsigned char x[4] = { 0xff,0xff,0xff,0xff }
+#define DISTINGUISHED_VALUE 0xffffffff /* 64bit extension flag */
+
 /* to identify a cie */
 #define DW_CIE_ID          ~(0x0)
 #define DW_CIE_VERSION     1
-
-/*Dwarf_Word  is unsigned word usable for index, count in memory */
-/*Dwarf_Sword is   signed word usable for index, count in memory */
-/* The are 32 or 64 bits depending if 64 bit longs or not, which
-** fits the  ILP32 and LP64 models
-** These work equally well with ILP64.
-*/
-
-typedef unsigned long Dwarf_Word;
-typedef long Dwarf_Sword;
-
 
 typedef signed char Dwarf_Sbyte;
 typedef unsigned char Dwarf_Ubyte;
@@ -63,12 +50,6 @@ typedef signed short Dwarf_Shalf;
     1->2->3 ...  */
 #define  PRO_VERSION_MAGIC 0xdead1
 
-
-/* these 2 are fixed sizes which must not vary with the
-** ILP32/LP64 model. These two stay at 32 bit.
-*/
-typedef __uint32_t Dwarf_ufixed;
-typedef __int32_t Dwarf_sfixed;
 
 #define DWARF_HALF_SIZE 2
 #define DWARF_32BIT_SIZE 4
@@ -194,7 +175,7 @@ struct Dwarf_P_Line_Inits_s {
 struct Dwarf_P_Die_s {
     Dwarf_Unsigned di_offset; /* offset in debug info */
     char *di_abbrev;  /* abbreviation */
-    Dwarf_Word di_abbrev_nbytes; /* # of bytes in abbrev */
+    Dwarf_Unsigned di_abbrev_nbytes; /* # of bytes in abbrev */
     Dwarf_Tag di_tag;
     Dwarf_P_Die di_parent; /* parent of current die */
     Dwarf_P_Die di_child; /* first child */
@@ -224,12 +205,14 @@ struct Dwarf_P_Attribute_s {
     Dwarf_Unsigned ar_debug_str_offset; /* Offset in .debug_str
         if non-zero. Zero offset never assigned a string. */
     Dwarf_Ubyte ar_rel_type;  /* relocation type */
-    Dwarf_Word ar_rel_offset; /* Offset of relocation within block */
+    Dwarf_Unsigned ar_rel_offset; /* Offset of relocation within block */
     char ar_reloc_len; /* Number of bytes that relocation
         applies to. 4 or 8. Unused and may
         be 0 if if ar_rel_type is
         R_MIPS_NONE */
     Dwarf_P_Attribute ar_next;
+    /*  set if form = DW_FORM_implicit_const; */
+    Dwarf_Signed  ar_implicit_const;
 };
 
 /* A block of .debug_macinfo data: this forms a series of blocks.
@@ -438,7 +421,7 @@ struct Dwarf_P_Debug_s {
     Dwarf_P_Section_Data de_current_active_section;
 
     /*  Number of debug data streams globs. */
-    Dwarf_Word de_n_debug_sect;
+    Dwarf_Unsigned de_n_debug_sect;
 
     /*  File entry information, null terminated singly-linked list */
     Dwarf_P_F_Entry de_file_entries;
@@ -470,7 +453,7 @@ struct Dwarf_P_Debug_s {
     /* Pointer to chain of aranges */
     Dwarf_P_Arange de_arange;
     Dwarf_P_Arange de_last_arange;
-    Dwarf_Sword de_arange_count;
+    Dwarf_Signed de_arange_count;
 
     /*  debug_names  de_dnames is base of dnames info
         before disk form */
@@ -565,7 +548,7 @@ struct Dwarf_P_Debug_s {
     unsigned long de_compose_used_len;
 
     unsigned char de_same_endian;
-    void *(*de_copy_word) (void *, const void *, size_t);
+    void (*de_copy_word) (void *, const void *, unsigned long);
 
     /*  Add new fields at the END of this struct to preserve some hope
         of sensible behavior on dbg passing between DSOs linked with
@@ -586,7 +569,7 @@ struct Dwarf_P_Debug_s {
 
 #define CURRENT_VERSION_STAMP   2
 
-Dwarf_Unsigned _dwarf_add_simple_name_entry(Dwarf_P_Debug dbg,
+int _dwarf_add_simple_name_entry(Dwarf_P_Debug dbg,
     Dwarf_P_Die die,
     char *entry_name,
     enum dwarf_sn_kind
@@ -606,5 +589,3 @@ _dwarf_insert_or_find_in_debug_str(Dwarf_P_Debug dbg,
     unsigned slen, /* includes space for trailing NUL */
     Dwarf_Unsigned *offset_in_debug_str,
     Dwarf_Error *error);
-
-#define DISTINGUISHED_VALUE 0xffffffff /* 64bit extension flag */

@@ -32,8 +32,21 @@
 #ifdef HAVE_STDLIB_H
 #include <stdlib.h>
 #endif
+#ifdef HAVE_STDINT_H
+#include <stdint.h> /* For uintptr_t */
+#endif /* HAVE_STDINT_H */
+#ifdef HAVE_INTTYPES_H
+#include <inttypes.h> /* For uintptr_t */
+#endif /* HAVE_INTTYPES_H */
 #include <string.h>
+#include <stddef.h>
 #include "pro_incl.h"
+#include "dwarf.h"
+#include "libdwarf.h"
+#include "pro_opaque.h"
+#include "pro_error.h"
+#include "pro_util.h"
+#include "pro_alloc.h"
 #include "pro_die.h"
 #include "pro_section.h"
 #include "dwarf_tsearch.h"
@@ -219,13 +232,25 @@ Dwarf_Unsigned
 dwarf_add_die_marker(Dwarf_P_Debug dbg,
     Dwarf_P_Die die,
     Dwarf_Unsigned marker,
-    Dwarf_Error * error)
-{
+    Dwarf_Error * error) {
     if (die == NULL) {
         DWARF_P_DBG_ERROR(dbg, DW_DLE_DIE_NULL, DW_DLV_NOCOUNT);
     }
     die->di_marker = marker;
     return 0;
+}
+int
+dwarf_add_die_marker_a(Dwarf_P_Debug dbg,
+    Dwarf_P_Die die,
+    Dwarf_Unsigned marker,
+    Dwarf_Error * error)
+{
+    if (die == NULL) {
+        DWARF_P_DBG_ERROR(dbg, DW_DLE_DIE_NULL,
+            DW_DLV_ERROR);
+    }
+    die->di_marker = marker;
+    return DW_DLV_OK;
 }
 
 
@@ -236,17 +261,31 @@ dwarf_get_die_marker(Dwarf_P_Debug dbg,
     Dwarf_Error * error)
 {
     if (die == NULL) {
-        DWARF_P_DBG_ERROR(dbg, DW_DLE_DIE_NULL, DW_DLV_NOCOUNT);
+        DWARF_P_DBG_ERROR(dbg, DW_DLE_DIE_NULL,
+            DW_DLV_NOCOUNT);
     }
     *marker = die->di_marker;
     return 0;
 }
+int
+dwarf_get_die_marker_a(Dwarf_P_Debug dbg,
+    Dwarf_P_Die die,
+    Dwarf_Unsigned * marker,
+    Dwarf_Error * error)
+{
+    if (die == NULL) {
+        DWARF_P_DBG_ERROR(dbg, DW_DLE_DIE_NULL,
+            DW_DLV_ERROR);
+    }
+    *marker = die->di_marker;
+    return DW_DLV_ERROR;
+}
 
 
-/*----------------------------------------------------------------------------
-    This function adds a die to dbg struct. It should be called using
-    the root of all the dies.
------------------------------------------------------------------------------*/
+/*---------------------------------------------------------
+    This function adds a die to dbg struct. It should
+    be called using the root of all the dies.
+---------------------------------------------------------*/
 /*  Original form of this call..
     dwarf_add_die_to_debug_a() is preferred now. */
 Dwarf_Unsigned
@@ -266,10 +305,12 @@ dwarf_add_die_to_debug_a(Dwarf_P_Debug dbg,
     Dwarf_P_Die first_die, Dwarf_Error * error)
 {
     if (first_die == NULL) {
-        DWARF_P_DBG_ERROR(dbg, DW_DLE_DIE_NULL, DW_DLV_ERROR);
+        DWARF_P_DBG_ERROR(dbg, DW_DLE_DIE_NULL,
+            DW_DLV_ERROR);
     }
     if (first_die->di_tag != DW_TAG_compile_unit) {
-        DWARF_P_DBG_ERROR(dbg, DW_DLE_WRONG_TAG, DW_DLV_ERROR);
+        DWARF_P_DBG_ERROR(dbg, DW_DLE_WRONG_TAG,
+            DW_DLV_ERROR);
     }
     dbg->de_dies = first_die;
     return DW_DLV_OK;
@@ -284,13 +325,16 @@ _dwarf_pro_add_AT_stmt_list(Dwarf_P_Debug dbg,
 
     /* Add AT_stmt_list attribute */
     new_attr = (Dwarf_P_Attribute)
-        _dwarf_p_get_alloc(dbg, sizeof(struct Dwarf_P_Attribute_s));
+        _dwarf_p_get_alloc(dbg,
+            sizeof(struct Dwarf_P_Attribute_s));
     if (new_attr == NULL) {
-        DWARF_P_DBG_ERROR(NULL, DW_DLE_ATTR_ALLOC, DW_DLV_ERROR);
+        DWARF_P_DBG_ERROR(NULL, DW_DLE_ATTR_ALLOC,
+            DW_DLV_ERROR);
     }
 
     new_attr->ar_attribute = DW_AT_stmt_list;
-    new_attr->ar_attribute_form = dbg->de_ar_data_attribute_form;
+    new_attr->ar_attribute_form =
+        dbg->de_ar_data_attribute_form;
     new_attr->ar_rel_type = dbg->de_offset_reloc;
 
     new_attr->ar_nbytes = uwordb_size;
@@ -299,7 +343,8 @@ _dwarf_pro_add_AT_stmt_list(Dwarf_P_Debug dbg,
     new_attr->ar_data = (char *)
         _dwarf_p_get_alloc(dbg, uwordb_size);
     if (new_attr->ar_data == NULL) {
-        DWARF_P_DBG_ERROR(NULL, DW_DLE_ADDR_ALLOC, DW_DLV_ERROR);
+        DWARF_P_DBG_ERROR(NULL,DW_DLE_ADDR_ALLOC,
+            DW_DLV_ERROR);
     }
     {
         Dwarf_Unsigned du = 0;
@@ -323,7 +368,8 @@ _dwarf_debug_str_compare_func(const void *l,const void *r)
 
     if (el->dse_has_table_offset) {
         /*  When set the name is in the debug_str table. */
-        /*  ASSERT: dse_dbg->de_debug_str->ds_data is non-zero.
+        /*  ASSERT: dse_dbg->de_debug_str->ds_data
+            is non-zero.
             ASSERT: dse_name NULL. */
         lname = el->dse_dbg->de_debug_str->ds_data +
             el->dse_table_offset;
@@ -333,7 +379,8 @@ _dwarf_debug_str_compare_func(const void *l,const void *r)
     }
     if (er->dse_has_table_offset) {
         /*  When set the name is in the debug_str table. */
-        /*  ASSERT: dse_dbg->de_debug_str->ds_data is non-zero.
+        /*  ASSERT: dse_dbg->de_debug_str->ds_data
+            is non-zero.
             ASSERT: dse_name NULL. */
         rname = er->dse_dbg->de_debug_str->ds_data +
             er->dse_table_offset;
@@ -559,6 +606,7 @@ _dwarf_insert_or_find_in_debug_str(Dwarf_P_Debug dbg,
     return DW_DLV_OK;
 }
 
+/*  Returns DW_DLV_OK or DW_DLV_ERROR. */
 int _dwarf_pro_set_string_attr(Dwarf_P_Attribute new_attr,
     Dwarf_P_Debug dbg,
     char *name,
@@ -626,45 +674,86 @@ int _dwarf_pro_set_string_attr(Dwarf_P_Attribute new_attr,
 }
 
 
-/*-----------------------------------------------------------------------------
+/*-------------------------------------------------------------------
     Add AT_name attribute to die
-------------------------------------------------------------------------------*/
+---------------------------------------------------------------------*/
+/*  Original function. dwarf_add_AT_name_a() is the
+    suggested alternative. */
 Dwarf_P_Attribute
-dwarf_add_AT_name(Dwarf_P_Die die, char *name, Dwarf_Error * error)
+dwarf_add_AT_name(Dwarf_P_Die die,
+    char *name,
+    Dwarf_Error * error)
+{
+    Dwarf_P_Attribute a = 0;
+    int res = 0;
+
+    res = dwarf_add_AT_name_a(die, name,
+        &a, error);
+    if (res == DW_DLV_ERROR) {
+        return (Dwarf_P_Attribute)(DW_DLV_BADADDR);
+    }
+    return a;
+}
+
+/*   New December 2018.  */
+int
+dwarf_add_AT_name_a(Dwarf_P_Die die, char *name,
+    Dwarf_P_Attribute *newattr_out,
+    Dwarf_Error * error)
 {
     Dwarf_P_Attribute new_attr = 0;
     int res = 0;
 
     if (die == NULL) {
         DWARF_P_DBG_ERROR(NULL, DW_DLE_DIE_NULL,
-            (Dwarf_P_Attribute) DW_DLV_BADADDR);
+            DW_DLV_ERROR);
     }
     new_attr = (Dwarf_P_Attribute)
-        _dwarf_p_get_alloc(die->di_dbg,sizeof(struct Dwarf_P_Attribute_s));
+        _dwarf_p_get_alloc(die->di_dbg,
+            sizeof(struct Dwarf_P_Attribute_s));
     if (new_attr == NULL) {
         DWARF_P_DBG_ERROR(NULL, DW_DLE_ATTR_ALLOC,
-            (Dwarf_P_Attribute) DW_DLV_BADADDR);
+            DW_DLV_ERROR);
     }
 
     /* fill in the information */
     new_attr->ar_attribute = DW_AT_name;
     res = _dwarf_pro_set_string_attr(new_attr,die->di_dbg,name,error);
     if (res != DW_DLV_OK) {
-        return (Dwarf_P_Attribute) DW_DLV_BADADDR;
+        return DW_DLV_ERROR;
     }
 
     /* add attribute to the die */
     _dwarf_pro_add_at_to_die(die, new_attr);
-    return new_attr;
+    *newattr_out = new_attr;
+    return DW_DLV_OK;
 }
 
 
-/*-----------------------------------------------------------------------------
+/*--------------------------------------------------------------------
     Add AT_comp_dir attribute to die
-------------------------------------------------------------------------------*/
+--------------------------------------------------------------------*/
 Dwarf_P_Attribute
 dwarf_add_AT_comp_dir(Dwarf_P_Die ownerdie,
     char *current_working_directory,
+    Dwarf_Error * error)
+{
+    Dwarf_P_Attribute a = 0;
+    int res = 0;
+
+    res = dwarf_add_AT_comp_dir_a(ownerdie,
+        current_working_directory,
+        &a, error);
+    if (res != DW_DLV_OK) {
+        return (Dwarf_P_Attribute)(DW_DLV_BADADDR);
+    }
+    return a;
+}
+
+int
+dwarf_add_AT_comp_dir_a(Dwarf_P_Die ownerdie,
+    char *current_working_directory,
+    Dwarf_P_Attribute *attr_out,
     Dwarf_Error * error)
 {
     Dwarf_P_Attribute new_attr = 0;
@@ -672,14 +761,14 @@ dwarf_add_AT_comp_dir(Dwarf_P_Die ownerdie,
 
     if (ownerdie == NULL) {
         DWARF_P_DBG_ERROR(NULL, DW_DLE_DIE_NULL,
-            (Dwarf_P_Attribute) DW_DLV_BADADDR);
+            DW_DLV_ERROR);
     }
     new_attr = (Dwarf_P_Attribute)
         _dwarf_p_get_alloc(ownerdie->di_dbg,
         sizeof(struct Dwarf_P_Attribute_s));
     if (new_attr == NULL) {
         DWARF_P_DBG_ERROR(NULL, DW_DLE_ATTR_ALLOC,
-            (Dwarf_P_Attribute) DW_DLV_BADADDR);
+            DW_DLV_ERROR);
     }
 
     /* fill in the information */
@@ -687,13 +776,15 @@ dwarf_add_AT_comp_dir(Dwarf_P_Die ownerdie,
     res = _dwarf_pro_set_string_attr(new_attr,ownerdie->di_dbg,
         current_working_directory,error);
     if (res != DW_DLV_OK) {
-        return (Dwarf_P_Attribute) DW_DLV_BADADDR;
+        return res;
     }
 
     /* add attribute to the die */
     _dwarf_pro_add_at_to_die(ownerdie, new_attr);
-    return new_attr;
+    *attr_out = new_attr;
+    return DW_DLV_OK;
 }
+
 
 int
 _dwarf_pro_add_AT_fde(Dwarf_P_Debug dbg,
@@ -704,12 +795,12 @@ _dwarf_pro_add_AT_fde(Dwarf_P_Debug dbg,
     int uwordb_size = dbg->de_offset_size;
 
     if (die == NULL) {
-        DWARF_P_DBG_ERROR(NULL, DW_DLE_DIE_NULL, -1);
+        DWARF_P_DBG_ERROR(NULL, DW_DLE_DIE_NULL, DW_DLV_ERROR);
     }
     new_attr = (Dwarf_P_Attribute)
         _dwarf_p_get_alloc(dbg,sizeof(struct Dwarf_P_Attribute_s));
     if (new_attr == NULL) {
-        DWARF_P_DBG_ERROR(NULL, DW_DLE_ATTR_ALLOC, -1);
+        DWARF_P_DBG_ERROR(NULL, DW_DLE_ATTR_ALLOC, DW_DLV_ERROR);
     }
 
     /* fill in the information */
@@ -722,7 +813,7 @@ _dwarf_pro_add_AT_fde(Dwarf_P_Debug dbg,
     new_attr->ar_data = (char *)
         _dwarf_p_get_alloc(dbg, uwordb_size);
     if (new_attr->ar_data == NULL) {
-        DWARF_P_DBG_ERROR(NULL, DW_DLE_ADDR_ALLOC, DW_DLV_NOCOUNT);
+        DWARF_P_DBG_ERROR(NULL, DW_DLE_ADDR_ALLOC, DW_DLV_ERROR);
     }
     {
         Dwarf_Unsigned du = offset;
@@ -730,10 +821,8 @@ _dwarf_pro_add_AT_fde(Dwarf_P_Debug dbg,
         WRITE_UNALIGNED(dbg, (void *) new_attr->ar_data,
             (const void *) &du, sizeof(du), uwordb_size);
     }
-
     _dwarf_pro_add_at_to_die(die, new_attr);
-
-    return 0;
+    return DW_DLV_OK;
 }
 
 /* Sept 2016: returns DW_DLV_OK or DW_DLV_ERROR */

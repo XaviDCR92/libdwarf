@@ -1,6 +1,6 @@
 /*
   Copyright (C) 2000-2005 Silicon Graphics, Inc.  All Rights Reserved.
-  Portions Copyright (C) 2007-2018 David Anderson. All Rights Reserved.
+  Portions Copyright (C) 2007-2019 David Anderson. All Rights Reserved.
   Portions Copyright (C) 2008-2010 Arxan Technologies, Inc. All Rights Reserved.
 
   This program is free software; you can redistribute it and/or modify it
@@ -94,6 +94,9 @@ struct Dwarf_Attribute_s {
         /*  The following points to either debug_info or debug_types
             depending on if context is cc_is_info  or not. */
     Dwarf_Small *ar_debug_ptr;
+        /*  If DW_FORM_implicit const, the value is here, not
+            in the DIE. */
+    Dwarf_Signed ar_implicit_const;
 
     Dwarf_Die ar_die;/* Access to the DIE owning the attribute */
     Dwarf_Attribute ar_next;
@@ -284,7 +287,7 @@ struct Dwarf_Section_s {
     Dwarf_Unsigned dss_entrysize;
     /*  dss_index is the section index as things are numbered in
         an object file being read.   An Elf section number. */
-    Dwarf_Word     dss_index;
+    Dwarf_Unsigned     dss_index;
     /*  dss_addr is the 'section address' which is only
         non-zero for a GNU eh section.
         Purpose: to handle DW_EH_PE_pcrel encoding. Leaving
@@ -300,7 +303,7 @@ struct Dwarf_Section_s {
         group sections filled in when the corresponding is
         not in the COMDAT group list.  .debug_abbrev is
         an example. */
-    Dwarf_Word     dss_group_number;
+    Dwarf_Unsigned     dss_group_number;
 
     /* These for reporting compression */
     Dwarf_Unsigned dss_uncompressed_length;
@@ -331,7 +334,7 @@ struct Dwarf_Section_s {
     /*  dss_link should be zero unless a section has a link
         to another (sh_link).  Used to access relocation data for
         a section (and for symtab section, access its strtab). */
-    Dwarf_Word     dss_link;
+    Dwarf_Unsigned     dss_link;
     /*  The following is used when reading .rela sections
         (such sections appear in some .o files). */
     Dwarf_Half     dss_reloc_index; /* Zero means ignore the reloc fields. */
@@ -345,7 +348,7 @@ struct Dwarf_Section_s {
     /*  dss_reloc_link should be zero unless a reloc section has a link
         to another (sh_link).  Used to access the symtab for relocations
         a section. */
-    Dwarf_Word     dss_reloc_link;
+    Dwarf_Unsigned     dss_reloc_link;
     /*  Pointer to the elf symtab, used for elf .rela. Leave it 0
         if not relevant. */
     struct Dwarf_Section_s *dss_symtab;
@@ -361,8 +364,13 @@ struct Dwarf_Section_s {
         just leave these fields zero. Which is essentially
         automatic as they are not in
         Dwarf_Obj_Access_Section_s.  */
-    Dwarf_Word  dss_flags;
-    Dwarf_Word  dss_addralign;
+    Dwarf_Unsigned  dss_flags;
+    Dwarf_Unsigned  dss_addralign;
+
+    /*  Set when loading .group section as those are special and
+        neither compressed nor have relocations so never malloc
+        space for libdwarf.  */
+    Dwarf_Small     dss_ignore_reloc_group_sec;
 };
 
 /*  Overview: if next_to_use== first, no error slots are used.
@@ -571,6 +579,15 @@ struct Dwarf_Debug_s {
     Dwarf_Handler de_errhand;
     Dwarf_Ptr de_errarg;
 
+    /*  Enabling us to close an fd if we own it,
+        as in the case of dwarf_init_path().
+        de_fd is only meaningful
+        if de_owns_fd is set.  Each object
+        file type has any necessary fd recorded
+        under de_obj_file. */
+    int  de_fd;
+    char de_owns_fd;
+
     struct Dwarf_Debug_InfoTypes_s de_info_reading;
     struct Dwarf_Debug_InfoTypes_s de_types_reading;
 
@@ -588,6 +605,10 @@ struct Dwarf_Debug_s {
         only used in one 'approximate' calculation.
         de_offset_size would be a more appropos name. */
     Dwarf_Small de_length_size;
+
+    /*  Size of the object file in bytes. If Unknown
+        leave this zero. */
+    Dwarf_Unsigned de_filesize;
 
     /*  number of bytes in a pointer of the target in various .debug_
         sections. 4 in 32bit, 8 in MIPS 64, ia64. */
@@ -681,7 +702,7 @@ struct Dwarf_Debug_s {
     Dwarf_Xu_Index_Header  de_cu_hashindex_data;
     Dwarf_Xu_Index_Header  de_tu_hashindex_data;
 
-    void *(*de_copy_word) (void *, const void *, size_t);
+    void (*de_copy_word) (void *, const void *, unsigned long);
     unsigned char de_same_endian;
     unsigned char de_elf_must_close; /* If non-zero, then
         it was dwarf_init (not dwarf_elf_init)
@@ -699,6 +720,18 @@ struct Dwarf_Debug_s {
 
     unsigned char de_big_endian_object; /* Non-zero if big-endian
         object opened. */
+
+    /*  Non-zero if dwarf_get_globals(), dwarf_get_funcs,
+        dwarf_get_types,dwarf_get_pubtypes,
+        dwarf_get_vars,dwarf_get_weaks should create
+        and return a special zero-die-offset for the
+        corresponding pubnames-style section CU header with
+        zero pubnames-style named DIEs.  In that case the
+        list returned will have an entry with a zero for
+        the die-offset (which is an impossible debug_info
+        die_offset). New March 2019.
+        See dwarf_return_empty_pubnames() */
+    unsigned char de_return_empty_pubnames;
 
     struct Dwarf_dbg_sect_s de_debug_sections[DWARF_MAX_DEBUG_SECTIONS];
     unsigned de_debug_sections_total_entries; /* Number actually used. */
@@ -736,11 +769,12 @@ struct Dwarf_Chain_o {
     /* Size of cu header address size field. */
 #define CU_ADDRESS_SIZE_SIZE    sizeof(Dwarf_Small)
 
-void *_dwarf_memcpy_swap_bytes(void *s1, const void *s2, size_t len);
-
 #define ORIGINAL_DWARF_OFFSET_SIZE  4
+/*  The DISTINGUISHED VALUE is 4 byte value defined by DWARF
+    since DWARF3. */
 #define DISTINGUISHED_VALUE  0xffffffff
 #define DISTINGUISHED_VALUE_OFFSET_SIZE 8
+#define DISTINGUISHED_VALUE_ARRAY(x)  char x[4] = { 0xff,0xff,0xff,0xff }
 
 /*  We don't load the sections until they are needed. This function is
     used to load the section.  */
@@ -892,18 +926,10 @@ int _dwarf_extract_local_debug_str_string_given_offset(Dwarf_Debug dbg,
     char ** return_str,
     Dwarf_Error *  error);
 
-int _dwarf_elf_init_file_ownership(dwarf_elf_handle elf_file_pointer,
-    int libdwarf_owns_elf,
-    unsigned groupnumber,
-    Dwarf_Unsigned access,
-    Dwarf_Handler errhand,
-    Dwarf_Ptr errarg,
-    Dwarf_Debug * ret_dbg,
-    Dwarf_Error * error);
-
 int _dwarf_file_name_is_full_path(Dwarf_Small  *fname);
 
-/*  This is an elf-only extension to get SHF_COMPRESSED flag from sh_flags.
+/*  This is an elf-only extension to
+    get SHF_COMPRESSED flag from sh_flags.
     if pointer not set (which is normal for non-elf objects)
     it is fine.  */
 typedef int (*_dwarf_get_elf_flags_func_ptr_type)(
@@ -913,6 +939,60 @@ typedef int (*_dwarf_get_elf_flags_func_ptr_type)(
     Dwarf_Unsigned *addralign_out,
     int *error);
 extern _dwarf_get_elf_flags_func_ptr_type _dwarf_get_elf_flags_func_ptr;
+
+/* This is libelf access to Elf object. */
+extern int _dwarf_elf_setup(int fd,
+    char *true_path_out_buffer,
+    unsigned ftype,
+    unsigned endian,
+    unsigned offsetsize,
+    size_t filesize,
+    Dwarf_Unsigned access,
+    unsigned groupnumber,
+    Dwarf_Handler errhand,
+    Dwarf_Ptr errarg,
+    Dwarf_Debug *dbg,Dwarf_Error *error);
+
+/*  This is non-libelf Elf access */
+extern int
+_dwarf_elf_nlsetup(int fd,
+    char *true_path,
+    unsigned ftype,
+    unsigned endian,
+    unsigned offsetsize,
+    size_t filesize,
+    Dwarf_Unsigned access,
+    unsigned groupnumber,
+    Dwarf_Handler errhand,
+    Dwarf_Ptr errarg,
+    Dwarf_Debug *dbg,Dwarf_Error *error);
+void _dwarf_destruct_elf_nlaccess(struct Dwarf_Obj_Access_Interface_s *aip);
+
+extern int _dwarf_macho_setup(int fd,
+    char *true_path,
+    unsigned ftype,
+    unsigned endian,
+    unsigned offsetsize,
+    size_t filesize,
+    Dwarf_Unsigned access,
+    unsigned groupnumber,
+    Dwarf_Handler errhand,
+    Dwarf_Ptr errarg,
+    Dwarf_Debug *dbg,Dwarf_Error *error);
+void _dwarf_destruct_macho_access(struct Dwarf_Obj_Access_Interface_s *aip);
+
+extern int _dwarf_pe_setup(int fd,
+    char *path,
+    unsigned ftype,
+    unsigned endian,
+    unsigned offsetsize,
+    size_t filesize,
+    Dwarf_Unsigned access,
+    unsigned groupnumber,
+    Dwarf_Handler errhand,
+    Dwarf_Ptr errarg,
+    Dwarf_Debug *dbg,Dwarf_Error *error);
+void _dwarf_destruct_pe_access(struct Dwarf_Obj_Access_Interface_s *aip);
 
 extern Dwarf_Bool _dwarf_allow_formudata(unsigned form);
 extern int _dwarf_formudata_internal(Dwarf_Debug dbg,

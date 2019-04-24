@@ -1,5 +1,5 @@
 /*
-  Copyright 2015-2018 David Anderson. All rights reserved.
+  Copyright 2015-2019 David Anderson. All rights reserved.
 
   This program is free software; you can redistribute it and/or modify it
   under the terms of version 2 of the GNU General Public License as
@@ -23,8 +23,8 @@
 
 #include "globals.h"
 #include "naming.h"
-#include "dwconf.h"
 #include "esb.h"
+#include "esb_using_functions.h"
 #include "uri.h"
 #include <ctype.h>
 #include <time.h>
@@ -216,6 +216,11 @@ print_macro_ops(Dwarf_Debug dbg,
                 k,&line_number,
                 &index,
                 &macro_string,&err);
+            if (lres != DW_DLV_OK) {
+                print_error(dbg,
+                    "ERROR from  dwarf_get_macro_startend_file()",
+                    lres,err);
+            }
             if (glflags.gf_do_print_dwarf) {
                 printf("  line %" DW_PR_DUu
                     " file number %" DW_PR_DUu

@@ -33,7 +33,7 @@
     Make sure ptr is a pointer to a 1-byte type.
     In 2003 and earlier this was a hand-inlined
     version of _dwarf_decode_u_leb128() which did
-    not work correctly if Dwarf_Word was 64 bits.
+    not work correctly if Dwarf_Unsigned was 64 bits.
 
     April 2016: now uses a reader that is careful.
     'return' only in case of error
@@ -41,7 +41,7 @@
 */
 #define DECODE_LEB128_UWORD_CK(ptr, value,dbg,errptr,endptr) \
     do {                                              \
-        Dwarf_Word lu_leblen = 0;                     \
+        Dwarf_Unsigned lu_leblen = 0;                     \
         Dwarf_Unsigned lu_local = 0;                  \
         int lu_res = 0;                               \
         lu_res = _dwarf_decode_u_leb128_chk(ptr,&lu_leblen,&lu_local,endptr); \
@@ -55,7 +55,7 @@
 
 #define DECODE_LEB128_UWORD_LEN_CK(ptr, value,leblen,dbg,errptr,endptr) \
     do {                                              \
-        Dwarf_Word lu_leblen = 0;                     \
+        Dwarf_Unsigned lu_leblen = 0;                     \
         Dwarf_Unsigned lu_local = 0;                  \
         int lu_res = 0;                               \
         lu_res = _dwarf_decode_u_leb128_chk(ptr,&lu_leblen,&lu_local,endptr); \
@@ -73,12 +73,12 @@
     Make sure ptr is a pointer to a 1-byte type.
     In 2003 and earlier this was a hand-inlined
     version of _dwarf_decode_s_leb128() which did
-    not work correctly if Dwarf_Word was 64 bits.
+    not work correctly if Dwarf_Unsigned was 64 bits.
 
 */
 #define DECODE_LEB128_SWORD_CK(ptr, value,dbg,errptr,endptr) \
     do {                                              \
-        Dwarf_Word uleblen = 0;                       \
+        Dwarf_Unsigned uleblen = 0;                       \
         Dwarf_Signed local = 0;                       \
         int lu_res = 0;                               \
         lu_res = _dwarf_decode_s_leb128_chk(ptr,&uleblen,&local,endptr); \
@@ -91,7 +91,7 @@
     } while (0)
 #define DECODE_LEB128_SWORD_LEN_CK(ptr, value,leblen,dbg,errptr,endptr) \
     do {                                              \
-        Dwarf_Word lu_leblen = 0;                     \
+        Dwarf_Unsigned lu_leblen = 0;                     \
         Dwarf_Signed lu_local = 0;                    \
         int lu_res = 0;                               \
         lu_res = _dwarf_decode_s_leb128_chk(ptr,&lu_leblen,\
@@ -181,20 +181,20 @@ typedef Dwarf_Unsigned BIGGEST_UINT;
 
 #ifdef WORDS_BIGENDIAN
 #define READ_UNALIGNED_CK(dbg,dest,desttype, source, length,error,endptr) \
-    do {                                                                  \
-        BIGGEST_UINT _ltmp = 0;                                           \
-        Dwarf_Byte_Ptr readend = source+length;                           \
-        if (readend <  source) {                                          \
-            _dwarf_error(dbg, error, DW_DLE_READ_LITTLEENDIAN_ERROR);     \
-            return DW_DLV_ERROR;                                          \
-        }                                                                 \
-        if (readend > endptr) {                                           \
-            _dwarf_error(dbg, error, DW_DLE_READ_LITTLEENDIAN_ERROR);     \
-            return DW_DLV_ERROR;                                          \
-        }                                                                 \
-        dbg->de_copy_word( (((char *)(&_ltmp)) + sizeof(_ltmp) - length), \
-            source, length) ;                                             \
-        dest = (desttype)_ltmp;                                           \
+    do {                                                         \
+        BIGGEST_UINT _ltmp = 0;                                  \
+        Dwarf_Byte_Ptr readend = source+length;                  \
+        if (readend <  source) {                                 \
+            _dwarf_error(dbg, error, DW_DLE_READ_BIGENDIAN_ERROR); \
+            return DW_DLV_ERROR;                                 \
+        }                                                        \
+        if (readend > endptr) {                                  \
+            _dwarf_error(dbg, error, DW_DLE_READ_BIGENDIAN_ERROR); \
+            return DW_DLV_ERROR;                                 \
+        }                                                        \
+        dbg->de_copy_word( (((char *)(&_ltmp)) +                 \
+            sizeof(_ltmp) - length),source, length) ;            \
+        dest = (desttype)_ltmp;                                  \
     } while (0)
 
 
@@ -206,18 +206,23 @@ typedef Dwarf_Unsigned BIGGEST_UINT;
     on host endianness, not object file endianness.
     The memcpy args are the issue.
 */
-#define SIGN_EXTEND(dest, length)                                          \
-    do {                                                                   \
-        if (*(Dwarf_Sbyte *)((char *)&dest + sizeof(dest) - length) < 0) { \
-            memcpy((char *)&dest, "\xff\xff\xff\xff\xff\xff\xff\xff",      \
-                sizeof(dest) - length);                                    \
-        }                                                                  \
+#define SIGN_EXTEND(dest, length)                                 \
+    do {                                                          \
+        if (*(Dwarf_Sbyte *)((char *)&dest +                      \
+            sizeof(dest) - length) < 0) {                         \
+            memcpy((char *)&dest, "\xff\xff\xff\xff\xff\xff\xff\xff",\
+                sizeof(dest) - length);                           \
+        }                                                         \
     } while (0)
 #else /* LITTLE ENDIAN */
 #define READ_UNALIGNED_CK(dbg,dest,desttype, source, length,error,endptr) \
     do  {                                                 \
         BIGGEST_UINT _ltmp = 0;                           \
         Dwarf_Byte_Ptr readend = source+length;           \
+        if (readend < source) {                           \
+            _dwarf_error(dbg, error, DW_DLE_READ_LITTLEENDIAN_ERROR);\
+            return DW_DLV_ERROR;                          \
+        }                                                 \
         if (readend > endptr) {                           \
             _dwarf_error(dbg, error, DW_DLE_READ_LITTLEENDIAN_ERROR);\
             return DW_DLV_ERROR;                          \
@@ -356,11 +361,11 @@ typedef Dwarf_Unsigned BIGGEST_UINT;
 /* Fuller checking. Returns DW_DLV_ERROR or DW_DLV_OK
    Caller must set Dwarf_Error */
 int _dwarf_decode_u_leb128_chk(Dwarf_Small * leb128,
-    Dwarf_Word * leb128_length,
+    Dwarf_Unsigned * leb128_length,
     Dwarf_Unsigned *outval,Dwarf_Byte_Ptr endptr);
 
 int _dwarf_decode_s_leb128_chk(Dwarf_Small * leb128,
-    Dwarf_Word * leb128_length,
+    Dwarf_Unsigned * leb128_length,
     Dwarf_Signed *outval, Dwarf_Byte_Ptr endptr);
 
 int

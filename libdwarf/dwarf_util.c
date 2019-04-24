@@ -1,6 +1,6 @@
 /*
   Copyright (C) 2000-2005 Silicon Graphics, Inc.  All Rights Reserved.
-  Portions Copyright (C) 2007-2018 David Anderson. All Rights Reserved.
+  Portions Copyright (C) 2007-2019 David Anderson. All Rights Reserved.
   Portions Copyright 2012 SN Systems Ltd. All rights reserved.
 
   This program is free software; you can redistribute it and/or modify it
@@ -33,6 +33,7 @@
 #include "dwarf_alloc.h"
 #include "dwarf_error.h"
 #include "dwarf_util.h"
+#include "memcpy_swap.h"
 #include "dwarf_die_deliv.h"
 #include "pro_encode_nm.h"
 
@@ -46,6 +47,21 @@
 #else
 #define NULL_DEVICE_NAME "/dev/null"
 #endif /* _WIN32 */
+
+/*  The function returned allows dwarfdump and other callers to
+    do an endian-sensitive copy-word with a chosen
+    source-length.  */
+typedef void (*endian_funcp_type)(void *, const void *,unsigned long);
+
+endian_funcp_type
+dwarf_get_endian_copy_function(Dwarf_Debug dbg)
+{
+    if (dbg) {
+        return dbg->de_copy_word;
+    }
+    return 0;
+}
+
 
 Dwarf_Bool
 _dwarf_file_has_debug_fission_cu_index(Dwarf_Debug dbg)
@@ -158,7 +174,7 @@ _dwarf_get_size_of_val(Dwarf_Debug dbg,
     Dwarf_Error*error)
 {
     Dwarf_Unsigned length = 0;
-    Dwarf_Word leb128_length = 0;
+    Dwarf_Unsigned leb128_length = 0;
     Dwarf_Unsigned form_indirect = 0;
     Dwarf_Unsigned ret_value = 0;
 
@@ -177,6 +193,7 @@ _dwarf_get_size_of_val(Dwarf_Debug dbg,
 
 
     case 0:  return DW_DLV_OK;
+
     case DW_FORM_GNU_ref_alt:
     case DW_FORM_GNU_strp_alt:
     case DW_FORM_strp_sup:
@@ -328,9 +345,9 @@ _dwarf_get_size_of_val(Dwarf_Debug dbg,
 
     case DW_FORM_indirect:
         {
-            Dwarf_Word indir_len = 0;
+            Dwarf_Unsigned indir_len = 0;
             int res = 0;
-            Dwarf_Unsigned real_form_len = 0;
+            Dwarf_Unsigned info_data_len = 0;
 
             DECODE_LEB128_UWORD_LEN_CK(val_ptr,form_indirect,indir_len,
                 dbg,error,section_end_ptr);
@@ -342,19 +359,21 @@ _dwarf_get_size_of_val(Dwarf_Debug dbg,
                 _dwarf_error(dbg,error,DW_DLE_NESTED_FORM_INDIRECT_ERROR);
                 return DW_DLV_ERROR;
             }
+            /*  If form_indirect  is DW_FORM_implicit_const then
+                the following call will set info_data_len 0 */
             res = _dwarf_get_size_of_val(dbg,
                 form_indirect,
                 cu_version,
                 address_size,
                 val_ptr + indir_len,
                 v_length_size,
-                &real_form_len,
+                &info_data_len,
                 section_end_ptr,
                 error);
             if(res != DW_DLV_OK) {
                 return res;
             }
-            *size_out = indir_len + real_form_len;
+            *size_out = indir_len + info_data_len;
             return DW_DLV_OK;
         }
 
@@ -374,7 +393,13 @@ _dwarf_get_size_of_val(Dwarf_Debug dbg,
         *size_out = 8;
         return DW_DLV_OK;
 
+    /*  DW_FORM_implicit_const  is a value in the
+        abbreviations, not in the DIEs and this
+        functions measures DIE size. */
     case DW_FORM_implicit_const:
+        *size_out = 0;
+        return DW_DLV_OK;
+
     case DW_FORM_sdata: {
         /*  Discard the decoded value, we just want the length
             of the value. */
@@ -551,7 +576,7 @@ _dwarf_get_abbrev_for_code(Dwarf_CU_Context cu_context, Dwarf_Unsigned code,
     Dwarf_Hash_Table hash_table_base = cu_context->cc_abbrev_hash_table;
     Dwarf_Hash_Table_Entry entry_base = 0;
     Dwarf_Hash_Table_Entry entry_cur = 0;
-    Dwarf_Word hash_num = 0;
+    Dwarf_Unsigned hash_num = 0;
     Dwarf_Unsigned abbrev_code = 0;
     Dwarf_Unsigned abbrev_tag  = 0;
     Dwarf_Abbrev_List hash_abbrev_entry = 0;
@@ -707,6 +732,12 @@ _dwarf_get_abbrev_for_code(Dwarf_CU_Context cu_context, Dwarf_Unsigned code,
                     dbg,error,end_abbrev_ptr);
                 DECODE_LEB128_UWORD_CK(abbrev_ptr, attr_form,
                     dbg,error,end_abbrev_ptr);
+                if (attr_form == DW_FORM_implicit_const) {
+                    UNUSEDARG Dwarf_Signed implicit_const = 0;
+                    /* The value is here, not in a DIE. */
+                    DECODE_LEB128_SWORD_CK(abbrev_ptr, implicit_const,
+                        dbg,error,end_abbrev_ptr);
+                }
                 if (!_dwarf_valid_form_we_know(
                     dbg,attr_form,attr_name)) {
                     _dwarf_error(dbg,error,DW_DLE_UNKNOWN_FORM);
@@ -824,10 +855,15 @@ _dwarf_reference_outside_section(Dwarf_Die die,
   for cross-endian use.
   Only 2,4,8 should be lengths passed in.
 */
-void *
-_dwarf_memcpy_swap_bytes(void *s1, const void *s2, size_t len)
+void
+_dwarf_memcpy_noswap_bytes(void *s1, const void *s2, unsigned long len)
 {
-    void *orig_s1 = s1;
+    memcpy(s1,s2,(size_t)len);
+    return;
+}
+void
+_dwarf_memcpy_swap_bytes(void *s1, const void *s2, unsigned long len)
+{
     unsigned char *targ = (unsigned char *) s1;
     const unsigned char *src = (const unsigned char *) s2;
 
@@ -853,10 +889,9 @@ _dwarf_memcpy_swap_bytes(void *s1, const void *s2, size_t len)
     else if (len == 1) {
         targ[0] = src[0];
     } else {
-        memcpy(s1, s2, len);
+        memcpy(s1, s2, (size_t)len);
     }
-
-    return orig_s1;
+    return;
 }
 
 
@@ -894,18 +929,14 @@ _dwarf_length_of_cu_header(Dwarf_Debug dbg,
         cuptr, local_length_size, local_extension_size,
         error,section_length,section_end_ptr);
 
-
     READ_UNALIGNED_CK(dbg, version, Dwarf_Half,
         cuptr, DWARF_HALF_SIZE,error,section_end_ptr);
     cuptr += DWARF_HALF_SIZE;
-
     if (version == 5) {
         Dwarf_Ubyte unit_type = 0;
 
         READ_UNALIGNED_CK(dbg, unit_type, Dwarf_Ubyte,
             cuptr, sizeof(Dwarf_Ubyte),error,section_end_ptr);
-        cuptr += sizeof(Dwarf_Ubyte);
-
         switch (unit_type) {
         case DW_UT_compile:
             final_size = local_extension_size +

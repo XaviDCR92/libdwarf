@@ -1,7 +1,6 @@
 /*
-
   Copyright (C) 2000,2004 Silicon Graphics, Inc.  All Rights Reserved.
-  Portions Copyright 2011  David Anderson. All Rights Reserved.
+  Portions Copyright 2011-2019 David Anderson. All Rights Reserved.
 
   This program is free software; you can redistribute it and/or modify it
   under the terms of version 2.1 of the GNU Lesser General Public License
@@ -33,9 +32,16 @@
 #include <elfaccess.h>
 #endif
 #include "pro_incl.h"
+#include <stddef.h>
+#include "dwarf.h"
+#include "libdwarf.h"
+#include "pro_opaque.h"
+#include "pro_error.h"
+#include "pro_alloc.h"
 #include "pro_section.h"
 #include "pro_types.h"
 
+#define SIZEOFT32 4
 
 /*
     This function adds another type name to the
@@ -45,11 +51,30 @@
 Dwarf_Unsigned
 dwarf_add_typename(Dwarf_P_Debug dbg,
     Dwarf_P_Die die,
-    char *type_name, Dwarf_Error * error)
+    char *type_name,
+    Dwarf_Error * error)
 {
-    return
-        _dwarf_add_simple_name_entry(dbg, die, type_name,
-            dwarf_snk_typename, error);
+    int res = 0;
+
+    res = _dwarf_add_simple_name_entry(dbg, die, type_name,
+        dwarf_snk_typename, error);
+    if (res != DW_DLV_OK) {
+        return 0;
+    }
+    return 1;
+
+}
+int
+dwarf_add_typename_a(Dwarf_P_Debug dbg,
+    Dwarf_P_Die die,
+    char *type_name,
+    Dwarf_Error * error)
+{
+    int res = 0;
+
+    res = _dwarf_add_simple_name_entry(dbg, die, type_name,
+        dwarf_snk_typename, error);
+    return res;
 }
 
 /*
@@ -59,7 +84,7 @@ dwarf_add_typename(Dwarf_P_Debug dbg,
   See enum dwarf_sn_kind in pro_opaque.h
 
 */
-Dwarf_Unsigned
+int
 _dwarf_add_simple_name_entry(Dwarf_P_Debug dbg,
     Dwarf_P_Die die,
     char *entry_name,
@@ -73,12 +98,12 @@ _dwarf_add_simple_name_entry(Dwarf_P_Debug dbg,
 
     if (dbg == NULL) {
         _dwarf_p_error(NULL, error, DW_DLE_DBG_NULL);
-        return (0);
+        return DW_DLV_ERROR;
     }
 
     if (die == NULL) {
         _dwarf_p_error(NULL, error, DW_DLE_DIE_NULL);
-        return (0);
+        return DW_DLV_ERROR;
     }
 
 
@@ -87,13 +112,13 @@ _dwarf_add_simple_name_entry(Dwarf_P_Debug dbg,
             sizeof(struct Dwarf_P_Simple_nameentry_s));
     if (nameentry == NULL) {
         _dwarf_p_error(dbg, error, DW_DLE_ALLOC_FAIL);
-        return (0);
+        return DW_DLV_ERROR;
     }
 
     name = _dwarf_p_get_alloc(dbg, strlen(entry_name) + 1);
     if (name == NULL) {
         _dwarf_p_error(dbg, error, DW_DLE_ALLOC_FAIL);
-        return (0);
+        return DW_DLV_ERROR;
     }
     strcpy(name, entry_name);
 
@@ -112,7 +137,7 @@ _dwarf_add_simple_name_entry(Dwarf_P_Debug dbg,
     hdr->sn_count++;
     hdr->sn_net_len += uword_size + nameentry->sne_name_len + 1;
 
-    return (1);
+    return DW_DLV_OK;
 }
 
 
@@ -182,7 +207,6 @@ _dwarf_transform_simplename_to_disk(Dwarf_P_Debug dbg,
 
 
     nameentry_original = hdr->sn_head;
-    nameentry = nameentry_original;
     /* add in the content size */
     stream_bytes_count += hdr->sn_net_len;
 
@@ -195,10 +219,10 @@ _dwarf_transform_simplename_to_disk(Dwarf_P_Debug dbg,
     cur_stream_bytes_ptr = stream_bytes;
 
     if (extension_size) {
-        Dwarf_Unsigned x = DISTINGUISHED_VALUE;
+        DISTINGUISHED_VALUE_ARRAY(v4);
 
         WRITE_UNALIGNED(dbg, cur_stream_bytes_ptr,
-            (const void *) &x, sizeof(x), extension_size);
+            (const void *)&v4[0],SIZEOFT32 , extension_size);
         cur_stream_bytes_ptr += extension_size;
 
     }

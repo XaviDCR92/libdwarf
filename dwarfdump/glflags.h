@@ -183,6 +183,7 @@ struct glflags_s {
     boolean gf_check_snc_compiler; /* Check SNC compiler */
     boolean gf_check_gcc_compiler;
     boolean gf_print_summary_all;
+    boolean gf_file_use_no_libelf;
 
     /*  The check and print flags here make it easy to
         allow check-only or print-only.  We no longer support
@@ -213,6 +214,8 @@ struct glflags_s {
     boolean gf_show_global_offsets;
     boolean gf_display_offsets;
     boolean gf_print_str_offsets;
+
+    unsigned long gf_count_major_errors;
 
     /*  Base address has a special meaning in DWARF4 relative to address ranges. */
     boolean seen_PU;                  /* Detected a PU */

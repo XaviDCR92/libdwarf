@@ -27,8 +27,8 @@
 
 #include "globals.h"
 #include "naming.h"
-#include "dwconf.h"
 #include "esb.h"
+#include "esb_using_functions.h"
 #include "sanitized.h"
 
 #include "print_sections.h"
@@ -85,7 +85,7 @@ print_strings(Dwarf_Debug dbg)
                 (Dwarf_Unsigned)offset, length, sanitized(name));
         } else {
             printf("name: length %4" DW_PR_DSd " is '%s'\n",
-                length, name);
+                length, sanitized(name));
         }
         offset += length + 1;
     }

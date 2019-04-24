@@ -2,7 +2,7 @@
   Copyright (C) 2000-2006 Silicon Graphics, Inc.  All Rights Reserved.
   Portions Copyright 2007-2010 Sun Microsystems, Inc. All rights reserved.
   Portions Copyright 2009-2018 SN Systems Ltd. All rights reserved.
-  Portions Copyright 2007-2018 David Anderson. All rights reserved.
+  Portions Copyright 2007-2019 David Anderson. All rights reserved.
 
   This program is free software; you can redistribute it and/or modify it
   under the terms of version 2 of the GNU General Public License as
@@ -31,8 +31,15 @@
 
 
 #include "globals.h"
+#ifdef HAVE_STDINT_H
+#include <stdint.h> /* For uintptr_t */
+#endif /* HAVE_STDINT_H */
+#ifdef HAVE_INTTYPES_H
+#include <inttypes.h> /* For uintptr_t */
+#endif /* HAVE_INTTYPES_H */
 #include "naming.h"
 #include "esb.h"                /* For flexible string buffer. */
+#include "esb_using_functions.h"
 #include "sanitized.h"
 #include "print_frames.h"       /* for get_string_from_locs() . */
 #include "macrocheck.h"
@@ -129,6 +136,20 @@ attributes of a function. It's misnamed, it really means
 'yes, we have high and low pc' if it is TRUE. Defaulting to TRUE
 seems bogus. */
 static Dwarf_Bool in_valid_code = TRUE;
+
+#if 0
+static void
+dump_bytes(const char *msg,Dwarf_Small * start, long len)
+{
+    Dwarf_Small *end = start + len;
+    Dwarf_Small *cur = start;
+    printf("%s (0x%lx) ",msg,(unsigned long)start);
+    for (; cur < end; cur++) {
+        printf("%02x", *cur);
+    }
+    printf("\n");
+}
+#endif /* 0 */
 
 struct operation_descr_s {
     int op_code;
@@ -720,14 +741,12 @@ print_one_die_section(Dwarf_Debug dbg,Dwarf_Bool is_info,
         }
         if (cu_count >= glflags.break_after_n_units) {
             printf("Break at %d\n",cu_count);
-            dieprint_cu_goffset = 0;
             break;
         }
         /*  Regardless of any options used, get basic
             information about the current CU: producer, name */
         sres = dwarf_siblingof_b(dbg, NULL,is_info, &cu_die, pod_err);
         if (sres != DW_DLV_OK) {
-            dieprint_cu_goffset = 0;
             print_error(dbg, "siblingof cu header", sres, *pod_err);
         }
         /* Get the CU offset for easy error reporting */
@@ -743,7 +762,6 @@ print_one_die_section(Dwarf_Debug dbg,Dwarf_Bool is_info,
                 dwarf_dealloc(dbg, cu_die, DW_DLA_DIE);
                 cu_die = 0;
                 ++cu_count;
-                dieprint_cu_goffset = next_cu_offset;
                 continue;
             }
         }
@@ -774,7 +792,6 @@ print_one_die_section(Dwarf_Debug dbg,Dwarf_Bool is_info,
         if (!checking_this_compiler()) {
             dwarf_dealloc(dbg, cu_die, DW_DLA_DIE);
             ++cu_count;
-            dieprint_cu_goffset = next_cu_offset;
             cu_die = 0;
             continue;
         }
@@ -939,9 +956,7 @@ print_one_die_section(Dwarf_Debug dbg,Dwarf_Bool is_info,
             print_error(dbg, "Regetting cu_die", sres, *pod_err);
         }
         ++cu_count;
-        dieprint_cu_goffset = next_cu_offset;
     }
-    dieprint_cu_goffset = 0;
     return nres;
 }
 
@@ -1652,9 +1667,11 @@ get_small_encoding_integer_and_name(Dwarf_Debug dbg,
 
 
 
-/*  We need a 32-bit signed number here, but there's no portable
-    way of getting that.  So use __uint32_t instead.  It's supplied
-    in a reliable way by the autoconf infrastructure.  */
+/*  Called for DW_AT_SUN_func_offsets
+    We need a 32-bit signed number here.
+    But we're getting rid of the __[u]int[n]_t
+    dependence so lets use plain characters.
+    */
 
 static void
 get_FLAG_BLOCK_string(Dwarf_Debug dbg, Dwarf_Attribute attrib,
@@ -1662,31 +1679,28 @@ get_FLAG_BLOCK_string(Dwarf_Debug dbg, Dwarf_Attribute attrib,
 {
     int fres = 0;
     Dwarf_Block *tempb = 0;
-    __uint32_t * array = 0;
     Dwarf_Unsigned array_len = 0;
-    __uint32_t * array_ptr;
-    Dwarf_Unsigned array_remain = 0;
-#ifdef ORIGINAL_SPRINTF
-    char linebuf[100];
-#endif
+    Dwarf_Signed *array = 0;
+    Dwarf_Unsigned next = 0;
     Dwarf_Error  fblkerr = 0;
 
     /* first get compressed block data */
     fres = dwarf_formblock (attrib,&tempb, &fblkerr);
     if (fres != DW_DLV_OK) {
-        print_error(dbg,"DW_FORM_blockn cannot get block\n",fres,fblkerr);
+        print_error(dbg,"DW_FORM_blockn cannot get block\n",
+        fres,fblkerr);
         return;
     }
 
-    /* uncompress block into int array */
-    array = dwarf_uncompress_integer_block(dbg,
-        1, /* 'true' (meaning signed ints)*/
-        32, /* bits per unit */
-        (void *)tempb->bl_data,
+    fres = dwarf_uncompress_integer_block_a(dbg,
         tempb->bl_len,
-        &array_len, /* len of out array */
-        &fblkerr);
-    if (array == (void*) DW_DLV_BADOFFSET) {
+        (void *)tempb->bl_data,
+        &array_len,&array,&fblkerr);
+    /*  uncompress block into 32bit signed int array.
+        It's really a block of sleb numbers so the
+        compression is minor unless the values
+        are close to zero.  */
+    if (fres != DW_DLV_OK) {
         print_error(dbg,"DW_AT_SUN_func_offsets cannot uncompress data\n",0,fblkerr);
         return;
     }
@@ -1696,46 +1710,23 @@ get_FLAG_BLOCK_string(Dwarf_Debug dbg, Dwarf_Attribute attrib,
     }
 
     /* fill in string buffer */
-    array_remain = array_len;
-    array_ptr = array;
-    while (array_remain > 8) {
+    next = 0;
+    while (next < array_len) {
         unsigned i = 0;
         /*  Print a full line */
-        /*  If you touch this string, update the magic number 8 in
-            the  += and -= below! */
-#ifdef ORIGINAL_SPRINTF
-        snprintf(linebuf, sizeof(linebuf),
-            "\n  0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x",
-            array_ptr[0],           array_ptr[1],
-            array_ptr[2],           array_ptr[3],
-            array_ptr[4],           array_ptr[5],
-            array_ptr[6],           array_ptr[7]);
-        esb_append(esbp, linebuf);
-#else
-        esb_append_printf_u(esbp,"\n  0x%08x",array_ptr[0]);
-        for(i = 1 ; i < 8; ++i) {
-            esb_append_printf_u(esbp,"  0x%08x",array_ptr[i]);
-        }
-#endif
-        array_ptr += 8;
-        array_remain -= 8;
-    }
+        esb_append(esbp,"\n  ");
+        for(i = 0 ; i < 2 && next < array_len; ++i,++next) {
+            Dwarf_Signed vs = array[next];
+            Dwarf_Unsigned vu = (Dwarf_Unsigned)vs;
 
-    /* now do the last line */
-    if (array_remain > 0) {
-        esb_append(esbp, "\n ");
-        while (array_remain > 0) {
-#ifdef ORIGINAL_SPRINTF
-            snprintf(linebuf, sizeof(linebuf), " 0x%08x", *array_ptr);
-            esb_append(esbp, linebuf);
-#else
-            esb_append_printf_u(esbp," 0x%08x",*array_ptr);
-#endif
-            array_remain--;
-            array_ptr++;
+            if (i== 1) {
+                esb_append(esbp," ");
+            }
+            esb_append_printf_i(esbp,"%6" DW_PR_DSd " ",vs);
+            esb_append_printf_u(esbp,
+                "(0x%"  DW_PR_XZEROS DW_PR_DUx ")",vu);
         }
     }
-
     /* free array buffer */
     dwarf_dealloc_uncompressed_block(dbg, array);
 
@@ -3642,7 +3633,6 @@ print_attribute(Dwarf_Debug dbg, Dwarf_Die die,
                 }
             }
         }
-        bTextFound = FALSE;
     }
     esb_destructor(&valname);
     esb_destructor(&esb_extra);
@@ -3869,7 +3859,7 @@ _dwarf_print_one_expr_op(Dwarf_Debug dbg,
                     /*  This is a really ugly cast, a way
                         to implement DW_OP_implicit value in
                         this libdwarf context. */
-                    bp = (const unsigned char *) opd2;
+                    bp = (const unsigned char *)(uintptr_t) opd2;
                     show_contents(string_out,print_len,bp);
                 }
             }
@@ -3906,7 +3896,7 @@ _dwarf_print_one_expr_op(Dwarf_Debug dbg,
 
             length = opd1;
             bracket_hex(" ",opd1,"",string_out);
-            bp = (Dwarf_Small *) opd2;
+            bp = (Dwarf_Small *)(uintptr_t) opd2;
             if (!bp) {
                 esb_append(string_out,
                     "ERROR: Null databyte pointer DW_OP_entry_value ");
@@ -3932,9 +3922,8 @@ _dwarf_print_one_expr_op(Dwarf_Debug dbg,
             esb_append_printf_u(string_out,
                 "%u" , length);
 #endif
-
             /* Now point to the data bytes of the const. */
-            bp = (Dwarf_Small *) opd3;
+            bp = (Dwarf_Small *)(uintptr_t)opd3;
             if (!bp) {
                 esb_append(string_out,
                     "ERROR: Null databyte pointer DW_OP_const_type ");
@@ -5998,8 +5987,8 @@ show_form_itself(int local_show_form,
     }
 }
 
-#include "tmp-ta-table.h"
-#include "tmp-ta-ext-table.h"
+#include "dwarfdump-ta-table.h"
+#include "dwarfdump-ta-ext-table.h"
 
 static int
 legal_tag_attr_combination(Dwarf_Half tag, Dwarf_Half attr)
@@ -6050,8 +6039,8 @@ legal_tag_attr_combination(Dwarf_Half tag, Dwarf_Half attr)
     return (FALSE);
 }
 
-#include "tmp-tt-table.h"
-#include "tmp-tt-ext-table.h"
+#include "dwarfdump-tt-table.h"
+#include "dwarfdump-tt-ext-table.h"
 
 /*  Look only at valid table entries
     The check here must match the building-logic in
@@ -6163,7 +6152,6 @@ print_tag_attributes_usage(UNUSEDARG Dwarf_Debug dbg)
                 printf("%6d %s\n",
                     tag_usage[tag],
                     get_TAG_name(tag,pd_dwarf_names_print_on_error));
-                print_header = FALSE;
             }
             while (usage_tag_attr_ptr && usage_tag_attr_ptr->attr) {
                 if ( glflags.gf_print_usage_tag_attr_full || usage_tag_attr_ptr->count) {

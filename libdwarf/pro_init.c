@@ -1,5 +1,4 @@
 /*
-
   Copyright (C) 2000,2004 Silicon Graphics, Inc.  All Rights Reserved.
   Portions Copyright 2002-2010 Sun Microsystems, Inc. All rights reserved.
   Portions Copyright 2008-2017 David Anderson, Inc. All rights reserved.
@@ -31,8 +30,22 @@
 #include "libdwarfdefs.h"
 #include <stdio.h>
 #include <string.h>
+#include <stddef.h>
+#ifdef HAVE_STDINT_H
+#include <stdint.h> /* For uintptr_t */
+#endif /* HAVE_STDINT_H */
+#ifdef HAVE_INTTYPES_H
+#include <inttypes.h> /* For uintptr_t */
+#endif /* HAVE_INTTYPES_H */
 #include "pro_incl.h"
+#include "dwarf.h"
+#include "libdwarf.h"
+#include "pro_opaque.h"
+#include "pro_error.h"
+#include "pro_encode_nm.h"
+#include "pro_alloc.h"
 #include "pro_line.h"
+#include "memcpy_swap.h"
 #include "pro_section.h"        /* for MAGIC_SECT_NO */
 #include "pro_reloc_symbolic.h"
 #include "pro_reloc_stream.h"
@@ -92,8 +105,6 @@ static struct isa_relocs_s isa_relocs[] = {
 static int common_init(Dwarf_P_Debug dbg, Dwarf_Unsigned flags,
     const char *abiname, const char *dwarf_version,
     int *error_ret);
-
-void *_dwarf_memcpy_swap_bytes(void *s1, const void *s2, size_t len);
 
 /*  This function sets up a new dwarf producing region.
     flags: Indicates type of access method, one of DW_DLC* macros
@@ -335,12 +346,18 @@ common_init(Dwarf_P_Debug dbg, Dwarf_Unsigned flags, const char *abiname,
     } else {
         /*  This is only going to work when the HOST == TARGET,
             surely? */
+#ifdef DWARF_WITH_LIBELF
 #if HAVE_ELF64_GETEHDR
         dbg->de_relocation_record_size =
             ((dbg->de_pointer_size == 8)? sizeof(REL64) : sizeof(REL32));
 #else
         dbg->de_relocation_record_size = sizeof(REL32);
 #endif
+#else /* DWARF_WITH_LIBELF */
+        *err_ret = DW_DLE_NO_STREAM_RELOC_SUPPORT;
+        return DW_DLV_ERROR;
+#endif /* DWARF_WITH_LIBELF */
+
 
     }
     _dwarf_init_default_line_header_vals(dbg);
@@ -370,6 +387,7 @@ common_init(Dwarf_P_Debug dbg, Dwarf_Unsigned flags, const char *abiname,
         dbg->de_transform_relocs_to_disk =
             _dwarf_symbolic_relocs_to_disk;
     } else {
+#ifdef DWARF_WITH_LIBELF
         if (IS_64BITPTR(dbg)) {
             dbg->de_relocate_by_name_symbol =
                 _dwarf_pro_reloc_name_stream64;
@@ -379,6 +397,10 @@ common_init(Dwarf_P_Debug dbg, Dwarf_Unsigned flags, const char *abiname,
         }
         dbg->de_relocate_pair_by_symbol = 0;
         dbg->de_transform_relocs_to_disk = _dwarf_stream_relocs_to_disk;
+#else /* DWARF_WITH_LIBELF */
+        *err_ret = DW_DLE_NO_STREAM_RELOC_SUPPORT;
+        return DW_DLV_ERROR;
+#endif /* DWARF_WITH_LIBELF */
     }
     for (k = 0; k < NUM_DEBUG_SECTIONS; ++k) {
 
@@ -388,7 +410,7 @@ common_init(Dwarf_P_Debug dbg, Dwarf_Unsigned flags, const char *abiname,
     }
     /* First assume host, target same endianness */
     dbg->de_same_endian = 1;
-    dbg->de_copy_word = memcpy;
+    dbg->de_copy_word =  _dwarf_memcpy_noswap_bytes;
 #ifdef WORDS_BIGENDIAN
     /* host is big endian, so what endian is target? */
     if (flags & DW_DLC_TARGET_LITTLEENDIAN) {

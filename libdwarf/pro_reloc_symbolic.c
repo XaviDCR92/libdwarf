@@ -31,9 +31,22 @@
 #include <string.h>
 /*#include <elfaccess.h> */
 #include "pro_incl.h"
+#include <stddef.h>
+#include "dwarf.h"
+#include "libdwarf.h"
+#include "pro_opaque.h"
+#include "pro_error.h"
+#include "pro_alloc.h"
 #include "pro_section.h"
 #include "pro_reloc.h"
 #include "pro_reloc_symbolic.h"
+
+#ifndef SHT_REL
+#define SHT_REL 9
+#endif /* SHT_REL */
+#ifndef SHN_UNDEF
+#define SHN_UNDEF 0
+#endif /* SHN_UNDEF */
 
 /*  Return DW_DLV_ERROR on malloc error.
     Return DW_DLV_OK otherwise */

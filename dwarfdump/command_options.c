@@ -31,7 +31,7 @@
 #include "esb.h"                /* For flexible string buffer. */
 #include "sanitized.h"
 #include "tag_common.h"
-
+#include "section_bitmaps.h"
 #include "command_options.h"
 #include "compiler_info.h"
 
@@ -96,17 +96,23 @@ do_all(void)
         glflags.gf_abbrev_flag = TRUE;
         glflags.gf_ranges_flag = TRUE;
         because nothing in
-        the DWARF spec guarantees the sections are free of random bytes
-        in areas not referenced by .debug_info */
+        the DWARF spec guarantees the sections are free of 
+        random bytes in areas not referenced by .debug_info */
     glflags.gf_string_flag = TRUE;
     /*  Do not do
         glflags.gf_reloc_flag = TRUE;
         as print_relocs makes no sense for non-elf dwarfdump users.  */
     glflags.gf_static_func_flag = TRUE; /* SGI only*/
     glflags.gf_static_var_flag = TRUE; /* SGI only*/
-    glflags.gf_pubtypes_flag = TRUE;  /* both SGI typenames and dwarf_pubtypes. */
+    glflags.gf_pubtypes_flag = TRUE;  /* both SGI typenames 
+                                         and dwarf_pubtypes. */
     glflags.gf_weakname_flag = TRUE; /* SGI only*/
-    glflags.gf_header_flag = TRUE; /* Dump header info */
+#if 0
+    glflags.gf_header_flag = TRUE;
+    /*  Setting this flag without saying what sections to print
+        means no section headers print. So the above
+        gf_header_flag setting here has long been a no-op. */
+#endif
     glflags.gf_debug_names_flag = TRUE;
 }
 
@@ -308,6 +314,7 @@ static void arg_file_line5(void);
 static void arg_file_name(void);
 static void arg_file_output(void);
 static void arg_file_tied(void);
+static void arg_file_use_no_libelf(void);
 
 static void arg_format_attr_name(void);
 static void arg_format_dense(void);
@@ -368,8 +375,10 @@ static void arg_search_any(void);
 static void arg_search_any_count(void);
 static void arg_search_match(void);
 static void arg_search_match_count(void);
+#ifdef HAVE_REGEX
 static void arg_search_regex(void);
 static void arg_search_regex_count(void);
+#endif /* HAVE_REGEX */
 static void arg_search_count(void);
 static void arg_search_invalid(void);
 
@@ -378,7 +387,6 @@ static void arg_search_print_parent(void);
 static void arg_search_print_tree(void);
 
 static void arg_help(void);
-static void arg_help_extended(void);
 static void arg_trace(void);
 static void arg_verbose(void);
 static void arg_version(void);
@@ -406,128 +414,6 @@ static void arg_x_invalid(void);
 static boolean arg_usage_error = FALSE;
 static int arg_option = 0;
 
-static const char *usage_text[] = {
-"Usage: DwarfDump <options> <object file>",
-"options:\t-a\tprint all .debug_* sections",
-"\t\t-b\tprint abbrev section",
-"\t\t-c\tprint loc section",
-"\t\t-c<str>\tcheck only specific compiler objects",
-"\t\t  \t  <str> is described by 'DW_AT_producer'. Examples:",
-"\t\t  \t    -cg       check only GCC compiler objects",
-"\t\t  \t    -cs       check only SNC compiler objects",
-"\t\t  \t    -c'350.1' check only compiler objects with 350.1 in the CU name",
-"\t\t-C\tactivate printing (with -i) of warnings about",
-"\t\t\tcertain common extensions of DWARF.",
-"\t\t-d\tdense: one line per entry (info section only)",
-"\t\t-D\tdo not show offsets",  /* Do not show any offsets */
-"\t\t-e\tellipsis: short names for tags, attrs etc.",
-"\t\t-E[hliIamprfoRstxd]\tprint object Header and/or section information",
-"\t\t  \th=header,l=line,i=info,a=abbrev,p=pubnames,r=aranges,",
-"\t\t  \tf=frames,o=loc,R=Ranges,s=strings,t=pubtypes,x=text,",
-"\t\t  \tI=fission,m=macinfo & DW5 macros,",
-"\t\t  \td=default sections, same as -E and {liaprfoRstx}",
-"\t\t-f\tprint dwarf frame section",
-"\t\t-F\tprint gnu .eh_frame section",
-"\t\t-g\t(use incomplete loclist support)",
-"\t\t-G\tshow global die offsets",
-"\t\t-h[e]\tprint the dwarfdump help message (this options list)",
-"\t\t   e\tprint the dwarfdump extended help message (long options list)",
-"\t\t-H <num>\tlimit output to the first <num> major units",
-"\t\t\t  example: to stop after <num> compilation units",
-"\t\t-i\tprint info section",
-"\t\t-I\tprint sections .gdb_index, .debug_cu_index, .debug_tu_index",
-"\t\t-k[abcdDeEfFgGilmMnrRsStu[f]wx[e]y] check dwarf information",
-"\t\t   a\tdo all checks",
-"\t\t   b\tcheck abbreviations",     /* Check abbreviations */
-"\t\t   c\texamine DWARF constants", /* Check for valid DWARF constants */
-"\t\t   d\tshow check results",      /* Show check results */
-"\t\t   D\tcheck duplicated attributes",  /* Duplicated attributes */
-"\t\t   e\texamine attributes of pubnames",
-"\t\t   E\texamine attributes encodings",  /* Attributes encoding */
-"\t\t   f\texamine frame information (use with -f or -F)",
-"\t\t   F\texamine integrity of files-lines attributes", /* Files-Lines integrity */
-"\t\t   g\tcheck debug info gaps", /* Check for debug info gaps */
-"\t\t   G\tprint only unique errors", /* Only print the unique errors */
-"\t\t   i\tdisplay summary for all compilers", /* Summary all compilers */
-"\t\t   l\tcheck location list (.debug_loc)",  /* Location list integrity */
-"\t\t   m\tcheck ranges list (.debug_ranges)", /* Ranges list integrity */
-"\t\t   M\tcheck ranges list (.debug_aranges)",/* Aranges list integrity */
-"\t\t   n\texamine names in attributes",       /* Check for valid names */
-"\t\t   r\texamine tag-attr relation",
-"\t\t   R\tcheck forward references to DIEs (declarations)", /* Check DW_AT_specification references */
-"\t\t   s\tperform checks in silent mode",
-"\t\t   S\tcheck self references to DIEs",
-"\t\t   t\texamine tag-tag relations",
-#ifdef HAVE_USAGE_TAG_ATTR
-"\t\t   u\tprint tag-tree and tag-attribute usage (basic format)",
-"\t\t   uf\tprint tag-tree and tag-attribute usage (full format)",
-#endif /* HAVE_USAGE_TAG_ATTR */
-"\t\t   w\tcheck macros",
-"\t\t   x\tbasic frames check (.eh_frame, .debug_frame)",
-"\t\t   xe\textensive frames check (.eh_frame, .debug_frame)",
-"\t\t   y\texamine type info",
-"\t\t\tUnless -C option given certain common tag-attr and tag-tag",
-"\t\t\textensions are assumed to be ok (not reported).",
-"\t\t-l[s]\tprint line section",
-"\t\t   s\tdo not print <pc> address",
-"\t\t-m\tprint macinfo section",
-"\t\t-M\tprint the form name for each attribute",
-"\t\t-n\tsuppress frame information function name lookup",
-"\t\t  \t(when printing frame information from multi-gigabyte",
-"\t\t  \tobject files this option may save significant time).",
-"\t\t-N\tprint ranges section",
-"\t\t-O file=<path>\tname the output file",
-"\t\t-o[liaprfoR]\tprint relocation info",
-"\t\t  \tl=line,i=info,a=abbrev,p=pubnames,r=aranges,f=frames,o=loc,R=Ranges",
-"\t\t-p\tprint pubnames section",
-"\t\t--print-debug-names\tprint details from the .debug_names section",
-"\t\t--print-str-offsets\tprint details from the .debug_str_offsets section",
-"\t\t-P\tprint list of compile units per producer", /* List of CUs per compiler */
-"\t\t-q\tsuppress uri-did-translate notification",
-"\t\t-Q\tsuppress printing section data",
-"\t\t-r\tprint aranges section",
-"\t\t-R\tPrint frame register names as r33 etc",
-"\t\t  \t    and allow up to 1200 registers.",
-"\t\t  \t    Print using a 'generic' register set.",
-"\t\t-s\tprint string section",
-"\t\t-S[v] <option>=<text>\tsearch for <text> in attributes",
-"\t\t  \tv\tprint number of occurrences",
-"\t\t  \twith <option>:",
-"\t\t  \t-S any=<text>\tany <text>",
-"\t\t  \t-S match=<text>\tmatching <text>",
-#ifdef HAVE_REGEX
-"\t\t  \t-S regex=<text>\tuse regular expression matching",
-#endif
-"\t\t  \t (only one -S option allowed, any= and regex= ",
-"\t\t  \t  only usable if the functions required are ",
-"\t\t  \t  found at configure time)",
-"\t\t-t[afv] static: ",
-"\t\t   a\tprint both sections",
-"\t\t   f\tprint static func section",
-"\t\t   v\tprint static var section",
-"\t\t-u<file> print sections only for specified file",
-"\t\t-U\tsuppress uri-translate",
-"\t\t-v\tverbose: show more information",
-"\t\t-vv verbose: show even more information",
-"\t\t-V print version information",
-"\t\t-x abi=<abi>\tname abi in dwarfdump.conf",
-"\t\t-x groupnumber=<n>\tgroupnumber to print",
-"\t\t-f line5=<val>\ttable DWARF5 new interfaces",
-"\t\t-x name=<path>\tname dwarfdump.conf",
-"\t\t-x noprintsectiongroups\tdo not print section groups",
-"\t\t-x tied=<tiedpath>\tname an associated object file (Split DWARF)",
-#if 0
-"\t\t-x nosanitizestrings\tLet bogus string characters come thru printf",
-#endif
-"\t\t-w\tprint weakname section",
-"\t\t-W\tprint parent and children tree (wide format) with the -S option",
-"\t\t-Wp\tprint parent tree (wide format) with the -S option",
-"\t\t-Wc\tprint children tree (wide format) with the -S option",
-"\t\t-y\tprint type section",
-"",
-0
-};
-
 static const char *usage_debug_text[] = {
 "Usage: DwarfDump <debug_options>",
 "options:\t-0\tprint this information",
@@ -542,19 +428,23 @@ static const char *usage_debug_text[] = {
 static const char *usage_long_text[] = {
 "Usage: DwarfDump <options> <object file>",
 " ",
-"-----------------------------------------------------------------------------",
+"----------------------------------------------------------------------",
 "Print Debug Sections",
-"-----------------------------------------------------------------------------",
+"----------------------------------------------------------------------",
 "-b   --print-abbrev      Print abbrev section",
 "-a   --print-all         Print all debug_* sections",
 "-r   --print-aranges     Print aranges section",
 "-F   --print-eh-frame    Print gnu .eh_frame section",
 "-I   --print-fission     Print fission sections:",
-"                           .gdb_index, .debug_cu_index, .debug_tu_index",
+"                         .gdb_index, .debug_cu_index, .debug_tu_index,",
+"                         .debug_tu_index, .gdb_index, .debug_cu_index,",
+"                         .debug_tu_index, .debug_tu_index, .gdb_index,",
+"                         .debug_cu_index, .debug_tu_index",
 "-f   --print-frame       Print dwarf frame section",
 "-i   --print-info        Print info section",
 "-l   --print-lines       Print line section",
-"-ls  --print-lines-short Print line section, but do not print <pc> address",
+"-ls  --print-lines-short Print line section, but do not",
+"                         print <pc> address",
 "-c   --print-loc         Print loc section",
 "-m   --print-macinfo     Print macinfo section",
 "-P   --print-producers   Print list of compile units per producer",
@@ -564,13 +454,14 @@ static const char *usage_long_text[] = {
 "-tf  --print-static-func Print static func section",
 "-tv  --print-static-var  Print static var section",
 "-s   --print-strings     Print string section",
-"     --print-str-offsets Print details from the .debug_str_offsets section",
+"     --print-str-offsets Print the .debug_str_offsets section",
 "-y   --print-type        Print type section",
 "-w   --print-weakname    Print weakname section",
 " ",
-"-----------------------------------------------------------------------------",
+"----------------------------------------------------------------------",
 "Print Relocations Info",
-"-----------------------------------------------------------------------------",
+"----------------------------------------------------------------------",
+#ifdef DWARF_WITH_LIBELF
 "-o   --reloc           Print relocation info [afiloprR]",
 "-oa  --reloc-abbrev    Print relocation .debug_abbrev section",
 "-or  --reloc-aranges   Print relocation .debug_aranges section",
@@ -580,17 +471,22 @@ static const char *usage_long_text[] = {
 "-oo  --reloc-loc       Print relocation .debug_loc section",
 "-op  --reloc-pubnames  Print relocation .debug_pubnames section",
 "-oR  --reloc-ranges    Print relocation .debug_ranges section",
+#else
+"  libelf not present, use GNU readelf or readelfobj",
+"  to see relocations",
+#endif /* DWARF_WITH_LIBELF */
 " ",
-"-----------------------------------------------------------------------------",
+"----------------------------------------------------------------------",
 "Print ELF sections header",
-"-----------------------------------------------------------------------------",
+"----------------------------------------------------------------------",
+#ifdef DWARF_WITH_LIBELF
 "-E   --elf           Print object Header and/or section information",
-"                       Same as -E[adfhiIlmoprRstx]",
+"                     Same as -E[adfhiIlmoprRstx]",
 "-Ea  --elf-abbrev    Print .debug_abbrev header",
 "-Er  --elf-aranges   Print .debug_aranges header",
 "-Ed  --elf-default   Same as -E and {liaprfoRstx}",
-"-EI  --elf-fission   Print fission headers",
-"                       .gdb_index, .debug_cu_index, .debug_tu_index",
+"-EI  --elf-fission   Print fission headers,",
+"                     .gdb_index, .debug_cu_index, .debug_tu_index",
 "-Ef  --elf-frames    Print .debug_frame header",
 "-Eh  --elf-header    Print ELF header",
 "-Ei  --elf-info      Print .debug_info header",
@@ -602,61 +498,72 @@ static const char *usage_long_text[] = {
 "-ER  --elf-ranges    Print .debug_ranges header",
 "-Es  --elf-strings   Print .debug_string header",
 "-Ex  --elf-text      Print .text header",
+#else
+"  libelf not present, use GNU readelf or readelfobj",
+"  to see elf file details",
+#endif /* DWARF_WITH_LIBELF */
 " ",
-"-----------------------------------------------------------------------------",
+"----------------------------------------------------------------------",
 "Check DWARF Integrity",
-"-----------------------------------------------------------------------------",
-"-kb  --check-abbrev          Check abbreviations",
-"-ka  --check-all             Do all checks",
-"-kM  --check-aranges         Check ranges list (.debug_aranges)",
-"-kD  --check-attr-dup        Check duplicated attributes",
-"-kE  --check-attr-encodings  Examine attributes encodings",
-"-kn  --check-attr-names      Examine names in attributes",
-"-kc  --check-constants       Examine DWARF constants",
-"-kF  --check-files-lines     Examine integrity of files-lines attributes",
-"-kR  --check-forward-refs    Check forward references to DIEs (declarations)",
-"-kx  --check-frame-basic     Basic frames check (.eh_frame, .debug_frame)",
-"-kxe --check-frame-extended  Extensive frames check (.eh_frame, .debug_frame)",
-"-kf  --check-frame-info      Examine frame information (use with -f or -F)",
-"-kg  --check-gaps            Check debug info gaps",
-"-kl  --check-loc             Check location list (.debug_loc)",
-"-kw  --check-macros          Check macros",
-"-ke  --check-pubnames        Examine attributes of pubnames",
-"-km  --check-ranges          Check ranges list (.debug_ranges)",
-"-kS  --check-self-refs       Check self references to DIEs",
-"-kd  --check-show            Show check results",
-"-ks  --check-silent          Perform checks in silent mode",
-"-ki  --check-summary         Display summary for all compilers",
-"-kr  --check-tag-attr        Examine tag-attr relation",
-"-kt  --check-tag-tag         Examine tag-tag relations",
-"                               Unless -C option given certain common tag-attr",
-"                               and tag-tag extensions are assumed to be ok",
-"                               (not reported).",
-"-ky  --check-type            Eexamine type info",
-"-kG  --check-unique          Print only unique errors",
+"----------------------------------------------------------------------",
+"-kb  --check-abbrev         Check abbreviations",
+"-ka  --check-all            Do all checks",
+"-kM  --check-aranges        Check ranges list (.debug_aranges)",
+"-kD  --check-attr-dup       Check duplicated attributes",
+"-kE  --check-attr-encodings Examine attributes encodings",
+"-kn  --check-attr-names     Examine names in attributes",
+"-kc  --check-constants      Examine DWARF constants",
+"-kF  --check-files-lines    Examine integrity of files-lines",
+"                            attributes",
+"-kR  --check-forward-refs   Check forward references to DIEs",
+"                            (declarations)",
+"-kx  --check-frame-basic    Basic frames check (.eh_frame,",
+"                            .debug_frame)",
+"-kxe --check-frame-extended Extensive frames check (.eh_frame,",
+"                            .debug_frame)",
+"-kf  --check-frame-info     Examine frame information (use with",
+"                            -f or -F)",
+"-kg  --check-gaps           Check debug info gaps",
+"-kl  --check-loc            Check location list (.debug_loc)",
+"-kw  --check-macros         Check macros",
+"-ke  --check-pubnames       Examine attributes of pubnames",
+"-km  --check-ranges         Check ranges list (.debug_ranges)",
+"-kS  --check-self-refs      Check self references to DIEs",
+"-kd  --check-show           Show check results",
+"-ks  --check-silent         Perform checks in silent mode",
+"-ki  --check-summary        Display summary for all compilers",
+"-kr  --check-tag-attr       Examine tag-attr relation",
+"-kt  --check-tag-tag        Examine tag-tag relations",
+"                            Unless -C option given certain common",
+"                            tag-attr and tag-tag extensions are",
+"                            assumed to be ok (not reported).",
+"-ky  --check-type           Eexamine type info",
+"-kG  --check-unique         Print only unique errors",
 #ifdef HAVE_USAGE_TAG_ATTR
-"-ku  --check-usage           Print tag-tree & tag-attr usage (basic format)",
-"-kuf --check-usage-extended  Print tag-tree & tag-attr usage (full format)",
+"-ku  --check-usage          Print tag-tree & tag-attr usage",
+"                            (basic format)",
+"-kuf --check-usage-extended Print tag-tree & tag-attr usage",
+"                            (full format)",
 #endif /* HAVE_USAGE_TAG_ATTR */
 " ",
-"-----------------------------------------------------------------------------",
+"----------------------------------------------------------------------",
 "Print Output Qualifiers",
-"-----------------------------------------------------------------------------",
+"----------------------------------------------------------------------",
 "-M   --format-attr-name        Print the form name for each attribute",
 "-d   --format-dense            One line per entry (info section only)",
 "-e   --format-ellipsis         Short names for tags, attrs etc.",
 "-G   --format-global-offsets   Show global die offsets",
-"-g   --format-loc              Use incomplete loclist support",
+"-g   --format-loc              (incomplete loclist support. Do not use.)",
 "-R   --format-registers        Print frame register names as r33 etc",
-"                                 and allow up to 1200 registers.",
-"                                 Print using a 'generic' register set.",
+"                               and allow up to 1200 registers.",
+"                               Print using a 'generic' register set.",
 "-Q   --format-suppress-data    Suppress printing section data",
 "-x noprintsectiongroups",
 "     --format-suppress-group   do not print section groups",
-"-n   --format-suppress-lookup  Suppress frame information function name lookup",
-"                                 (when printing frame information from multi",
-"                                 gigabyte, object files this option may save",
-"                                 significant time).",
+"-n   --format-suppress-lookup  Suppress frame information function name",
+"                               lookup(when printing frame information",
+"                               from multi-gigabyte object files this",
+"                               option may save significant time).",
 "-D   --format-suppress-offsets do not show offsets",
 #if 0
 "-x nosanitizestrings",
@@ -664,26 +571,27 @@ static const char *usage_long_text[] = {
 #endif
 "-U   --format-suppress-uri     Suppress uri-translate",
 "-q   --format-suppress-uri-msg Suppress uri-did-translate notification",
-"-C   --format-extensions       Activate printing (with -i) of warnings about",
-"                                 certain common extensions of DWARF.",
+"-C   --format-extensions       Activate printing (with -i) of warnings",
+"                               about certain common DWARF extensions.",
 " ",
-"-----------------------------------------------------------------------------",
+"----------------------------------------------------------------------",
 "Print Output Limiters",
-"-----------------------------------------------------------------------------",
-"-u<file> --format-file=<file>    Print sections only for specified file",
-"-cg      --format-gcc            Check only GCC compiler objects",
-"-x<n>    --format-group=<n>      Groupnumber to print",
-"-H<num>  --format-limit=<num>    Limit output to the first <num> major units",
-"                                   stop after <num> compilation units",
+"----------------------------------------------------------------------",
+"-u<file> --format-file=<file>  Print only specified file (CU name)",
+"-cg      --format-gcc          Check only GCC compiler objects",
+"-x groupnumber=<n>    --format-group=<n>      Groupnumber to print",
+"-H<num>  --format-limit=<num>  Limit output to the first <num>",
+"                               major units.",
+"                               Stop after <num> compilation units",
 "-c<str>  --format-producer=<str> Check only specific compiler objects",
-"                                   <str> is described by 'DW_AT_producer'",
-"                                   -c'350.1' check only compiler objects with",
-"                                   350.1 in the CU name",
-"-cs      --format-snc            Check only SNC compiler objects",
+"                               <str> is described by 'DW_AT_producer'",
+"                               -c'350.1' check only compiler objects",
+"                               with 350.1 in the CU name",
+"-cs      --format-snc          Check only SNC compiler objects",
 " ",
-"-----------------------------------------------------------------------------",
+"----------------------------------------------------------------------",
 "File Specifications",
-"-----------------------------------------------------------------------------",
+"----------------------------------------------------------------------",
 "-x abi=<abi>     --file-abi=<abi>      Name abi in dwarfdump.conf",
 "-x name=<path>   --file-name=<path>    Name dwarfdump.conf",
 "-x line5=<val>   --file-line5=<val>    Table DWARF5 new interfaces",
@@ -692,34 +600,38 @@ static const char *usage_long_text[] = {
 "-O file=<path>   --file-output=<path>  Name the output file",
 "-x tied=<path>   --file-tied=<path>    Name an associated object file",
 "                                         (Split DWARF)",
+"                 --file-use-no-libelf  Use non-libelf to read objects",
+"                                         (as much as possible)",
 " ",
-"-----------------------------------------------------------------------------",
+"----------------------------------------------------------------------",
 "Search text in attributes",
-"-----------------------------------------------------------------------------",
-"-S any=<text>    --search-any=<text>         Search any <text>",
-"-Svany=<text>    --search-any-count=<text>     print number of occurrences",
-"-S match=<text>  --search-match=<text>       Search matching <text>",
-"-Svmatch=<text>  --search-match-count<text>    print number of occurrences",
+"----------------------------------------------------------------------",
+"-S any=<text>    --search-any=<text>       Search any <text>",
+"-Svany=<text>    --search-any-count=<text> print number of occurrences",
+"-S match=<text>  --search-match=<text>     Search matching <text>",
+"-Svmatch=<text>  --search-match-count<text> print number of occurrences",
 #ifdef HAVE_REGEX
-"-S regex=<text>  --search-regex=<text>       Use regular expression matching",
-"-Svregex=<text>  --search-regex-count<text>    print number of occurrences",
+"-S regex=<text>  --search-regex=<text>     Use regular expression",
+"                                           matching",
+"-Svregex=<text>  --search-regex-count<text> print number of",
+"                                            occurrences",
 #endif /* HAVE_REGEX */
-"                                         only one -S option allowed, any= and",
-"                                         regex= only usable if the functions",
-"                                         required are found at configure time",
+"                             only one -S option allowed, any= and",
+"                             regex= only usable if the functions",
+"                             required are found at configure time",
 " ",
 "-Wc  --search-print-children Print children tree (wide format) with -S",
 "-Wp  --search-print-parent   Print parent tree (wide format) with -S",
-"-W   --search-print-tree     Print parent/children tree (wide format) with -S",
+"-W   --search-print-tree     Print parent/children tree ",
+"                             (wide format) with -S",
 " ",
-"-----------------------------------------------------------------------------",
+"----------------------------------------------------------------------",
 "Help & Version",
-"-----------------------------------------------------------------------------",
-"-h   --help          Print the dwarfdump help message (short option names)",
-"-he  --help-extended Print the dwarfdump help message (long option names)",
-"-v   --verbose       Show more information",
-"-vv  --verbose-more  Show even more information",
-"-V   --version       Print version information",
+"----------------------------------------------------------------------",
+"-h   --help          Print this dwarfdump help message.",
+"-v   --verbose       Show more information.",
+"-vv  --verbose-more  Show even more information.",
+"-V   --version       Print version information.",
 "",
 };
 
@@ -781,6 +693,7 @@ enum longopts_vals {
   OPT_FILE_NAME,                /* -x name=<path>  --file-name=<path>        */
   OPT_FILE_OUTPUT,              /* -O file=<path>  --file-output=<path>      */
   OPT_FILE_TIED,                /* -x tied=<path>  --file-tied=<path>        */
+  OPT_FILE_USE_NO_LIBELF,       /* --file-use-no-libelf=<path>        */
 
   /* Print Output Qualifiers                                                 */
   OPT_FORMAT_ATTR_NAME,         /* -M   --format-attr-name                   */
@@ -856,13 +769,12 @@ enum longopts_vals {
 
   /* Help & Version                                                          */
   OPT_HELP,                     /* -h  --help                                */
-  OPT_HELP_EXTENDED,            /* -he --help-extended                       */
   OPT_VERBOSE,                  /* -v  --verbose                             */
   OPT_VERBOSE_MORE,             /* -vv --verbose-more                        */
   OPT_VERSION,                  /* -V  --version                             */
 
   /* Trace                                                                   */
-  OPT_TRACE,                    /* -# --trace<num>                           */
+  OPT_TRACE,                    /* -# --trace=<num>                           */
 
   OPT_END,
 };
@@ -924,6 +836,7 @@ static struct dwoption longopts[] =  {
   {"file-name",   dwrequired_argument, 0, OPT_FILE_NAME  },
   {"file-output", dwrequired_argument, 0, OPT_FILE_OUTPUT},
   {"file-tied",   dwrequired_argument, 0, OPT_FILE_TIED  },
+  {"file-use-no-libelf",   dwno_argument, 0, OPT_FILE_USE_NO_LIBELF  },
 
   /* Print Output Qualifiers. */
   {"format-attr-name",         dwno_argument, 0, OPT_FORMAT_ATTR_NAME        },
@@ -999,7 +912,6 @@ static struct dwoption longopts[] =  {
 
   /* Help & Version. */
   {"help",          dwno_argument, 0, OPT_HELP         },
-  {"help-extended", dwno_argument, 0, OPT_HELP_EXTENDED},
   {"verbose",       dwno_argument, 0, OPT_VERBOSE      },
   {"verbose-more",  dwno_argument, 0, OPT_VERBOSE_MORE },
   {"version",       dwno_argument, 0, OPT_VERSION      },
@@ -1309,14 +1221,11 @@ void arg_format_global_offsets(void)
     glflags.gf_show_global_offsets = TRUE;
 }
 
-/*  Option '-h[...]' */
+/*  Option '-h' */
 void arg_h_multiple_selection(void)
 {
     if (dwoptarg) {
-        switch (dwoptarg[0]) {
-        case 'e': arg_help_extended();   break;
-        default: arg_usage_error = TRUE; break;
-        }
+        arg_usage_error = TRUE;
     } else {
         arg_help();
     }
@@ -1324,13 +1233,6 @@ void arg_h_multiple_selection(void)
 
 /*  Option '-h' */
 void arg_help(void)
-{
-    print_usage_message(glflags.program_name,usage_text);
-    exit(OKAY);
-}
-
-/*  Option '-he' */
-void arg_help_extended(void)
 {
     print_usage_message(glflags.program_name,usage_long_text);
     exit(OKAY);
@@ -2289,6 +2191,14 @@ static void arg_file_tied(void)
     }
 }
 
+/*  Option '--file-use-no-libelf' */
+static void arg_file_use_no_libelf(void)
+{
+    glflags.gf_file_use_no_libelf = TRUE;
+}
+
+/*  Option '-y' */
+
 /*  Option '-y' */
 static void arg_print_types(void)
 {
@@ -2339,7 +2249,7 @@ set_command_options(int argc, char *argv[])
 
     /* j unused */
     while ((arg_option = dwgetopt_long(argc, argv,
-        "#:abc::CdDeE::fFgGh:H:iIk:l::mMnNo::O:pPqQrRsS:t:u:UvVwW::x:yz",
+        "#:abc::CdDeE::fFgGhH:iIk:l::mMnNo::O:pPqQrRsS:t:u:UvVwW::x:yz",
         longopts,&longindex)) != EOF) {
 
         switch (arg_option) {
@@ -2442,6 +2352,7 @@ set_command_options(int argc, char *argv[])
         case OPT_FILE_NAME:   arg_file_name();   break;
         case OPT_FILE_OUTPUT: arg_file_output(); break;
         case OPT_FILE_TIED:   arg_file_tied();   break;
+        case OPT_FILE_USE_NO_LIBELF:   arg_file_use_no_libelf();   break;
 
         /* Print Output Qualifiers. */
         case OPT_FORMAT_ATTR_NAME:        arg_format_attr_name();        break;
@@ -2517,7 +2428,6 @@ set_command_options(int argc, char *argv[])
 
         /* Help & Version. */
         case OPT_HELP:          arg_help();          break;
-        case OPT_HELP_EXTENDED: arg_help_extended(); break;
         case OPT_VERBOSE:       arg_verbose();       break;
         case OPT_VERBOSE_MORE:  arg_verbose();       break;
         case OPT_VERSION:       arg_version();       break;

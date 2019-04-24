@@ -27,9 +27,9 @@
 
 #include "globals.h"
 #include "naming.h"
-#include "dwconf.h"
 #include "sanitized.h"
 #include "esb.h"
+#include "esb_using_functions.h"
 
 extern void
 print_debug_names(Dwarf_Debug dbg)

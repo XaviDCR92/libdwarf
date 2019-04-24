@@ -1,7 +1,7 @@
 /*
 
   Copyright (C) 2000,2004 Silicon Graphics, Inc.  All Rights Reserved.
-  Portions Copyright 2011-2017 David Anderson.  All Rights Reserved.
+  Portions Copyright 2011-2019 David Anderson.  All Rights Reserved.
 
   This program is free software; you can redistribute it and/or modify it
   under the terms of version 2.1 of the GNU Lesser General Public License
@@ -33,11 +33,18 @@
 #include <elfaccess.h>
 #endif
 #include "pro_incl.h"
+#include <stddef.h>
+#include "dwarf.h"
+#include "libdwarf.h"
+#include "pro_opaque.h"
+#include "pro_error.h"
+#include "pro_alloc.h"
 #include "pro_arange.h"
 #include "pro_section.h"
 #include "pro_reloc.h"
 
 
+#define SIZEOFT32 4
 
 /*  This function adds another address range
     to the list of address ranges for the
@@ -49,36 +56,63 @@ dwarf_add_arange(Dwarf_P_Debug dbg,
     Dwarf_Unsigned length,
     Dwarf_Signed symbol_index, Dwarf_Error * error)
 {
-    return dwarf_add_arange_b(dbg, begin_address, length, symbol_index,
+    int res = 0;
+
+    res = dwarf_add_arange_b(dbg, begin_address, length, symbol_index,
         /* end_symbol_index */ 0,
         /* offset_from_end_sym */ 0,
         error);
+    if (res != DW_DLV_OK) {
+        return 0;
+    }
+    return 1;
+
 }
 
 /*  This function adds another address range
     to the list of address ranges for the
-    given Dwarf_P_Debug.  It returns 0 on error,
-    and 1 otherwise.  */
+    given Dwarf_P_Debug.  It returns DW_DLV_ERROR on error,
+    and DW_DLV_OK otherwise.  */
 Dwarf_Unsigned
 dwarf_add_arange_b(Dwarf_P_Debug dbg,
     Dwarf_Addr begin_address,
     Dwarf_Unsigned length,
     Dwarf_Unsigned symbol_index,
     Dwarf_Unsigned end_symbol_index,
-    Dwarf_Addr offset_from_end_sym, Dwarf_Error * error)
+    Dwarf_Addr offset_from_end_sym,
+    Dwarf_Error * error)
+{
+    int res = 0;
+
+    res = dwarf_add_arange_c(dbg,begin_address,length,
+        symbol_index, end_symbol_index,
+        offset_from_end_sym,error);
+    if (res != DW_DLV_OK) {
+        return 0;
+    }
+    return 1;
+}
+int
+dwarf_add_arange_c(Dwarf_P_Debug dbg,
+    Dwarf_Addr begin_address,
+    Dwarf_Unsigned length,
+    Dwarf_Unsigned symbol_index,
+    Dwarf_Unsigned end_symbol_index,
+    Dwarf_Addr offset_from_end_sym,
+    Dwarf_Error * error)
 {
     Dwarf_P_Arange arange;
 
     if (dbg == NULL) {
         _dwarf_p_error(NULL, error, DW_DLE_DBG_NULL);
-        return (0);
+        return DW_DLV_ERROR;
     }
 
     arange = (Dwarf_P_Arange)
         _dwarf_p_get_alloc(dbg, sizeof(struct Dwarf_P_Arange_s));
     if (arange == NULL) {
         _dwarf_p_error(dbg, error, DW_DLE_ALLOC_FAIL);
-        return (0);
+        return DW_DLV_ERROR;
     }
 
     arange->ag_begin_address = begin_address;
@@ -94,8 +128,7 @@ dwarf_add_arange_b(Dwarf_P_Debug dbg,
         dbg->de_last_arange = arange;
     }
     dbg->de_arange_count++;
-
-    return (1);
+    return DW_DLV_OK;
 }
 
 
@@ -159,11 +192,10 @@ _dwarf_transform_arange_to_disk(Dwarf_P_Debug dbg,
         arange, (unsigned long) arange_num_bytes, error);
     arange_ptr = arange;
     if (extension_word_size) {
-        Dwarf_Word x = DISTINGUISHED_VALUE;
-
+        DISTINGUISHED_VALUE_ARRAY(v4);
         WRITE_UNALIGNED(dbg, (void *) arange_ptr,
-            (const void *) &x,
-            sizeof(x), extension_word_size);
+            (const void *)&v4[0] ,
+            SIZEOFT32, extension_word_size);
         arange_ptr += extension_word_size;
     }
 
@@ -222,6 +254,13 @@ _dwarf_transform_arange_to_disk(Dwarf_P_Debug dbg,
         offset_size + DWARF_HALF_SIZE,
         dbg->de_sect_name_idx[DEBUG_INFO],
         dwarf_drt_data_reloc, offset_size);
+    if (res == DW_DLV_NO_ENTRY) {
+        return res;
+    }
+    if (res == DW_DLV_ERROR) {
+        _dwarf_p_error(dbg, error,DW_DLE_RELOCS_ERROR);
+        return res;
+    }
 
     /* Write the size of addresses. */
     *arange_ptr = dbg->de_pointer_size;

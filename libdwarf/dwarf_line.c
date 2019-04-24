@@ -1,6 +1,6 @@
 /*
    Copyright (C) 2000-2006 Silicon Graphics, Inc.  All Rights Reserved.
-   Portions Copyright (C) 2007-2018 David Anderson. All Rights Reserved.
+   Portions Copyright (C) 2007-2019 David Anderson. All Rights Reserved.
    Portions Copyright (C) 2010-2012 SN Systems Ltd. All Rights Reserved.
    Portions Copyright (C) 2015-2015 Google, Inc. All Rights Reserved.
 
@@ -38,9 +38,9 @@
 /* Line Register Set initial conditions. */
 static struct Dwarf_Line_Registers_s _dwarf_line_table_regs_default_values = {
     /* Dwarf_Addr lr_address */ 0,
-    /* Dwarf_Word lr_file */ 1,
-    /* Dwarf_Word lr_line */  1,
-    /* Dwarf_Word lr_column */  0,
+    /* Dwarf_Unsigned lr_file */ 1,
+    /* Dwarf_Unsigned lr_line */  1,
+    /* Dwarf_Unsigned lr_column */  0,
     /* Dwarf_Bool lr_is_stmt */  false,
     /* Dwarf_Bool lr_basic_block */  false,
     /* Dwarf_Bool lr_end_sequence */  false,
@@ -285,11 +285,11 @@ dwarf_srcfiles(Dwarf_Die die,
 {
     /*  This pointer is used to scan the portion of the .debug_line
         section for the current cu. */
-    Dwarf_Small *line_ptr;
+    Dwarf_Small *line_ptr = 0;
 
     /*  Pointer to a DW_AT_stmt_list attribute in case it exists in the
         die. */
-    Dwarf_Attribute stmt_list_attr;
+    Dwarf_Attribute stmt_list_attr = 0;
 
     const char * const_comp_name = 0;
     /*  Pointer to name of compilation directory. */
@@ -337,34 +337,41 @@ dwarf_srcfiles(Dwarf_Die die,
     }
 
     if (dbg->de_debug_line.dss_index == 0) {
+        dwarf_dealloc(dbg, stmt_list_attr, DW_DLA_ATTR);
         _dwarf_error(dbg, error, DW_DLE_DEBUG_LINE_NULL);
         return (DW_DLV_ERROR);
     }
 
     res = _dwarf_load_section(dbg, &dbg->de_debug_line,error);
     if (res != DW_DLV_OK) {
+        dwarf_dealloc(dbg, stmt_list_attr, DW_DLA_ATTR);
         return res;
     }
     if (!dbg->de_debug_line.dss_size) {
+        dwarf_dealloc(dbg, stmt_list_attr, DW_DLA_ATTR);
         return (DW_DLV_NO_ENTRY);
     }
     section_start = dbg->de_debug_line.dss_data;
 
     lres = dwarf_whatform(stmt_list_attr,&attrform,error);
     if (lres != DW_DLV_OK) {
+        dwarf_dealloc(dbg, stmt_list_attr, DW_DLA_ATTR);
         return lres;
     }
     if (attrform != DW_FORM_data4 && attrform != DW_FORM_data8 &&
         attrform != DW_FORM_sec_offset  &&
         attrform != DW_FORM_GNU_ref_alt) {
+        dwarf_dealloc(dbg, stmt_list_attr, DW_DLA_ATTR);
         _dwarf_error(dbg, error, DW_DLE_LINE_OFFSET_WRONG_FORM);
         return (DW_DLV_ERROR);
     }
     lres = dwarf_global_formref(stmt_list_attr, &line_offset, error);
     if (lres != DW_DLV_OK) {
+        dwarf_dealloc(dbg, stmt_list_attr, DW_DLA_ATTR);
         return lres;
     }
     if (line_offset >= dbg->de_debug_line.dss_size) {
+        dwarf_dealloc(dbg, stmt_list_attr, DW_DLA_ATTR);
         _dwarf_error(dbg, error, DW_DLE_LINE_OFFSET_BAD);
         return (DW_DLV_ERROR);
     }
@@ -375,11 +382,13 @@ dwarf_srcfiles(Dwarf_Die die,
         int resl = _dwarf_get_fission_addition_die(die, DW_SECT_LINE,
             &fission_offset,&fission_size,error);
         if(resl != DW_DLV_OK) {
+            dwarf_dealloc(dbg, stmt_list_attr, DW_DLA_ATTR);
             return resl;
         }
         line_ptr += fission_offset;
         if (line_ptr > dbg->de_debug_line.dss_data +
             dbg->de_debug_line.dss_size) {
+            dwarf_dealloc(dbg, stmt_list_attr, DW_DLA_ATTR);
             _dwarf_error(dbg, error, DW_DLE_FISSION_ADDITION_ERROR);
             return DW_DLV_ERROR;
         }
@@ -424,7 +433,6 @@ dwarf_srcfiles(Dwarf_Die die,
             line_context = 0;
             return dres;
         }
-        line_ptr = line_ptr_out;
     }
     /*  For DWARF5, use of DW_AT_comp_dir not needed.
         Line table file names and directories
@@ -432,8 +440,8 @@ dwarf_srcfiles(Dwarf_Die die,
     line_context->lc_compilation_directory = comp_dir;
     /* We are in dwarf_srcfiles() */
     {
-        Dwarf_File_Entry fe = line_context->lc_file_entries;
-        Dwarf_File_Entry fe2 = fe;
+        Dwarf_File_Entry fe = 0;
+        Dwarf_File_Entry fe2 =line_context->lc_file_entries;
         Dwarf_Signed baseindex = 0;
         Dwarf_Signed file_count = 0;
         Dwarf_Signed endindex = 0;
@@ -443,7 +451,6 @@ dwarf_srcfiles(Dwarf_Die die,
         if (res != DW_DLV_OK) {
             return res;
         }
-        fe = line_context->lc_file_entries;
         for (i = baseindex; i < endindex; ++i,fe2 = fe->fi_next ) {
             int sres = 0;
             char *name_out = 0;
@@ -472,13 +479,19 @@ dwarf_srcfiles(Dwarf_Die die,
             }
         }
     }
+    if (!head_chain) {
+        dwarf_dealloc(dbg, line_context, DW_DLA_LINE_CONTEXT);
+        *srcfiles = NULL;
+        *srcfilecount = 0;
+        return DW_DLV_NO_ENTRY;
+    }
 
     /* We are in dwarf_srcfiles() */
     if (line_context->lc_file_entry_count == 0) {
         dwarf_dealloc(dbg, line_context, DW_DLA_LINE_CONTEXT);
         *srcfiles = NULL;
         *srcfilecount = 0;
-        return (DW_DLV_NO_ENTRY);
+        return DW_DLV_NO_ENTRY;
     }
 
     ret_files = (char **)
@@ -606,10 +619,12 @@ _dwarf_internal_srclines(Dwarf_Die die,
     }
     lres = dwarf_global_formref(stmt_list_attr, &line_offset, error);
     if (lres != DW_DLV_OK) {
+        dwarf_dealloc(dbg, stmt_list_attr, DW_DLA_ATTR);
         return lres;
     }
 
     if (line_offset >= dbg->de_debug_line.dss_size) {
+        dwarf_dealloc(dbg, stmt_list_attr, DW_DLA_ATTR);
         _dwarf_error(dbg, error, DW_DLE_LINE_OFFSET_BAD);
         return (DW_DLV_ERROR);
     }
@@ -620,6 +635,7 @@ _dwarf_internal_srclines(Dwarf_Die die,
         int resf = _dwarf_get_fission_addition_die(die, DW_SECT_LINE,
             &fission_offset,&fission_size,error);
         if(resf != DW_DLV_OK) {
+            dwarf_dealloc(dbg, stmt_list_attr, DW_DLA_ATTR);
             return resf;
         }
         line_ptr += fission_offset;
@@ -788,8 +804,9 @@ _dwarf_internal_srclines(Dwarf_Die die,
             }
         }
     }
-    if (!is_new_interface &&
-        (*linecount == 0 && (linecount_actuals == NULL || *linecount_actuals == 0))) {
+    if (!is_new_interface && linecount &&
+        (linecount == 0 ||*linecount == 0) &&
+        (linecount_actuals == 0  || *linecount_actuals == 0)) {
         /*  Here we have no actual lines of any kind. In other words,
             it looks like a debugfission line table skeleton or
             a caller not prepared for skeletons or two-level reading..
@@ -1272,7 +1289,7 @@ dwarf_srclines_include_dir_data(Dwarf_Line_Context line_context,
     /*  It never made sense that the srclines used a signed count.
         But that cannot be fixed in interfaces for compatibility.
         So we adjust here. */
-    Dwarf_Word index = index_in;
+    Dwarf_Unsigned index = index_in;
 
     if (!line_context || line_context->lc_magic != DW_CONTEXT_MAGIC) {
         _dwarf_error(NULL, error, DW_DLE_LINE_CONTEXT_BOTCH);
@@ -1478,7 +1495,7 @@ dwarf_lineoff_b(Dwarf_Line line,
 
 static int
 dwarf_filename(Dwarf_Line_Context context,
-    Dwarf_Sword fileno_in,
+    Dwarf_Signed fileno_in,
     char **ret_filename, Dwarf_Error *error)
 {
     Dwarf_Signed i = 0;

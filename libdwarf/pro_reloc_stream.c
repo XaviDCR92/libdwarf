@@ -27,6 +27,7 @@
 */
 
 #include "config.h"
+#ifdef DWARF_WITH_LIBELF
 #include "libdwarfdefs.h"
 #include <stdio.h>
 #include <string.h>
@@ -38,6 +39,12 @@
 #define Set_REL64_info(r,s,t) ((r).r_info = ELF64_R_INFO(s,t))
 #endif
 #include "pro_incl.h"
+#include <stddef.h>
+#include "dwarf.h"
+#include "libdwarf.h"
+#include "pro_opaque.h"
+#include "pro_error.h"
+#include "pro_alloc.h"
 #include "pro_section.h"
 #include "pro_reloc.h"
 #include "pro_reloc_stream.h"
@@ -125,7 +132,7 @@ _dwarf_pro_reloc_name_stream32(Dwarf_P_Debug dbg, int base_sec_index,
 
     elf32_reloc = (REL32*)relrec_to_fill;
     elf32_reloc->r_offset = (Elf32_Addr) offset;
-    Set_REL32_info(*elf32_reloc, (Dwarf_Word) symidx, rel_type);
+    Set_REL32_info(*elf32_reloc, symidx, rel_type);
     return DW_DLV_OK;
 
     /* get a slot, fill in the slot entry */
@@ -247,3 +254,7 @@ _dwarf_stream_relocs_to_disk(Dwarf_P_Debug dbg,
     *new_sec_count = sec_count;
     return DW_DLV_OK;
 }
+#else /* DWARF_WITH_LIBELF */
+/* avoids empty file warning if no libelf */
+int dwarf_dummy_pro_reloc_stream = 2;
+#endif /* DWARF_WITH_LIBELF */

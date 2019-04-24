@@ -28,6 +28,12 @@
 #include "config.h"
 #include "libdwarfdefs.h"
 #include "pro_incl.h"
+#include <stddef.h>
+#include "dwarf.h"
+#include "libdwarf.h"
+#include "pro_opaque.h"
+#include "pro_error.h"
+#include "pro_alloc.h"
 
 
 /*  This routine deallocates all memory, and does some
@@ -39,7 +45,7 @@
 dwarf_producer_finish(Dwarf_P_Debug dbg, Dwarf_Error * error)
 {
     int res = dwarf_producer_finish_a(dbg,error);
-    if (res == DW_DLV_ERROR) {
+    if (res != DW_DLV_OK) {
         return DW_DLV_NOCOUNT;
     }
     return 0;

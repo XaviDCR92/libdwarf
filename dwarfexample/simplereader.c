@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 2009-2016 David Anderson.  All rights reserved.
+  Copyright (c) 2009-2019 David Anderson.  All rights reserved.
 
   Redistribution and use in source and binary forms, with or without
   modification, are permitted provided that the following conditions are met:
@@ -78,6 +78,12 @@
         it accesses the CU/TU DIE and then
         uses that DIE to get the fission data.
 
+    New January 2019:
+        --use-init-fd
+        Instead of using dwarf_init_path(), use
+        dwarf_init_fd() to make particular
+        tests of that interface.
+
     To use, try
         make
         ./simplereader simplereader
@@ -95,16 +101,20 @@
 #include <stdlib.h>     /* For exit() */
 #ifdef HAVE_UNISTD_H
 #include <unistd.h>     /* For close() */
+#elif defined(_WIN32) && defined(_MSC_VER)
+#include <io.h>
 #endif
 #include <stdio.h>
 #include <errno.h>
 #include <string.h>
+#ifdef HAVE_STDINT_H
+#include <stdint.h> /* For uintptr_t */
+#endif /* HAVE_STDINT_H */
+#ifdef HAVE_INTTYPES_H
+#include <inttypes.h> /* For uintptr_t */
+#endif /* HAVE_INTTYPES_H */
 #include "dwarf.h"
 #include "libdwarf.h"
-#ifdef _WIN32
-#include <stdint.h>
-#include <io.h>
-#endif
 
 #ifndef O_RDONLY
 /*  This is for a Windows environment */
@@ -139,8 +149,6 @@ static void get_die_and_siblings(Dwarf_Debug dbg, Dwarf_Die in_die,
 static void resetsrcfiles(Dwarf_Debug dbg,struct srcfilesdata *sf);
 
 /*  Use a generic call to open the file, due to issues with Windows */
-int open_a_file(const char * name);
-void close_a_file(int f);
 
 static int namesoptionon = 0;
 static int checkoptionon = 0;
@@ -359,7 +367,7 @@ print_debug_fission_header(struct Dwarf_Debug_Fission_Per_CU_s *fsd)
 static void
 simple_error_handler(Dwarf_Error error, Dwarf_Ptr errarg)
 {
-    Dwarf_Unsigned unused =  (Dwarf_Unsigned)errarg;
+    Dwarf_Unsigned unused =  (Dwarf_Unsigned)(uintptr_t)errarg;
     printf("\nlibdwarf error detected: 0x%" DW_PR_DUx " %s\n",
         dwarf_errno(error),dwarf_errmsg(error));
     printf("libdwarf errarg. Not really used here %" DW_PR_DUu "\n",
@@ -372,8 +380,9 @@ int
 main(int argc, char **argv)
 {
     Dwarf_Debug dbg = 0;
-    int fd = -1;
-    const char *filepath = "<stdin>";
+    const char *filepath = 0;
+    int use_init_fd = FALSE;
+    int my_init_fd = 0;
     int res = DW_DLV_ERROR;
     Dwarf_Error error;
     Dwarf_Handler errhand = 0;
@@ -381,67 +390,63 @@ main(int argc, char **argv)
     Dwarf_Sig8 hash8;
     Dwarf_Error *errp  = 0;
     int simpleerrhand = 0;
+    int i = 0;
+    #define MACHO_PATH_LEN 2000
+    char macho_real_path[MACHO_PATH_LEN];
 
-    if(argc < 2) {
-        fd = 0; /* stdin */
-    } else {
-        int i = 0;
-        for(i = 1; i < (argc-1) ; ++i) {
-            if(strcmp(argv[i],"--names") == 0) {
-                namesoptionon=1;
-            } else if(startswithextractstring(argv[1],"--dumpallnames=",
-                &dumpallnamespath)) {
-                dumpallnames=1;
-            } else if(strcmp(argv[i],"--check") == 0) {
-                checkoptionon=1;
-            } else if(startswithextractstring(argv[i],"--tuhash=",&tuhash)) {
-                /* done */
-            } else if(startswithextractstring(argv[i],"--cuhash=",&cuhash)) {
-                /* done */
-            } else if(startswithextractstring(argv[i],"--tufissionhash=",
-                &tufissionhash)) {
-                /* done */
-            } else if(startswithextractstring(argv[i],"--cufissionhash=",
-                &cufissionhash)) {
-                /* done */
-            } else if(strcmp(argv[i],"--passnullerror") == 0) {
-                passnullerror=1;
-            } else if(strcmp(argv[i],"--simpleerrhand") == 0) {
-                simpleerrhand=1;
-            } else if(startswithextractnum(argv[i],"--isinfo=",&g_is_info)) {
-                /* done */
-            } else if(startswithextractnum(argv[i],"--type=",&unittype)) {
-                /* done */
-            } else if(startswithextractnum(argv[i],"--fissionfordie=",
-                &fissionfordie)) {
-                /* done */
-            } else {
-                printf("Unknown argument \"%s\", give up \n",argv[i]);
-                exit(1);
-            }
+    macho_real_path[0] = 0;
+    for(i = 1; i < (argc-1) ; ++i) {
+        if(strcmp(argv[i],"--names") == 0) {
+            namesoptionon=1;
+        } else if(startswithextractstring(argv[1],"--dumpallnames=",
+            &dumpallnamespath)) {
+            dumpallnames=1;
+        } else if(strcmp(argv[i],"--check") == 0) {
+            checkoptionon=1;
+        } else if(startswithextractstring(argv[i],"--tuhash=",&tuhash)) {
+            /* done */
+        } else if(startswithextractstring(argv[i],"--cuhash=",&cuhash)) {
+            /* done */
+        } else if(startswithextractstring(argv[i],"--tufissionhash=",
+            &tufissionhash)) {
+            /* done */
+        } else if(startswithextractstring(argv[i],"--cufissionhash=",
+            &cufissionhash)) {
+            /* done */
+        } else if(strcmp(argv[i],"--passnullerror") == 0) {
+            passnullerror=1;
+        } else if(strcmp(argv[i],"--simpleerrhand") == 0) {
+            simpleerrhand=1;
+        } else if(startswithextractnum(argv[i],"--isinfo=",&g_is_info)) {
+            /* done */
+        } else if(startswithextractnum(argv[i],"--type=",&unittype)) {
+            /* done */
+        } else if(startswithextractnum(argv[i],"--fissionfordie=",
+            &fissionfordie)) {
+            /* done */
+        } else if(!strcmp(argv[i],"--use-init-fd")) {
+            use_init_fd = TRUE;
+            /* done */
+        } else {
+            printf("Unknown argument \"%s\", give up \n",argv[i]);
+            exit(1);
         }
-        filepath = argv[i];
-        if (dumpallnames) {
-            if (!strcmp(dumpallnamespath,filepath)) {
-                printf("Using --dumpallnames with the same path  "
-                    "(%s) "
-                    "as the file to read is not allowed. giving up.\n",
-                    filepath);
-                exit(1);
-            }
-            dumpallnamesfile = fopen(dumpallnamespath,"w");
-            if(!dumpallnamesfile) {
-                printf("Cannot open %s. Giving up.\n",
-                    dumpallnamespath);
-                exit(1);
-            }
+    }
+    filepath = argv[i];
+    if (dumpallnames) {
+        if (!strcmp(dumpallnamespath,filepath)) {
+            printf("Using --dumpallnames with the same path  "
+                "(%s) "
+                "as the file to read is not allowed. giving up.\n",
+                filepath);
+            exit(1);
         }
-        fd = open_a_file(filepath);
-    }
-    if(argc > 2) {
-    }
-    if(fd < 0) {
-        printf("Failure attempting to open \"%s\"\n",filepath);
+        dumpallnamesfile = fopen(dumpallnamespath,"w");
+        if(!dumpallnamesfile) {
+            printf("Cannot open %s. Giving up.\n",
+                dumpallnamespath);
+            exit(1);
+        }
     }
     if(passnullerror) {
         errp = 0;
@@ -453,7 +458,30 @@ main(int argc, char **argv)
         /* Not a very useful errarg... */
         errarg = (Dwarf_Ptr)1;
     }
-    res = dwarf_init(fd,DW_DLC_READ,errhand,errarg, &dbg,errp);
+    if (use_init_fd) {
+        /*  For testing a libdwarf init function.
+            We are not finding the true dSYM Macho-object
+            here if that applies, so it's up to the user
+            of simplereader to pass in the correct
+            dSYM object in the dSYM case.
+            dwarf_object_detector_path() could do
+            the dSYM object finding, but to keep this simple
+            we leave that to the reader.  */
+        my_init_fd = open(filepath,O_RDONLY|O_BINARY);
+        if (my_init_fd == -1) {
+            printf("Giving up, cannot open %s\n",filepath);
+            exit(1);
+        }
+        res = dwarf_init(my_init_fd,DW_DLC_READ,
+            errhand,errarg,&dbg,errp);
+    } else {
+        res = dwarf_init_path(filepath,
+            macho_real_path,
+            MACHO_PATH_LEN,
+            DW_DLC_READ,
+            DW_GROUPNUMBER_ANY,errhand,errarg,&dbg,
+            0,0,0,errp);
+    }
     if(res != DW_DLV_OK) {
         printf("Giving up, cannot do DWARF processing\n");
         cleanupstr();
@@ -556,10 +584,12 @@ main(int argc, char **argv)
     if(res != DW_DLV_OK) {
         printf("dwarf_finish failed!\n");
     }
+    if (use_init_fd) {
+        close(my_init_fd);
+    }
     if (dumpallnamesfile) {
         fclose(dumpallnamesfile);
     }
-    close_a_file(fd);
     cleanupstr();
     return 0;
 }
@@ -1136,29 +1166,4 @@ print_die_data(Dwarf_Debug dbg, Dwarf_Die print_me,
     }
     print_die_data_i(dbg,print_me,level,sf);
     dienumber++;
-}
-
-int
-open_a_file(const char * name)
-{
-    /* Set to a file number that cannot be legal. */
-    int f = -1;
-
-#if HAVE_ELF_OPEN
-    /*  It is not possible to share file handles
-        between applications or DLLs. Each application has its own
-        file-handle table. For two applications to use the same file
-        using a DLL, they must both open the file individually.
-        Let the 'libelf' dll open and close the file.  */
-    f = elf_open(name, O_RDONLY | O_BINARY);
-#else
-    f = open(name, O_RDONLY |O_BINARY);
-#endif
-    return f;
-}
-
-void
-close_a_file(int f)
-{
-    close(f);
 }

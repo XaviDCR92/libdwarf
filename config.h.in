@@ -11,6 +11,9 @@
 /* Define to 1 if using `alloca.c'. */
 #undef C_ALLOCA
 
+/* Set to 1 as we are building with libelf */
+#undef DWARF_WITH_LIBELF
+
 /* Define to 1 if you have `alloca', as a function or macro. */
 #undef HAVE_ALLOCA
 
@@ -50,6 +53,9 @@
 
 /* Define to 1 if you have the <libelf/libelf.h> header file. */
 #undef HAVE_LIBELF_LIBELF_H
+
+/* Define to 1 if you have the <malloc.h> header file. */
+#undef HAVE_MALLOC_H
 
 /* Define to 1 if you have the <memory.h> header file. */
 #undef HAVE_MEMORY_H
@@ -99,6 +105,9 @@
 /* Define to 1 if you have the <sys/types.h> header file. */
 #undef HAVE_SYS_TYPES_H
 
+/* Define to 1 if the system has the type `uintptr_t'. */
+#undef HAVE_UINTPTR_T
+
 /* Define to 1 if you have the <unistd.h> header file. */
 #undef HAVE_UNISTD_H
 
@@ -116,24 +125,6 @@
 
 /* Define to 1 if you have the <zlib.h> header file. */
 #undef HAVE_ZLIB_H
-
-/* Set to 1 if the OS defines __uint32_t. */
-#undef HAVE___UINT32_T
-
-/* Set to 1 if sgidefs.h defines __uint32_t. */
-#undef HAVE___UINT32_T_IN_SGIDEFS_H
-
-/* Set to 1 if sys/types.h defines __uint32_t. */
-#undef HAVE___UINT32_T_IN_SYS_TYPES_H
-
-/* Set to 1 if the OS defines __uint64_t. */
-#undef HAVE___UINT64_T
-
-/* Set to 1 if sgidefs.h defines __uint64_t. */
-#undef HAVE___UINT64_T_IN_SGIDEFS_H
-
-/* Set to 1 if sys/types.h defines __uint64_t. */
-#undef HAVE___UINT64_T_IN_SYS_TYPES_H
 
 /* Define to the sub-directory where libtool stores uninstalled libraries. */
 #undef LT_OBJDIR
@@ -190,3 +181,7 @@
 
 /* Define to `unsigned int' if <sys/types.h> does not define. */
 #undef size_t
+
+/* Define to the type of an unsigned integer type wide enough to hold a
+   pointer, if such a type exists, and if the system does not define it. */
+#undef uintptr_t

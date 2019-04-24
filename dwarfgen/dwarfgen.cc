@@ -1,26 +1,35 @@
 /*
-  Copyright (C) 2010-2018 David Anderson.  All rights reserved.
+  Copyright (C) 2010-2019 David Anderson.  All rights reserved.
 
-  Redistribution and use in source and binary forms, with or without
-  modification, are permitted provided that the following conditions are met:
-  * Redistributions of source code must retain the above copyright
-    notice, this list of conditions and the following disclaimer.
-  * Redistributions in binary form must reproduce the above copyright
-    notice, this list of conditions and the following disclaimer in the
-    documentation and/or other materials provided with the distribution.
-  * Neither the name of the example nor the
-    names of its contributors may be used to endorse or promote products
-    derived from this software without specific prior written permission.
+  Redistribution and use in source and binary forms, with
+  or without modification, are permitted provided that the
+  following conditions are met:
+
+  * Redistributions of source code must retain the above
+  copyright notice, this list of conditions and the following
+  disclaimer.
+
+  * Redistributions in binary form must reproduce the above
+  copyright notice, this list of conditions and the following
+  disclaimer in the documentation and/or other materials
+  provided with the distribution.
+
+  * Neither the name of the example nor the names of its
+  contributors may be used to endorse or promote products
+  derived from this software without specific prior written
+  permission.
 
   THIS SOFTWARE IS PROVIDED BY David Anderson ''AS IS'' AND ANY
-  EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-  WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-  DISCLAIMED. IN NO EVENT SHALL David Anderson BE LIABLE FOR ANY
-  DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-  (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-  LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
-  ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-  (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+  EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+  THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+  PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL David
+  Anderson BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+  SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+  NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+  LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+  HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+  CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
+  OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
@@ -84,7 +93,7 @@
 #include "general.h"
 #include "dwgetopt.h"
 #ifdef HAVE_LIBELF_H
-//  gelf.h is a GNU-only elf header. FIXME
+//  gelf.h is a GNU-only elf header, so not using it.
 #include "libelf.h"
 #elif HAVE_LIBELF_LIBELF_H
 #include "libelf/libelf.h"
@@ -135,7 +144,7 @@
 /* open modes S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH */
 #ifndef S_IRUSR
 #define S_IRUSR _S_IREAD
-#endif /* S_IRUSR */
+#endif // S_IRUSR
 #ifndef S_IWUSR
 #define S_IWUSR _S_IWRITE
 #endif
@@ -147,6 +156,36 @@
 #endif
 #endif /* _WIN32 */
 
+//  There are issues 32/64 here, but both are host endianness,
+//  no byte swapping called for.
+//  op and ol aread MUST NOT overlap.
+//  ip and il should be 2,4,or 8. Nothing else.
+//  These could perfectly well be functions.
+#ifdef WORDS_BIGENDIAN
+#define ASNX(op,ol,ip,il)           \
+    do {                            \
+        if( ol > il) {              \
+            memset(op,0,ol);        \
+            memcpy(((char *)(op))+sbyte,(const void *)(ip),il);\
+        } else {                    \
+            unsigned sbyte = 0;     \
+            sbyte = il - ol;        \
+            memcpy((char *)(op),      \
+                (const void *)(((const char *)(ip))+sbyte),ol);\
+        }                           \
+    } while (0)
+#else // LITTLEENDIAN
+#define ASNX(op,ol,ip,il)           \
+    do {                            \
+        if( ol > il) {              \
+            memset(op,0,ol);        \
+            memcpy(((char *)(op)),(const void *)(ip),il);\
+        } else {                    \
+            memcpy((char *)(op),      \
+                (const void *)(((const char *)(ip))),ol);\
+        }                           \
+    } while (0)
+#endif // ENDIANNESS
 
 using std::string;
 using std::cout;
@@ -164,7 +203,7 @@ static int CallbackFunc(
     Dwarf_Unsigned*     sect_name_symbol_index,
     void *              user_data,
     int*                error);
-} 
+}
 // End extern "C"
 
 static void write_object_file(Dwarf_P_Debug dbg, IRepresentation &irep);
@@ -196,6 +235,9 @@ CmdOptions cmdoptions = {
     DW_FORM_string, // defaultInfoStringForm
     false, //showrelocdetails
     false, //adddata16
+    false, //addimplicitconst
+    false, //addframeadvanceloc
+    false, //addSUNfuncoffsets
 };
 
 // loff_t is signed for some reason (strange) but we make offsets unsigned.
@@ -455,6 +497,9 @@ main(int argc, char **argv)
         static struct dwoption longopts[] = {
             {"adddata16",dwno_argument,0,1000},
             {"force-empty-dnames",dwno_argument,0,1001},
+            {"add-implicit-const",dwno_argument,0,1002},
+            {"add-frame-advance-loc",dwno_argument,0,1003},
+            {"add-sun-func-offsets",dwno_argument,0,1004},
             {0,0,0,0},
         };
 
@@ -464,6 +509,9 @@ main(int argc, char **argv)
             switch(opt) {
             case 1000:
                 if(longindex == 0) {
+                    // To test adding the DWARF5
+                    // DW_FORM_data16
+                    // libdwarf reading is thus testable.
                     cmdoptions.adddata16 = true;
                 } else {
                     cerr << "dwarfgen: Invalid lnogoption input " <<
@@ -472,7 +520,27 @@ main(int argc, char **argv)
                 }
                 break;
             case 1001:
+                // To test having an empty .debug_dnames
+                // section.
+                // libdwarf reading is thus testable.
                 force_empty_dnames = true;
+                break;
+            case 1002:
+                // To test creating DWARF5
+                // DW_FORM_implicit_const.
+                // libdwarf reading is thus testable.
+                cmdoptions.addimplicitconst = true;
+                break;
+            case 1003:
+                // To test dwarf_add_fde_inst_a().
+                // libdwarf reading is thus testable.
+                cmdoptions.addframeadvanceloc = true;
+                break;
+            case 1004:
+                // To test creating DWARF5
+                // DW_AT_SUN_func_offsets.
+                // libdwarf reading is thus testable.
+                cmdoptions.addSUNfuncoffsets = true;
                 break;
             case 'c':
                 // At present we can only create a single
@@ -562,7 +630,11 @@ main(int argc, char **argv)
         }
 
         // Example will return error value thru 'err' pointer
-        // and return DW_DLV_BADADDR if there is an error.
+        // and return DW_DLV_ERROR if there is an error.
+        // We no longer use the libdwarf interfaces returning
+        // DW_DLV_BADADDR (though they still exist in libdwarf)
+        // as that sort of return (mixing returned-pointer with
+        // an error value) was ugly.
         Dwarf_Ptr errarg = 0;
         Dwarf_Error err = 0;
         void *user_data = 0;
@@ -621,12 +693,17 @@ main(int argc, char **argv)
             &debug_str_len,
             &reused_count,
             &reused_len,&err);
-        cout << "Debug_Str: debug_info str count " <<str_count <<
-            ", byte total len " <<str_len << endl;
-        cout << "Debug_Str: count " <<debug_str_count <<
-            ", byte total len " <<debug_str_len << endl;
-        cout << "Debug_Str: Reused count " <<reused_count <<
-            ", byte total len not emitted " <<reused_len << endl;
+        if (res != DW_DLV_OK) {
+            cout << "Unable to get string statistics. ERROR."
+                << endl;
+        } else {
+            cout << "Debug_Str: debug_info str count " <<str_count <<
+                ", byte total len " <<str_len << endl;
+            cout << "Debug_Str: count " <<debug_str_count <<
+                ", byte total len " <<debug_str_len << endl;
+            cout << "Debug_Str: Reused count " <<reused_count <<
+                ", byte total len not emitted " <<reused_len << endl;
+        }
         dwarf_producer_finish( dbg, 0);
         return 0;
     } // End try
@@ -820,14 +897,14 @@ bitreplace(char *buf, Dwarf_Unsigned newval,
     int length)
 {
     if(length == 4) {
-        uint32_t my4 = newval;
-        uint32_t oldval = 0;
-        memcpy(&oldval,buf,length);
+        Dwarf_Unsigned my4 = newval;
+        Dwarf_Unsigned oldval = 0;
+        ASNX(&oldval,sizeof(oldval),buf,(unsigned)length);
         oldval += my4;
-        memcpy(buf,&oldval,length);
+        ASNX(buf,(unsigned)length,&oldval,sizeof(oldval));
     } else if (length == 8) {
-        uint64_t my8 = newval;
-        uint64_t oldval = 0;
+        Dwarf_Unsigned my8 = newval;
+        Dwarf_Unsigned oldval = 0;
         memcpy(&oldval,buf,length);
         oldval += my8;
         memcpy(buf,&oldval,length);
@@ -884,14 +961,14 @@ write_generated_dbg(Dwarf_P_Debug dbg,Elf * elf_w,
 
     int res = dwarf_transform_to_disk_form_a(dbg,&sectioncount,&err);
     if (res != DW_DLV_OK) {
-       if (res == DW_DLV_ERROR) {
-           string msg(dwarf_errmsg(err));
-           cerr << "Dwarfgen fails: " << msg << endl;
-           exit(1);
-       }
-       /* ASSERT: rex == DW_DLV_NO_ENTRY */
-       cerr << "Dwarfgen fails, some internal error " << endl;
-       exit(1);
+        if (res == DW_DLV_ERROR) {
+            string msg(dwarf_errmsg(err));
+            cerr << "Dwarfgen fails: " << msg << endl;
+            exit(1);
+        }
+        /* ASSERT: rex == DW_DLV_NO_ENTRY */
+        cerr << "Dwarfgen fails, some internal error " << endl;
+        exit(1);
     }
     Dwarf_Signed d = 0;
     for(d = 0; d < sectioncount ; ++d) {

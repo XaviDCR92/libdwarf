@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 2018-09-21 David Anderson
     * dwarfgen.cc: S_IRUSR was defined incorrectly
       (when not provided by system headers). Fixed.
@@ -115,3 +116,77 @@
        general.h,irepattrtodbg.cc,irepdie.h,
        irepform.h,ireppubnames.h: Removed trailing
        blank lines and updated copyright year.
+=======
+2019-04-22 David Anderson
+     * createirepfrombinary.cc: Add test for _MSC_VER for Windows MSVC.
+2019-03-07 David Anderson
+     * irepdie.h: The IRAttr assignment constructor
+       had a memory leak. Fixed.
+     * general.h: Added #ifndef GENERAL_H to make inclusion
+       idempotent.
+     * ireptodbg.cc: Using new IRAattr member function
+       dropFormData to ensure immediate delete of formdata_.
+       Not really needed since it would eventually be
+       delete-d anyway by the destructor.
+2019-03-04 David Anderson
+     * dwarfgen.cc: Updated the comment about the libdwarf interface
+       call return values.
+     * irepattrtodbg.cc: Changed the libdwarf producer function calls
+       to be the newer version returning an int as that version
+       is simpler to work with. The old interfaces still exist
+       and work the same as always.
+     * irepdie.h: setFormData() was failing to account for
+       a replacement value of formdata_, which could leak
+       memory.
+     * ireptodbg.cc: Replaced calls to libdwarf producer that
+       returned DW_DLV_NOCOUNT or DW_DLV_BADADDR with the ones
+       returning an int for improved readability of the code.
+       The old functions still exist and work as always but
+       we're not using them here.
+2019-02-18 David Anderson
+     * configure.cmake: Now defines DWARF_WITH_LIBELF
+       for consistency with other cmake files.
+     * dwarfgen.cc: Trivial comment correction.
+2019-02-12 David Anderson
+     * dwarfgen.cc: The new option --add-sun-func-offsets
+       tests whether the DW_AT_SUN_func_offsets data can
+       be written (and later read) properly.
+     * general.h: Added bool addSUNfuncoffsets.
+     * irepattrtodbg.cc: Now we handle DW_FORM_CLASS_BLOCK.
+     * irepform.h: Refine IRFormBlock to make it usable.
+     * ireptodbg.cc: When requested, add a 
+       DW_AT_SUN_func_offsets attribute to a compile unit.
+2019-02-08 David Anderson
+     * ireptodbg.cc: std::list<Dwarf_Unsigned> adval
+       was using a non-portable initializer. Now using
+       standard C++ list initializer.
+2019-01-31 David Anderson
+     * dwarfgen.cc,dwarfgen/ireptodbg.cc: Fixing issues
+       reported by the llvm scan-build tool. 
+2019-01-20 David Anderson
+     * dwarfgen.cc: Remove use of uint32_t and uint64_t
+       and use Dwarf_Unsigned for arithmetic.
+2019-01-14 David Anderson
+     * createirepfrombinary.cc: Made a partial step toward
+       being able to read eh_frame, but those few lines
+       are ignored for now.
+     * dwarfgen.cc,general.h: Adding --add-frame-advance-loc option
+       which causes testing of the new DW_CFA_advance_loc
+       emitting code (better portability of the code).
+     * irepframe.h: Changed index results from signed
+       to unsigned. Negative values never meant anything.
+     * irepresentation.h: Added code for eh_frame.
+     * ireptodbg.cc: We now use the improved DW_DLV_OK
+       producer calls so we changed away from allowing
+       indexes to be negative, we do not need to allow
+       that any longer.  Now uses the latest libdwarf
+       producer calls for frame data.
+       If --add-frame-advance-loc then emit particular
+       values of advance_loc to test the code paths
+       in the DW_CFA_advance_loc* logic.
+       We create a whole new cie/fde pair for  the new
+       fde testing output.
+2019-01-02 David Anderson
+     * ChangeLog: Renamed ChangeLog2018
+     * Makefile.am: Addec ChangeLog2018 to dist files.
+>>>>>>> master

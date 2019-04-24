@@ -37,28 +37,67 @@ $(distdir).tar.gz \
 $(distdir).tar.xz
 
 EXTRA_DIST = \
-CMakeLists.txt \
-README.md \
 appveyor.yml \
+bugxml \
+ChangeLog \
+ChangeLog2018 \
+cmake \
+CMakeLists.txt \
+codingstyle.txt \
+configure.cmake \
 dwarfdump/runtests.sh \
 libdwarf/runtests.sh \
-bugxml \
-tsearch \
-cmake \
-configure.cmake \
-codingstyle.txt \
+README.md \
+scripts/baseconfig.h  \
 scripts/BLDLIBDWARF \
 scripts/BLDLIBDWARFTAR \
 scripts/BLDTESTDIR \
+scripts/buildandreleasetest.sh \
+scripts/buildstandardsource.sh \
+scripts/ChangeLog \
+scripts/ChangeLog2018 \
 scripts/CLEANUP \
+scripts/conddef.py  \
 scripts/CPTARTOWEBDIR \
 scripts/CPTOPUBLIC \
 scripts/CREATINGARELEASE \
-scripts/GETTOTOP \
+scripts/dateorder   \
+scripts/ddbuild.sh  \
+scripts/FIX-CONFIGURE-TIMES \
 scripts/fixlibdwarfelf.sh \
+scripts/funcfinderhdr.py \
+scripts/funcfindermm.py \
+scripts/funcfindersrcs.py \
+scripts/GETTOTOP \
+scripts/libbuild.sh \
 scripts/REBLDLIBDWARF \
+scripts/RUNPY \
 scripts/SETUP_MASTER_TREE \
+scripts/UPDATEDWARFDUMPVERSION.sh \
 scripts/UPD.awk \
-scripts/UPDATEDWARFDUMPVERSION.sh
+tsearch/ChangeLog \
+tsearch/ChangeLog2014 \
+tsearch/ChangeLog2015 \
+tsearch/ChangeLog2016 \
+tsearch/ChangeLog2017 \
+tsearch/ChangeLog2018 \
+tsearch/config.h \
+tsearch/dwarf_incl.h \
+tsearch/dwarf_tsearchbal.c \
+tsearch/dwarf_tsearchbin.c \
+tsearch/dwarf_tsearch.c \
+tsearch/dwarf_tsearchepp.c \
+tsearch/dwarf_tsearch.h \
+tsearch/dwarf_tsearchhash.c \
+tsearch/dwarf_tsearchred.c \
+tsearch/ESSAY.txt \
+tsearch/Makefile \
+tsearch/README \
+tsearch/RUNTEST \
+tsearch/scripts \
+tsearch/tsearch.c \
+tsearch/tsearchlibtimes.csv \
+tsearch/tsearchlibtimes.ods \
+tsearch/tsearch_tester.c 
 
 # AUTHORS, ChangeLog and COPYING must be present

@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2015-2018 David Anderson. All Rights Reserved.
+  Copyright (C) 2015-2019 David Anderson. All Rights Reserved.
 
   This program is free software; you can redistribute it and/or modify it
   under the terms of version 2.1 of the GNU Lesser General Public License
@@ -127,7 +127,7 @@ _dwarf_skim_forms(Dwarf_Debug dbg,
     Dwarf_Unsigned ret_value = 0;
     Dwarf_Unsigned length;
     Dwarf_Small *mdata = mdata_start;
-    Dwarf_Word leb128_length = 0;
+    Dwarf_Unsigned leb128_length = 0;
 
     for( ; i < formcount; ++i) {
         curform = forms[i];
@@ -496,7 +496,6 @@ dwarf_get_macro_defundef(Dwarf_Macro_Context macro_context,
         READ_UNALIGNED_CK(dbg,stringoffset,Dwarf_Unsigned,
             mdata,macro_context->mc_offset_size,
             error,endptr);
-        mdata += macro_context->mc_offset_size;
         res = _dwarf_extract_local_debug_str_string_given_offset(dbg,
             form1,
             stringoffset,
@@ -585,7 +584,6 @@ dwarf_get_macro_defundef(Dwarf_Macro_Context macro_context,
         READ_UNALIGNED_CK(dbg,supoffset,Dwarf_Unsigned,
             mdata,macro_context->mc_offset_size,
             error,endptr);
-        mdata += macro_context->mc_offset_size;
         *line_number = linenum;
         *index = 0;
         *offset = supoffset;

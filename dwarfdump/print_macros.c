@@ -27,9 +27,9 @@
 
 #include "globals.h"
 #include "naming.h"
-#include "dwconf.h"
 #include "macrocheck.h"
 #include "esb.h"
+#include "esb_using_functions.h"
 #include "sanitized.h"
 
 #include "print_sections.h"

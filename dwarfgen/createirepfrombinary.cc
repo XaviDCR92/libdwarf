@@ -45,6 +45,7 @@
 #endif /* HAVE_STDAFX_H */
 #if HAVE_UNISTD_H
 #include <unistd.h>
+#elif defined(_WIN32) && defined(_MSC_VER)
 #endif
 #include <stdlib.h> // for exit
 #include <iostream>
@@ -112,15 +113,24 @@ createIrepFromBinary(const std::string &infile,
         exit(1);
     }
     // All reader error handling is via the err argument.
-    int res = dwarf_init(fd,DW_DLC_READ,
+    int res = dwarf_init_b(fd,
+        DW_GROUPNUMBER_ANY,
+        DW_DLC_READ,
         0,
         0,
         &dbg,
         &err);
-    if(res != DW_DLV_OK) {
+    if(res == DW_DLV_NO_ENTRY) {
         close_a_file(fd);
         cerr << "Error init-ing " << infile <<
-            " for reading." << endl;
+            " for reading. dwarf_init_b(). Not object file." << endl;
+        exit(1);
+    } else if(res == DW_DLV_ERROR) {
+        close_a_file(fd);
+        cerr << "Error init-ing " << infile <<
+            " for reading. dwarf_init_b() failed. "
+            << dwarf_errmsg(err)
+            << endl;
         exit(1);
     }
 
@@ -141,6 +151,7 @@ readFrameDataFromBinary(Dwarf_Debug dbg, IRepresentation & irep)
     Dwarf_Signed  cie_count = 0;
     Dwarf_Fde * fde_data = 0;
     Dwarf_Signed  fde_count = 0;
+    bool have_standard_frame = true;
     int res = dwarf_get_fde_list(dbg,
         &cie_data,
         &cie_count,
@@ -148,7 +159,20 @@ readFrameDataFromBinary(Dwarf_Debug dbg, IRepresentation & irep)
         &fde_count,
         &err);
     if(res == DW_DLV_NO_ENTRY) {
-        // No frame data.
+        // No frame data we are dealing with.
+#if 0
+        res = dwarf_get_fde_list_eh(dbg,
+            &cie_data,
+            &cie_count,
+            &fde_data,
+            &fde_count,
+            &err);
+        if(res == DW_DLV_NO_ENTRY) {
+            // No frame data.
+            return;
+        }
+        have_standard_frame = false;
+#endif /* 0 */
         return;
     }
     if(res == DW_DLV_ERROR) {
@@ -177,10 +201,15 @@ readFrameDataFromBinary(Dwarf_Debug dbg, IRepresentation & irep)
         }
         // Index in cie_data must match index in ciedata_, here
         // correct by construction.
-        IRCie cie(bytes_in_cie,version,augmentation,code_alignment_factor,
+        IRCie cie(bytes_in_cie,version,augmentation,
+            code_alignment_factor,
             data_alignment_factor,return_address_register_rule,
             initial_instructions,initial_instructions_length);
-        irep.framedata().insert_cie(cie);
+        if (have_standard_frame) {
+            irep.framedata().insert_cie(cie);
+        } else {
+            irep.ehframedata().insert_cie(cie);
+        }
     }
     for(Dwarf_Signed i =0; i < fde_count; ++i) {
         Dwarf_Addr low_pc = 0;
@@ -210,7 +239,11 @@ readFrameDataFromBinary(Dwarf_Debug dbg, IRepresentation & irep)
             exit(1);
         }
         fde.get_fde_instrs_into_ir(instr_in,instr_len);
-        irep.framedata().insert_fde(fde);
+        if (have_standard_frame) {
+            irep.framedata().insert_fde(fde);
+        } else {
+            irep.ehframedata().insert_fde(fde);
+        }
     }
     dwarf_fde_cie_list_dealloc(dbg,cie_data,cie_count,
         fde_data,fde_count);

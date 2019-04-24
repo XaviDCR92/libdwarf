@@ -1,4 +1,4 @@
-/* Copyright (c) 2013-2018, David Anderson
+/* Copyright (c) 2013-2019, David Anderson
 All rights reserved.
 
 Redistribution and use in source and binary forms, with
@@ -67,6 +67,12 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "stdlib.h" /* for free() etc */
 #include <stdio.h>  /* for printf() */
 #include <inttypes.h> /* for PRIxPTR macros */
+#ifdef HAVE_STDINT_H
+#include <stdint.h> /* For uintptr_t */
+#endif /* HAVE_STDINT_H */
+#ifdef HAVE_INTTYPES_H
+#include <inttypes.h> /* For uintptr_t */
+#endif /* HAVE_INTTYPES_H */
 
 #include "dwarf_tsearch.h"
 
@@ -176,7 +182,7 @@ dwarf_initialize_search_hash( void **treeptr,
     DW_TSHASHTYPE(*hashfunc)(const void *key),
     unsigned long size_estimate)
 {
-    unsigned long prime_to_use = primes[0];
+    unsigned long prime_to_use = 0;
     unsigned entry_index = 0;
     unsigned k = 0;
     struct hs_base *base = 0;
@@ -225,6 +231,7 @@ dwarf_initialize_search_hash( void **treeptr,
 }
 
 
+/* For debugging */
 static void print_entry(struct ts_entry *t,const char *descr,
     char *(* keyprint)(const void *),
     unsigned long hashpos,

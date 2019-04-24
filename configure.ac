@@ -16,7 +16,7 @@ m4_define([lt_age], [v_min])
 
 ### Sets the release name. 
 ###m4_define([v_date], [m4_esyscmd_s([date "+%Y%m%d"])])
-m4_define([v_date], [20180928])])
+m4_define([v_date], [20190422])])
 
 AC_PREREQ([2.52])
 ### 2nd arg to AC_INIT is the version 'number'.
@@ -93,10 +93,22 @@ AC_ARG_ENABLE([namestable],
    ],
    [enable_namestable="no"])
 
+
 AS_IF(
     [test "x${enable_namestable}" = "xyes"],
     [AC_SUBST([dwarf_namestable], [-s])],
     [AC_SUBST([dwarf_namestable], [-t])])
+
+AC_ARG_ENABLE([libelf],
+   [AS_HELP_STRING([--disable-libelf],
+     [disable use of libelf (default is enable) @<:@default=yes@:>@])],
+   [ AS_IF(
+        [test "x${enableval}" = "xyes"],
+        [dwarf_with_libelf="yes"],
+        [dwarf_with_libelf="no"])
+   ],
+   [dwarf_with_libelf="yes"])
+
 
 AC_ARG_ENABLE([windowspath],
    [AS_HELP_STRING([--enable-windowspath],
@@ -129,9 +141,6 @@ AC_ARG_ENABLE(nonstandardprintf,AS_HELP_STRING([--enable-nonstandardprintf],
         ],
         [enable_nonstandardprintf="no"])
 
-
-
-
 ### Default options with respect to host
 
 AC_CANONICAL_HOST
@@ -161,7 +170,6 @@ AC_SUBST([version_info])
 AC_SUBST([release_info])
 
 AC_PROG_CC
-AX_PROG_CC_FOR_BUILD
 AC_PROG_CXX
 AC_PROG_CC_C_O
 
@@ -175,190 +183,45 @@ AC_ARG_VAR([DWARF_LIBS], [linker flags when linking libdwarf])
 
 ### Checks for header files
 
-AC_CHECK_HEADERS([unistd.h sys/types.h regex.h])
-AC_CHECK_HEADERS([sgidefs.h])
+### MacOS does not have malloc.h
+AC_CHECK_HEADERS([unistd.h sys/types.h regex.h malloc.h])
+### for uintptr_t 
+AC_CHECK_HEADERS([stdint.h inttypes.h])
 AC_CHECK_HEADERS([windows.h])
-
-# test Elf headers in the preprocessor path search
-
-CPPFLAGS_save=${CPPFLAGS}
-
-# test libelf.h header. exits if not found
-AC_CHECK_HEADERS([libelf.h libelf/libelf.h])
-AS_IF(
-    [test "x${ac_cv_header_libelf_h}" != "xyes" -a "x${ac_cv_header_libelf_libelf_h}" != "xyes"],
-    [AC_MSG_ERROR([libelf.h not found, exiting...])])
 
 AC_CHECK_HEADERS([zlib.h])
 AS_IF(
     [test "x${ac_cv_header_zlib_h}" = "xyes"],
-    [ have_pc_zlib="yes" ; echo "have zlib" ],
+    [ have_pc_zlib="yes" ; echo "have zlib" ; 
+      DWARF_LIBS="${DWARF_LIBS} -lz" ],
     [ have_pc_zlib="no" ; echo "no zlib" ])
 
-AC_CHECK_HEADERS([elf.h elfaccess.h sys/elf_386.h sys/elf_amd64.h sys/elf_SPARC.h sys/ia64/elf.h])
-
-CPPFLAGS=${CPPFLAGS_save}
-
-## test if zlib.h is in the preprocessor path search
-#AS_IF(
-#    [test "x${have_pc_zlib}" = "xno"],
-#    [AC_CHECK_HEADERS([zlib.h], [have_zlib="yes"], [have_zlib="no"])])
-
-### Using header setings, add to DWARF_LIBS
-
-AS_IF(
-    [test "x${have_pc_zlib}" = "xyes"],
-    [DWARF_LIBS="${DWARF_LIBS} -lelf -lz"],
-    [DWARF_LIBS="${DWARF_LIBS} -lelf"])
-    
+### for use in casts to uint to avoid 32bit warnings.
+AC_TYPE_UINTPTR_T
 
 
-### Checks for types
-
-# __uint32_t
-
-AC_COMPILE_IFELSE(
-    [AC_LANG_PROGRAM(
-         [[
-         ]],
-         [[
-__uint32_t p = 2;
-         ]])
-    ],
-    [
-     have___uint32_t="yes"
-     AC_DEFINE(
-         [HAVE___UINT32_T], [1],
-         [Set to 1 if the OS defines __uint32_t.])
-    ],
-    [have___uint32_t="no"])
-
-AC_MSG_CHECKING([for __uint32_t is defined by the OS])
-AC_MSG_RESULT([${have___uint32_t}])
-
-AS_IF(
-    [test "x${have___uint32_t}" = "xno"],
-    [
-     AC_COMPILE_IFELSE(
-         [AC_LANG_PROGRAM(
-              [[
-#ifdef HAVE_SYS_TYPES_H
-# include <sys/types.h>
-#endif
-              ]],
-              [[
-__uint32_t p = 2;
-              ]])
-         ],
-         [
-          have___uint32_t="yes"
-          AC_DEFINE(
-              [HAVE___UINT32_T_IN_SYS_TYPES_H], [1],
-	      [Set to 1 if sys/types.h defines __uint32_t.])
-         ],
-         [have___uint32_t="no"])
-
-     AC_MSG_CHECKING([for __uint32_t in sys/types.h])
-     AC_MSG_RESULT([${have___uint32_t}])
-    ])
-AS_IF(
-    [test "x${have___uint32_t}" = "xno"],
-    [
-     AC_COMPILE_IFELSE(
-         [AC_LANG_PROGRAM(
-              [[
-#ifdef HAVE_SGIDEFS_H
-# include <sgidefs.h>
-#endif
-              ]],
-              [[
-__uint32_t p = 2;
-              ]])
-         ],
-         [
-          have___uint32_t="yes"
-          AC_DEFINE(
-              [HAVE___UINT32_T_IN_SGIDEFS_H], [1],
-	      [Set to 1 if sgidefs.h defines __uint32_t.])
-         ],
-         [have___uint32_t="no"])
-
-     AC_MSG_CHECKING([for __uint32_t in sgidefs.h])
-     AC_MSG_RESULT([${have___uint32_t}])
+# test Elf headers in the preprocessor path search
+CPPFLAGS_save=${CPPFLAGS}
+### we set $dwarf_with_libelf above.
+if test  $dwarf_with_libelf = "yes" ; then
+  AC_CHECK_HEADERS([sgidefs.h])
+  AC_CHECK_HEADERS([libelf.h libelf/libelf.h])
+  AC_CHECK_HEADERS([elf.h elfaccess.h sys/elf_386.h sys/elf_amd64.h sys/elf_SPARC.h sys/ia64/elf.h])
+  
+  ### if no libelf.h add no -lelf and turn off 
+  ### libelf recognition.
+  AS_IF([test "x${ac_cv_header_libelf_h}" != "xyes" -a "x${ac_cv_header_libelf_libelf_h}" != "xyes" ],
+    [ dwarf_with_libelf="no"
+      echo "no libelf headers, no libelf" ],
+    [ DWARF_LIBS="${DWARF_LIBS} -lelf"  
+      dwarf_with_libelf="yes" 
+      echo "Allowing use of libelf."
+      AC_DEFINE([DWARF_WITH_LIBELF],[1],
+        [Set to 1 as we are building with libelf]) 
     ])
 
-# __uint64_t
 
-AC_COMPILE_IFELSE(
-    [AC_LANG_PROGRAM(
-         [[
-         ]],
-         [[
-__uint64_t p = 2;
-         ]])
-    ],
-    [
-     have___uint64_t="yes"
-     AC_DEFINE(
-         [HAVE___UINT64_T], [1],
-         [Set to 1 if the OS defines __uint64_t.])
-    ],
-    [have___uint64_t="no"])
-
-AC_MSG_CHECKING([for __uint64_t is defined by the OS])
-AC_MSG_RESULT([${have___uint64_t}])
-
-AS_IF(
-    [test "x${have___uint64_t}" = "xno"],
-    [
-     AC_COMPILE_IFELSE(
-         [AC_LANG_PROGRAM(
-              [[
-#ifdef HAVE_SYS_TYPES_H
-# include <sys/types.h>
-#endif
-              ]],
-              [[
-__uint64_t p = 2;
-              ]])
-         ],
-         [
-          have___uint64_t="yes"
-          AC_DEFINE(
-              [HAVE___UINT64_T_IN_SYS_TYPES_H], [1],
-	      [Set to 1 if sys/types.h defines __uint64_t.])
-         ],
-         [have___uint64_t="no"])
-
-     AC_MSG_CHECKING([for __uint64_t in sys/types.h])
-     AC_MSG_RESULT([${have___uint64_t}])
-    ])
-AS_IF(
-    [test "x${have___uint64_t}" = "xno"],
-    [
-     AC_COMPILE_IFELSE(
-         [AC_LANG_PROGRAM(
-              [[
-#ifdef HAVE_SGIDEFS_H
-# include <sgidefs.h>
-#endif
-              ]],
-              [[
-__uint64_t p = 2;
-              ]])
-         ],
-         [
-          have___uint64_t="yes"
-          AC_DEFINE(
-              [HAVE___UINT64_T_IN_SGIDEFS_H], [1],
-	      [Set to 1 if sgidefs.h defines __uint64_t.])
-         ],
-         [have___uint64_t="no"])
-
-     AC_MSG_CHECKING([for __uint64_t in sgidefs.h])
-     AC_MSG_RESULT([${have___uint64_t}])
-    ])
-
+### begin checking for Elf structs
 # Elf64_Rela in elf.h
 AC_LINK_IFELSE(
     [AC_LANG_PROGRAM(
@@ -535,10 +398,9 @@ p.st_info = 1;
 
 AC_MSG_CHECKING([for Elf64_Sym in elf.h])
 AC_MSG_RESULT([${have_elf64_sym}])
+### end checking for Elf structs
 
-
-### Checks for structures
-
+### Checks for Elf structures
 # test if struct _Elf is used instead of struct Elf
 AC_COMPILE_IFELSE(
     [AC_LANG_PROGRAM(
@@ -568,9 +430,16 @@ struct _Elf *a = 0;
 
 AC_MSG_CHECKING([whether struct _Elf is used])
 AC_MSG_RESULT([${have_struct__elf}])
-
+else
+  ### end where dwarf_with_libelf == "no" via
+  ### --disable-libelf
+  have_struct__elf="no"
+  struct_elf="struct Elf"
+  have_elf64_rela="no"
+  have_elf64_rel="no"
+  have_elf64_sym="no"
+fi
 AC_SUBST([struct_elf])
-
 
 ### Checks for compiler characteristics
 
@@ -578,8 +447,8 @@ AC_C_BIGENDIAN
 
 # gcc accepts even totally bogus -Wno flags. Other compilers..no
 # -Wno-long-long suppresses warnings on 'long long'
-# -Wno-pedantic-ms-format
-# compiler flags
+# -Wno-pedantic-ms-format (which only exists in mingw)
+# suppresses warnings about I64 printf format.
 AS_IF(
     [ test "x$enable_wall" = "xyes" ],
     [ 
@@ -587,10 +456,13 @@ AS_IF(
 
        c_compiler_flags="${cxx_compiler_flags} -Wmissing-prototypes -Wdeclaration-after-statement -Wbad-function-cast -Wmissing-parameter-type -Wnested-externs"
     ]
-    ,
+    )
+AS_IF(
+    [ test "x$enable_nonstandardprintf" = "xyes" ],
     [
-       c_compiler_flags=""
-       cxx_compiler_flags=""
+       cxx_compiler_flags="$cxx_compiler_flags -Wno-pedantic-ms-format"
+
+       c_compiler_flags="$c_compiler_flags -Wno-pedantic-ms-format"
     ]
     )
 
@@ -654,6 +526,7 @@ AC_MSG_RESULT([${enable_sanitize}])
 
 AC_FUNC_ALLOCA
 
+if test  $dwarf_with_libelf = "yes" ; then
 # elf64_getehdr
 CPPFLAGS_save=${CPPFLAGS}
 CPPFLAGS="${CPPFLAGS}"
@@ -679,6 +552,10 @@ AC_SEARCH_LIBS(
      [have_getshdr="no"])
 CPPFLAGS=${CPPFLAGS_save}
 LIBS=${LIBS_save}
+else
+  have_getehdr="no"
+  have_getshdr="no"
+fi
 
 AS_IF(
     [test "x${have_pc_zlib}" = "xno"  -a "x${have_zlib}" = "xyes"],
@@ -763,6 +640,7 @@ echo "    elf64_getshdr......: ${have_getshdr}"
 echo "    Elf64_Rela.........: ${have_elf64_rela}"
 echo "    Elf64_Sym..........: ${have_elf64_sym}"
 echo "    Elf spelled........: ${struct_elf}"
+echo "    libelf.............: ${dwarf_with_libelf}"
 echo "    Windows path corr..: ${enable_windowspath}"
 echo "    Nonstandardprintf..: ${enable_nonstandardprintf}"
 echo "  dwarfdump............: always"
@@ -777,14 +655,7 @@ echo "  CPPFLAGS.............: $CPPFLAGS"
 echo "  CFLAGS...............: $CFLAGS ${c_compiler_flags}"
 echo "  LDFLAGS..............: $LDFLAGS"
 echo "  LIBS.................: $LIBS"
-echo "  DWARF_LIBS used in linking libdwarf"
 echo "  DWARF_LIBS...........: $DWARF_LIBS"
-echo "  *FOR_BUILD used building executables built and run to generate" 
-echo "  C source. Motivated by cross-compilation. "
-echo "  Executables not part of the final products."
-echo "  CPPFLAGS_FOR_BUILD...: $CPPFLAGS_FOR_BUILD"
-echo "  CFLAGS_FOR_BUILD.....: $CFLAGS_FOR_BUILD ${c_compiler_flags}"
-echo "  LDFLAGS_FOR_BUILD....: $LDFLAGS_FOR_BUILD"
 echo
 echo "Installation...........: make install (as root if needed, with 'su' or 'sudo')"
 echo "  prefix...............: $prefix"

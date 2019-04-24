@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 2018-09-11  David Anderson & Carlos Alberto Enciso
      * dwarf_tsearchhash.c: Remove trailing blank.
        Now matches version in libdwarf.
@@ -30,3 +31,8 @@
      * dwarf_tsearchbal.c,dwarf_tsearch.c, dwarf_tsearchhash.c,
        dwarf_tsearchbin.c,dwarf_tsearchepp.c,dwarf_tsearchred.c:
        Removed 3 trailing blank lines from each.
+=======
+2019-01-02  David Anderson
+     * ChangeLog: Renamed ChangeLog2018
+     * Makefile.am: Now with ChangeLog2018 in dist files list.
+>>>>>>> master

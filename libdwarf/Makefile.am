@@ -3,72 +3,9 @@
 
 MAINTAINERCLEANFILES = Makefile.in
 
-noinst_PROGRAMS = gennames errmsg_check
-
-### gennames
-
-gennames_SOURCES = \
-gennames.c \
-dwgetopt.c \
-dwgetopt.h
-
-gennames_CFLAGS = $(DWARF_CFLAGS_WARN) -I$(top_builddir)/libdwarf -I$(top_builddir) -I$(top_srcdir)/libdwarf
-
-$(gennames_OBJECTS): CC=$(CC_FOR_BUILD)
-$(gennames_OBJECTS): CFLAGS=$(CFLAGS_FOR_BUILD)
-$(gennames_OBJECTS): CPPFLAGS=$(CPPFLAGS_FOR_BUILD)
-gennames$(BUILD_EXEEXT): CC=$(CC_FOR_BUILD)
-gennames$(BUILD_EXEEXT): CFLAGS=$(CFLAGS_FOR_BUILD)
-gennames$(BUILD_EXEEXT): LDFLAGS=$(LDFLAGS_FOR_BUILD)
-gennames$(BUILD_EXEEXT): CPPFLAGS=$(CPPFLAGS_FOR_BUILD)
-
-BUILT_SOURCES = \
-dwarf_names.c
-
-gn_verbose = $(gn_verbose_@AM_V@)
-gn_verbose_ = $(gn_verbose_@AM_DEFAULT_V@)
-gn_verbose_0 = @echo "  GEN     " $@;
-
-cc_verbose = $(cc_verbose_@AM_V@)
-cc_verbose_ = $(cc_verbose_@AM_DEFAULT_V@)
-cc_verbose_0 = @echo "  CC     " $@;
-
-dwarf_names.h: dwarf_names.c
-dwarf_names.c: gennames$(BUILD_EXEEXT)
-	$(AM_V_at)rm -f dwarf_names.c dwarf_names.h dwarf_names_enum.h dwarf_names_new.h
-	$(gn_verbose)./gennames$(BUILD_EXEEXT) @dwarf_namestable@ -i $(srcdir) -o .
-
-### errmsg_check
-
-errmsg_check_SOURCES = \
-dwarf_test_errmsg_list.c \
-dwarf_errmsg_list.h
-
-# config.h is in top_builddir  
-errmsg_check_CFLAGS =  $(DWARF_CFLAGS_WARN) \
--I$(top_builddir)/libdwarf \
--I$(top_builddir) \
--I$(top_srcdir)/libdwarf
-
-BUILT_SOURCES += \
-errmsg_check_list
-
-$(errmsg_check_OBJECTS): CC=$(CC_FOR_BUILD)
-$(errmsg_check_OBJECTS): CFLAGS=$(CFLAGS_FOR_BUILD)
-$(errmsg_check_OBJECTS): CPPFLAGS=$(CPPFLAGS_FOR_BUILD)
-errmsg_check$(BUILD_EXEEXT): CC=$(CC_FOR_BUILD)
-
-errmsg_check_list: errmsg_check$(BUILD_EXEEXT)
-	$(AM_V_at)grep DW_DLE libdwarf.h >errmsg_check_list
-	$(gn_verbose)./errmsg_check$(BUILD_EXEEXT) -f errmsg_check_list
-
 ### libdwarf
 
 lib_LTLIBRARIES = libdwarf.la
-
-nodist_libdwarf_la_SOURCES = \
-dwarf_names.h \
-dwarf_names.c
 
 libdwarf_la_SOURCES = \
 dwarf.h \
@@ -87,6 +24,21 @@ dwarf_dsc.c \
 dwarf_dsc.h \
 dwarf_elf_access.c \
 dwarf_elf_access.h \
+dwarf_elf_defines.h \
+dwarf_elf_load_headers.c \
+dwarf_elfread.c \
+dwarf_elfread.h \
+dwarf_elf_rel_detector.c \
+dwarf_elf_rel_detector.h \
+dwarf_elf_reloc_386.h \
+dwarf_elf_reloc_aarch64.h \
+dwarf_elf_reloc_arm.h \
+dwarf_elf_reloc_mips.h \
+dwarf_elf_reloc_ppc64.h \
+dwarf_elf_reloc_ppc.h \
+dwarf_elf_reloc_sparc.h \
+dwarf_elf_reloc_x86_64.h \
+dwarf_elfstructs.h \
 dwarf_errmsg_list.h \
 dwarf_error.c \
 dwarf_error.h \
@@ -113,16 +65,29 @@ dwarf_line_table_reader_common.h \
 dwarf_loc.c \
 dwarf_loc.h \
 dwarf_loc2.h \
+dwarf_macho_loader.h \
+dwarf_machoread.c \
+dwarf_machoread.h \
 dwarf_macro.c \
 dwarf_macro.h \
 dwarf_macro5.c \
 dwarf_macro5.h \
+dwarf_names.c \
+dwarf_names.h \
+dwarf_object_detector.c \
+dwarf_object_detector.h \
+dwarf_object_read_common.c \
+dwarf_object_read_common.h \
 dwarf_opaque.h \
 dwarf_original_elf_init.c \
+dwarf_pe_descr.h \
+dwarf_peread.c \
+dwarf_peread.h \
 dwarf_print_lines.c \
 dwarf_pubtypes.c \
 dwarf_query.c \
 dwarf_ranges.c \
+dwarf_reading.h \
 dwarf_reloc_386.h \
 dwarf_reloc_arm.h \
 dwarf_reloc_mips.h \
@@ -150,6 +115,7 @@ libdwarf_version.h \
 libdwarfdefs.h \
 malloc_check.c \
 malloc_check.h \
+memcpy_swap.h \
 pro_alloc.c \
 pro_alloc.h \
 pro_arange.c \
@@ -197,9 +163,6 @@ libdwarf_la_LIBADD = @DWARF_LIBS@
 
 libdwarf_la_LDFLAGS = -fPIC -no-undefined -version-info @version_info@ @release_info@
 
-# checkexamples.c
-# dwarf_stubs.c
-
 TESTS = runtests.sh
 AM_TESTS_ENVIRONMENT = DWTOPSRCDIR='$(top_srcdir)'; export DWTOPSRCDIR;
 
@@ -228,12 +191,18 @@ ChangeLog2014 \
 ChangeLog2015 \
 ChangeLog2016 \
 ChangeLog2017 \
+ChangeLog2018 \
 CODINGSTYLE \
+dwarf_names_new.h \
+dwarf_names_enum.h \
+gennames.c \
 dwarf_test_errmsg_list.c \
 libdwarf2.1.mm \
 libdwarf2p.1.mm \
 mips_extensions.mm \
 mips_extensions.pdf  \
+dwgetopt.h \
+dwgetopt.c \
 CMakeLists.txt \
 libdwarf.h.in \
 pdfbld.sh \
@@ -245,9 +214,4 @@ config.h.in.cmake \
 $(libdwarf_DATA) \
 $(libdwarfdev_DATA)
 
-CLEANFILES = \
-dwarf_names.c \
-dwarf_names.h \
-dwarf_names_enum.h \
-dwarf_names_new.h \
-errmsg_check_list
+CLEANFILES = 

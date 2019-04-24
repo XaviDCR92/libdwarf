@@ -1,6 +1,6 @@
 /*
   Copyright (C) 2000-2005 Silicon Graphics, Inc.  All Rights Reserved.
-  Portions Copyright (C) 2007-2018  David Anderson. All Rights Reserved.
+  Portions Copyright (C) 2007-2019  David Anderson. All Rights Reserved.
 
   This program is free software; you can redistribute it and/or modify it
   under the terms of version 2.1 of the GNU Lesser General Public License
@@ -31,6 +31,12 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#ifdef HAVE_STDINT_H
+#include <stdint.h> /* For uintptr_t */
+#endif /* HAVE_STDINT_H */
+#ifdef HAVE_INTTYPES_H
+#include <inttypes.h> /* For uintptr_t */
+#endif /* HAVE_INTTYPES_H */
 
 #include "dwarf_incl.h"
 #include "dwarf_error.h"
@@ -287,7 +293,7 @@ struct ial_s alloc_instance_basics[ALLOC_AREA_INDEX_TABLE_MAX] = {
 static DW_TSHASHTYPE
 simple_value_hashfunc(const void *keyp)
 {
-    DW_TSHASHTYPE up = (DW_TSHASHTYPE)keyp;
+    DW_TSHASHTYPE up = (DW_TSHASHTYPE)(uintptr_t)keyp;
     return up;
 }
 /*  We did alloc something but not a fixed-length thing.
@@ -326,8 +332,8 @@ tdestroy_free_node(void *nodep)
 static int
 simple_compare_function(const void *l, const void *r)
 {
-    DW_TSHASHTYPE lp = (DW_TSHASHTYPE)l;
-    DW_TSHASHTYPE rp = (DW_TSHASHTYPE)r;
+    DW_TSHASHTYPE lp = (DW_TSHASHTYPE)(uintptr_t)l;
+    DW_TSHASHTYPE rp = (DW_TSHASHTYPE)(uintptr_t)r;
     if(lp < rp) {
         return -1;
     }
@@ -717,11 +723,12 @@ _dwarf_special_no_dbg_error_malloc(void)
 {
     Dwarf_Error e = 0;
     /* The union unused things are to guarantee proper alignment */
-    char *mem = malloc(sizeof(struct Dwarf_Error_s));
+    Dwarf_Unsigned len = sizeof(struct Dwarf_Error_s);
+    char *mem = (char *)malloc(len);
     if (mem == 0) {
         return 0;
     }
-    memset(mem, 0, sizeof(struct Dwarf_Error_s));
+    memset(mem, 0, len);
     e = (Dwarf_Error)mem;
     e->er_static_alloc = DE_MALLOC;
     return e;
