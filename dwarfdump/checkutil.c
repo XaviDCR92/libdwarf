@@ -150,8 +150,8 @@ DumpFullBucketGroup(Bucket_Group *pBucketGroup)
     for (pBucket = pBucketGroup->pHead; pBucket && pBucket->nEntries;
         pBucket = pBucket->pNext) {
 
-        printf("LowPC & HighPC records for bucket %d, at 0x%08lx\n",
-            nBucketNo++,(unsigned long)(uintptr_t)pBucket);
+        printf("LowPC & HighPC records for bucket %d, at 0x%08" PRIxPTR "\n",
+            nBucketNo++,(uintptr_t)pBucket);
         for (nIndex = 0; nIndex < pBucket->nEntries; ++nIndex) {
             pBucketData = &pBucket->Entries[nIndex];
             printf("[%06d] Key = 0x%08" DW_PR_DUx ", Base = 0x%08" DW_PR_DUx

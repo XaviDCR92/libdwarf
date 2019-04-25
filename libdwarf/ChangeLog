@@ -398,7 +398,6 @@
        so the fd can be closed by libdwarf only when 
        libdwarf owns it.
      * libdwarf_version.h: New date string.
-
 2019-01-03   David Anderson
      * dwarf_object_detector.c: Had a pointless call to stat()
        which was noticed by Coverity CID  190601

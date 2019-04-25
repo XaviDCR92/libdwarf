@@ -44,6 +44,12 @@ typedef SSIZE_T ssize_t; /* MSVC does not have POSIX ssize_t */
 #ifdef HAVE_STRING_H
 #include <string.h> /* memcpy, strcpy */
 #endif /* HAVE_STRING_H */
+
+/* Windows specific header files */
+#if defined(_WIN32) && defined(HAVE_STDAFX_H)
+#include "stdafx.h"
+#endif /* HAVE_STDAFX_H */
+
 #include "libdwarf.h"
 #include "memcpy_swap.h"
 #include "dwarf_object_read_common.h"
