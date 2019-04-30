@@ -1,3 +1,30 @@
+2019-04-29 David Anderson
+     * dwarf_names.c,dwarf_names.h,dwarf_names_enum.h,
+       dwarf_names_new.h: Regenerated.
+       Version date update.
+2019-04-28 David Anderson
+      * config.h.in.cmake, configure.cmake: Deleted all reference to
+        INT32 and INT64 as no longer needed.
+2019-04-26 David Anderson
+      * CMakeLists.txt,config.h.in.cmake,configure.cmake:
+        Revised to work with the updated use of cmake.   
+2019-04-25 David Anderson
+      * dwarf_pe_descr.h, dwarf_peread.c: All the Windows PE
+        structs have been renamed, adding a trailing _dw,
+        to make them distinct from the standard Windows
+        names.
+2019-04-25 David Anderson
+      * dwarf_elfread.c, dwarf_object_read_common.c: Removed
+        trailing whitespace.
+2019-04-25 David Anderson
+      * dwarf_peread.c: Change the way an strncpy
+        is handled to avoid a compiler warning
+        as well as create hopefully clearer code.
+2019-04-25 David Anderson
+      * dwarf_elf_load_headers.c,dwarf_elfread.c,
+        dwarf_object_read_common.c: Added missing
+        Windows-specific includes.
+      * libdwarf_version.h: Updated version date string.
 2019-04-24 David Anderson
       * dwarf_die_deliv.c(_dwarf_next_cu_internal):
         Allow a null as the next_cu_offset pointer 

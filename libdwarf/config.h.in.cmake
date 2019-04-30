@@ -55,6 +55,9 @@
 /* Define 1 if need nonstandard printf format for 64bit */
 #cmakedefine HAVE_NONSTANDARD_PRINTF_64_FORMAT 1
 
+/* Define 1 if building with libelf */
+#cmakedefine DWARF_WITH_LIBELF 1
+
 /* Define 1 to default to old DW_FRAME_CFA_COL */
 #cmakedefine HAVE_OLD_FRAME_CFA_COL 1
 
@@ -108,24 +111,6 @@
 
 /* Define 1 if zlib (decompression library) seems available. */
 #cmakedefine HAVE_ZLIB 1
-
-/* See if __uint32_t is predefined in the compiler. */
-#cmakedefine HAVE___UINT32_T 1
-
-/* Define 1 if __uint32_t is in sgidefs.h. */
-#cmakedefine HAVE___UINT32_T_IN_SGIDEFS_H 1
-
-/* Define 1 if sys/types.h defines __uint32_t. */
-#cmakedefine HAVE___UINT32_T_IN_SYS_TYPES_H 1
-
-/* See if __uint64_t is predefined in the compiler. */
-#cmakedefine HAVE___UINT64_T 1
-
-/* Define 1 if is in sgidefs.h. */
-#cmakedefine HAVE___UINT64_T_IN_SGIDEFS_H 1
-
-/* Define 1 if sys/types.h defines __uint64_t. */
-#cmakedefine HAVE___UINT64_T_IN_SYS_TYPES_H 1
 
 /* Define to the address where bug reports for this package should be sent. */
 #cmakedefine PACKAGE_BUGREPORT @PACKAGE_BUGREPORT@

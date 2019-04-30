@@ -23,44 +23,6 @@ int main()
 }"
 HAVE_ELF64_R_INFO)
 
-ac_try_compile("
-int main()
-{
-    __uint32_t p; 
-    p = 3;
-    return 0;
-}" 
-HAVE___UINT32_T)
-
-ac_try_compile("
-int main()
-{
-    __uint64_t p; 
-    p = 3;
-    return 0;
-}" 
-HAVE___UINT64_T)
-
-ac_try_compile("
-#include <sys/types.h>
-int main()
-{
-    __uint32_t p; 
-    p = 3;
-    return 0;
-}" 
-HAVE___UINT32_T_IN_SYS_TYPES_H)
-
-ac_try_compile("
-#include <sys/types.h>
-int main()
-{
-    __uint64_t p; 
-    p = 3;
-    return 0;
-}" 
-HAVE___UINT64_T_IN_SYS_TYPES_H)
-
 ac_try_compile([=[
 #include <sys/types.h>
 #include <regex.h>
@@ -131,6 +93,8 @@ int main()
 HAVE_LIBELF_OFF64_OK)
 message(STATUS "Checking is off64_t type supported... ${HAVE_LIBELF_OFF64_OK}")
 
-set(DWARF_WITH_LIBELF 1)
+if ( NOT HAVE_LIBELF_H AND NOT HAVE_LIBELF_LIBELF_H)
+	set(DWARF_WITH_LIBELF OFF)
+endif ()
 
 configure_file(config.h.in.cmake config.h)

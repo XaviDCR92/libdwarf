@@ -19,43 +19,6 @@ elseif(HAVE_LIBELF_LIBELF_H)
     set(HAVE_LOCATION_OF_LIBELFHEADER "<libelf/libelf.h>")
 endif()
 
-ac_try_compile("
-int main()
-{
-    __uint32_t p; 
-    p = 3;
-    return 0;
-}" 
-HAVE___UINT32_T)
-
-ac_try_compile("
-int main()
-{
-    __uint64_t p; 
-    p = 3;
-    return 0;
-}" 
-HAVE___UINT64_T)
-
-ac_try_compile("
-#include <sys/types.h>
-int main()
-{
-    __uint32_t p; 
-    p = 3;
-    return 0;
-}" 
-HAVE___UINT32_T_IN_SYS_TYPES_H)
-ac_try_compile("
-#include <sys/types.h>
-int main()
-{
-    __uint64_t p; 
-    p = 3;
-    return 0;
-}" 
-HAVE___UINT64_T_IN_SYS_TYPES_H)
-
 check_c_source_runs("
 static unsigned foo( unsigned x, __attribute__ ((unused)) int y)
 {  
@@ -158,29 +121,6 @@ int main()
 HAVE_LIBELF_OFF64_OK)
 message(STATUS "Checking  off64_t ok ... ${HAVE_LIBELF_OFF64_OK}")
 
-
-#  the existence of sgidefs.h does not prove it's truly SGI, nor
-#  prove that __uint32_t or __uint64_t is defined therein.
-
-ac_try_compile("
-#include <sgidefs.h>
-int main()
-{
-    __uint32_t p; p = 27;
-    return 0;
-}" 
-HAVE___UINT32_T_IN_SGIDEFS_H)
-
-
-ac_try_compile("
-#include <sgidefs.h>
-int main()
-{
-    __uint64_t p; p = 27;
-    return 0;
-}" 
-HAVE___UINT64_T_IN_SGIDEFS_H)
-
 ac_try_compile("
 #include  ${HAVE_LOCATION_OF_LIBELF_HEADER}
 int main()
@@ -237,5 +177,7 @@ set(HAVE_STRICT_DWARF2_32BIT_OFFSET ${dwarf_format_strict_32bit})
 set(HAVE_DWARF2_99_EXTENSION NOT ${dwarf_format_strict_32bit})
 message(STATUS "Checking producer generates only 32bit... ${HAVE_STRICT_DWARF2_32BIT_OFFSET}")
 
-set(DWARF_WITH_LIBELF 1)
+if ( NOT HAVE_LIBELF_H AND NOT HAVE_LIBELF_LIBELF_H)
+   set(DWARF_WITH_LIBELF OFF )
+endif ()
 configure_file(config.h.in.cmake config.h)
