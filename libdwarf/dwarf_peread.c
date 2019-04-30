@@ -248,7 +248,7 @@ load_optional_header32(dwarf_pe_object_access_internals_t *pep,
 
     res =  _dwarf_object_read_random(pep->pe_fd,
         (char *)&hdr,
-        (off_t)offset, sizeof(IMAGE_OPTIONAL_HEADER32),
+        (off_t)offset, sizeof(IMAGE_OPTIONAL_HEADER32_dw),
         (off_t)pep->pe_filesize,
         errcode);
     if (res != DW_DLV_OK) {
@@ -287,7 +287,7 @@ load_optional_header64(dwarf_pe_object_access_internals_t *pep,
     }
     res =  _dwarf_object_read_random(pep->pe_fd,
         (char *)&hdr,
-        (off_t)offset, sizeof(IMAGE_OPTIONAL_HEADER64),
+        (off_t)offset, sizeof(IMAGE_OPTIONAL_HEADER64_dw),
         (off_t)pep->pe_filesize,
         errcode);
     if (res != DW_DLV_OK) {
@@ -359,7 +359,7 @@ pe_load_section (void *obj, Dwarf_Half section_index,
         if(sp->VirtualSize > read_length) {
             /*  Zero space that was allocated but
                 truncated from the file */
-            memset(sp->loaded_data + read_length, 0, 
+            memset(sp->loaded_data + read_length, 0,
                 (size_t)(sp->VirtualSize - read_length));
         }
         *return_data = sp->loaded_data;
