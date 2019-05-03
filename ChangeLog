@@ -1,3 +1,42 @@
+2019-05-02  David Anderson
+    * scripts/buildstandardsource.sh: cmake has serious trouble
+      with semicolons so now this copies the base 
+      libdwarf.h.in to generated_libdwarf.in while changing
+      struct Elf to struct _Elf. cmake can do a simple copy.
+    * configure.cmake: Now just copies the right file with
+      Elf or _Elf to libdwarf.h.
+    * scripts/buildstandardsource.sh: Now creates
+      generated_libdwarf.h.in from libdwarf.h.in.
+      using sed. Run by developer, not library users.
+    * scripts/fixlibdwarfelf.sh Now just copies the 
+      right file with Elf or _Elf to libdwarf.h
+      (used by configure, not cmake).
+2019-05-02  David Anderson
+    * Makefile.in: regenerated.
+2019-05-01  David Anderson
+    * CMakeLists.txt: Sets language C
+    * cmake/AutoconfHelper.cmake: deleted, nothing here
+      used any more.
+    * cmake/FindLibElf.cmake: Now does C source test, not c++.
+    * configure.cmake: moved the cmake macro includes to
+      the first lines in the file.  Added a JUST_LIBELF
+      variable to correctly test for off64_t
+      Does checking/setting for essentially all the needed HAVE_
+      etc variables.
+      
+2019-05-01  David Anderson
+    * README.cmake: Made more complete.
+    * configure.cmake: Even more setup here.
+2019-05-01  David Anderson
+    * CMakeLists.txt: Corrected a mistake in reporting install
+      prefix.
+    * cmake/AutoconfHelper.cmake: Removed unused functions,
+      and for some functions changed to native cmake
+      in configure.cmake.
+    * configure.cmake: Now does a lot more setup here and
+      using cmake (replacing some autoconf-like functions)
+      And this now sets many things for each build directory,
+      reducing the size of */configure.cmake files. 
 2019-04-30  David Anderson
     * README.cmake: New, describes use of cmake.
     * cmake/LibdwarfMacros.cmake: Added a final newline

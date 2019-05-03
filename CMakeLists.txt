@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.2)
 
-project(libdwarf)
+project(libdwarf C)
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
@@ -49,5 +49,5 @@ if ( BUILD_DWARFEXAMPLE )
 	add_subdirectory(dwarfexample)
 endif()
 
-message(STATUS "Install to ... ${CMAKE_INSTALL_PREFIX}" )
+message(STATUS "Install prefix ... ${CMAKE_INSTALL_PREFIX}" )
 add_custom_target(dd DEPENDS ${DWARF_TARGETS} dwarfdump)

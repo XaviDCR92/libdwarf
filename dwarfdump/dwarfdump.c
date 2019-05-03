@@ -431,7 +431,7 @@ main(int argc, char *argv[])
         }
         dup2(fileno(stdout),fileno(stderr));
         /* Record version and arguments in the output file */
-        print_version_details(argv[0],TRUE);
+        print_version_details(argv[0],FALSE);
         print_args(argc,argv);
     }
 

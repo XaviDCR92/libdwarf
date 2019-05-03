@@ -178,7 +178,7 @@ typedef struct
 
 /*  IMAGE_SECTION_HEADER_dw
     see:
-    https://msdn.microsoft.com/en-us/library/windows/desktop/ms680341(v=vs.85).aspx 
+    https://msdn.microsoft.com/en-us/library/windows/desktop/ms680341(v=vs.85).aspx
     and, for details on VirtualSize and SizeOfRawData:
     https://docs.microsoft.com/en-us/windows/desktop/api/winnt/ns-winnt-_image_section_header */
 
