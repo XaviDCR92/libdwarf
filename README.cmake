@@ -32,7 +32,7 @@ To show all the available cmake options we'll show the
 default build next:
 
     cmake -DDWARF_WITH_LIBELF=ON \
-        -DHAVE_CUSTOM_ELF=OFF \
+        -DHAVE_CUSTOM_LIBELF=OFF \
         -Dstatic=ON \
         -DBUILD_SHARED=OFF \
         -DBUILD_DWARFGEN=OFF \

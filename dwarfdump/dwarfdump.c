@@ -77,10 +77,10 @@
 extern int elf_open(const char *name,int mode);
 #endif /* HAVE_ELF_OPEN */
 
-#ifdef HAVE_CUSTOM_ELF
+#ifdef HAVE_CUSTOM_LIBELF
 extern int elf_is_custom_format(void *header, size_t headerlen, size_t *size,
     unsigned *endian, unsigned *offsetsize, int *errcode);
-#endif /* HAVE_CUSTOM_ELF */
+#endif /* HAVE_CUSTOM_LIBELF */
 
 #define BYTES_PER_INSTRUCTION 4
 
@@ -541,9 +541,9 @@ main(int argc, char *argv[])
     }
     if ( (ftype == DW_FTYPE_ELF && (glflags.gf_reloc_flag ||
         glflags.gf_header_flag)) ||
-#ifdef HAVE_CUSTOM_ELF
+#ifdef HAVE_CUSTOM_LIBELF
         ftype == DW_FTYPE_CUSTOM_ELF ||
-#endif /* HAVE_CUSTOM_ELF */
+#endif /* HAVE_CUSTOM_LIBELF */
         ftype == DW_FTYPE_ARCHIVE) {
 #ifdef DWARF_WITH_LIBELF
         int excode = 0;

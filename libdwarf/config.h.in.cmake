@@ -9,8 +9,8 @@
 /* Define to 1 if you have the <alloca.h> header file. */
 #cmakedefine HAVE_ALLOCA_H 1
 
-/* Define to 1 as we are building with support for a custom ELF. */
-#cmakedefine HAVE_CUSTOM_ELF 1
+/* Define to 1 as we are including a custom libelf library. */
+#cmakedefine HAVE_CUSTOM_LIBELF 1
 
 /* Define 1 if want to allow producer to build with 32/64bit section offsets
    per dwarf3 */

@@ -4952,9 +4952,9 @@ int dwarf_pro_get_string_stats(Dwarf_P_Debug /*dbg*/,
 #define DW_FTYPE_MACH_O     2  /* MacOS. */
 #define DW_FTYPE_PE         3  /* Windows */
 #define DW_FTYPE_ARCHIVE    4  /* unix archive */
-#ifdef HAVE_CUSTOM_ELF
+#ifdef HAVE_CUSTOM_LIBELF
 #define DW_FTYPE_CUSTOM_ELF 5  /* Custom ELF */
-#endif /* HAVE_CUSTOM_ELF */
+#endif /* HAVE_CUSTOM_LIBELF */
 #endif /* DW_FTYPE_UNKNOWN */
 
 #ifndef DW_ENDIAN_UNKNOWN

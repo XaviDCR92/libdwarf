@@ -282,8 +282,8 @@ else()
   message(STATUS "Compiler warning options... NO")
 endif()
 
-option(HAVE_CUSTOM_ELF "Build with support for custom ELF (default is NO)" FALSE)
-message(STATUS "Building support for custom ELF... ${HAVE_CUSTOM_ELF}")
+option(HAVE_CUSTOM_LIBELF "Have a custom libelf library (default is NO)" FALSE)
+message(STATUS "Including a custom libelf library... ${HAVE_CUSTOM_LIBELF}")
 
 option(HAVE_NONSTANDARD_PRINTF_64_FORMAT "Use a special printf format for 64bit (default is NO)" FALSE)
 message(STATUS "Checking enable non standard printf... ${HAVE_NONSTANDARD_PRINTF_64_FORMAT}")
