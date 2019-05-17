@@ -3,6 +3,12 @@
 /* Define if building universal (internal helper macro) */
 #cmakedefine AC_APPLE_UNIVERSAL_BUILD 1
 
+/* Define 1 if building with libelf. */
+#cmakedefine DWARF_WITH_LIBELF 1
+
+/* Define to 1 as we are building with support for a custom ELF. */
+#cmakedefine HAVE_CUSTOM_ELF 1
+
 /* Define to 1 if you have the <elf.h> header file. */
 #cmakedefine HAVE_ELF_H 1
 
@@ -47,9 +53,6 @@
 
 /* Define 1 if zlib (decompression library) seems available. */
 #cmakedefine HAVE_ZLIB 1
-
-/* Define 1 if building with libelf */
-#cmakedefine DWARF_WITH_LIBELF 1
 
 /* Define to the address where bug reports for this package should be sent. */
 #cmakedefine PACKAGE_BUGREPORT @PACKAGE_BUGREPORT@

@@ -11,7 +11,7 @@
 /* Define to 1 if using `alloca.c'. */
 #undef C_ALLOCA
 
-/* Set to 1 as we are building with libelf */
+/* Define to 1 as we are building with libelf. */
 #undef DWARF_WITH_LIBELF
 
 /* Define to 1 if you have `alloca', as a function or macro. */
@@ -20,6 +20,9 @@
 /* Define to 1 if you have <alloca.h> and it should be used (not on Ultrix).
    */
 #undef HAVE_ALLOCA_H
+
+/* Define to 1 as we are building with support for a custom ELF. */
+#undef HAVE_CUSTOM_ELF
 
 /* Define to 1 if you have the <dlfcn.h> header file. */
 #undef HAVE_DLFCN_H

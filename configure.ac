@@ -136,10 +136,18 @@ AC_ARG_ENABLE([wall],
 AC_ARG_ENABLE(nonstandardprintf,AS_HELP_STRING([--enable-nonstandardprintf],
         [Use a special printf format for 64bit (default is NO)]),
         [ AC_DEFINE([HAVE_NONSTANDARD_PRINTF_64_FORMAT],[1],
-           [Define 1 if need nonstandard printf format for  64bit] )
+           [Define 1 if need nonstandard printf format for 64bit] )
            [enable_nonstandardprintf="yes"]
         ],
         [enable_nonstandardprintf="no"])
+
+AC_ARG_ENABLE(havecustomelf,AS_HELP_STRING([--enable-havecustomelf],
+        [building with support for a custom ELF (default is NO)]),
+        [ AC_DEFINE([HAVE_CUSTOM_ELF],[1],
+           [Define 1 if need building with support for a custom ELF] )
+           [enable_havecustomelf="yes"]
+        ],
+        [enable_havecustomelf="no"])
 
 ### Default options with respect to host
 
@@ -643,6 +651,7 @@ echo "    Elf spelled........: ${struct_elf}"
 echo "    libelf.............: ${dwarf_with_libelf}"
 echo "    Windows path corr..: ${enable_windowspath}"
 echo "    Nonstandardprintf..: ${enable_nonstandardprintf}"
+echo "    Custom ELF.........: ${enable_havecustomelf}"
 echo "  dwarfdump............: always"
 echo "    elf64_getehdr......: ${have_getehdr}"
 echo "    Elf64_Rel (r_info).: ${have_elf64_rel}"

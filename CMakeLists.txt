@@ -81,7 +81,6 @@ check_include_file( "sys/elf_amd64.h" HAVE_SYS_ELF_AMD64_H)
 check_include_file( "sys/elf_sparc.h" HAVE_SYS_ELF_SPARC_H)
 check_include_file( "sys/ia64/elf.h"  HAVE_SYS_IA64_ELF_H)
 
-
 #  It's not really setting the location of libelfheader, 
 #  it is really #  either elf.h, or if that is missing 
 #  it is assuming  elf.h data is in the supplied libelf.
@@ -106,8 +105,7 @@ if (HAVE_LIBELF_H OR HAVE_LIBELF_LIBELF_H)
   set (CMAKE_REQUIRED_LIBRARIES)
 endif()
 
-option(libelf "Use libelf (default is YES)" TRUE)
-set(DWARF_WITH_LIBELF ${libelf} )
+option(DWARF_WITH_LIBELF "Use libelf (default is YES)" TRUE)
 message(STATUS "Building using libelf... ${DWARF_WITH_LIBELF}")
 if (DWARF_WITH_LIBELF AND 
     NOT HAVE_LIBELF_H AND 
@@ -257,7 +255,7 @@ check_c_source_compiles( [=[
 set(CMAKE_REQUIRED_LIBRARIES)
 if (HAVE_ZLIB) 
   # For linking in libz
-  set(dwfzlib "z")
+  set(DW_FZLIB "z")
 endif()
 
 check_c_source_compiles([=[
@@ -269,40 +267,34 @@ int main()
     return 0;
 }]=] HAVE_INTPTR_T)
 
-
-
-
 # libdwarf default-disabled shared
-option(shared "build shared library libdwarf.so and use it if present" FALSE)
-
-option(nonshared "build archive library libdwarf.a" TRUE)
+option(BUILD_SHARED "build shared library libdwarf.so and use it if present" FALSE)
+option(BUILD_NON_SHARED "build archive library libdwarf.a" TRUE)
 
 #  This adds compiler option -Wall (gcc compiler warnings)
 #  'set' here uses $< introducing what is called 
 #  a 'generator expression' in cmake documentation.
-option(wall "Add -Wall" FALSE)
-set(dwfwall $<$<BOOL:${wall}>:"-Wall -O0 -Wpointer-arith -Wmissing-declarations -Wmissing-prototypes -Wdeclaration-after-statement -Wextra -Wcomment -Wformat -Wpedantic -Wuninitialized -Wno-long-long -Wshadow -Werror">)
-if ( ${wall} )
-  message(STATUS "Compiler warning options... YES ${dwfwall}")
+option(WALL "Add -Wall" FALSE)
+set(DW_FWALL $<$<BOOL:${WALL}>:"-Wall -O0 -Wpointer-arith -Wmissing-declarations -Wmissing-prototypes -Wdeclaration-after-statement -Wextra -Wcomment -Wformat -Wpedantic -Wuninitialized -Wno-long-long -Wshadow -Werror">)
+if (WALL)
+  message(STATUS "Compiler warning options... YES ${DW_FWALL}")
 else()
   message(STATUS "Compiler warning options... NO")
 endif()
 
-option(nonstandardprintf "Use a special printf format for 64bit (default is NO)" FALSE)
-set(HAVE_NONSTANDARD_PRINTF_64_FORMAT ${nonstandardprintf} )
-message(STATUS "Checking enable nonstandardprintf... ${HAVE_NONSTANDARD_PRINTF_64_FORMAT}")
+option(HAVE_CUSTOM_ELF "Build with support for custom ELF (default is NO)" FALSE)
+message(STATUS "Building support for custom ELF... ${HAVE_CUSTOM_ELF}")
 
+option(HAVE_NONSTANDARD_PRINTF_64_FORMAT "Use a special printf format for 64bit (default is NO)" FALSE)
+message(STATUS "Checking enable non standard printf... ${HAVE_NONSTANDARD_PRINTF_64_FORMAT}")
 
-option(dodwarfgen "Build dwarfgen (default is NO)" FALSE)
-set(BUILD_DWARFGEN ${dodwarfgen} )
+option(BUILD_DWARFGEN "Build dwarfgen (default is NO)" FALSE)
 message(STATUS "Building dwarfgen    ... ${BUILD_DWARFGEN}")
 
-option(dodwarfexample "Build dwarfexample (default is NO)" FALSE)
-set(BUILD_DWARFEXAMPLE ${dodwarfexample} )
+option(BUILD_DWARFEXAMPLE "Build dwarfexample (default is NO)" FALSE)
 message(STATUS "Building dwarfexample... ${BUILD_DWARFEXAMPLE}")
 
-option(test "Do certain api tests (default is NO)" FALSE)
-set(DO_TESTING ${test} )
+option(DO_TESTING "Do certain api tests (default is NO)" FALSE)
 message(STATUS "Building api tests   ... ${DOTESTS}")
 ### end what was configure.cmake
 
@@ -310,12 +302,12 @@ message(STATUS "Building api tests   ... ${DOTESTS}")
 find_package(LibElf REQUIRED)
 list(APPEND CMAKE_REQUIRED_INCLUDES ${LIBELF_INCLUDE_DIRS})
 
-if(nonshared)
+if(BUILD_NON_SHARED)
 	set(DWARF_TARGETS dwarf-static)
 	set(DWARF_TYPES STATIC)
 	set(dwarf-target dwarf-static)
 endif()
-if(shared)
+if(BUILD_SHARED)
 	list(APPEND DWARF_TARGETS dwarf-shared)
 	list(APPEND DWARF_TYPES SHARED)
 	set(dwarf-target dwarf-shared)
