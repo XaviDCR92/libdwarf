@@ -23,22 +23,22 @@ For example:
     cmake /path/to/code
     make
 
-The above will build libdwarf (a static library, a libdwarf.a) and
-dwarfdump (linking to that static library).  If there is no
-libelf.h present during cmake/build then dwarfdump won't read
-archives or honor requests to print elf headers.
+The above will build libdwarf (a static library, a libdwarf.a)
+and dwarfdump (linking to that static library).  If there is
+no libelf.h present during cmake/build then dwarfdump won't
+read archives or honor requests to print elf headers.
 
 To show all the available cmake options we'll show the
 default build next:
 
     cmake -DDWARF_WITH_LIBELF=ON \
-        -DHAVE_CUSTOM_LIBELF=OFF \
-        -Dstatic=ON \
+        -DBUILD_NON_SHARED=ON \
         -DBUILD_SHARED=OFF \
         -DBUILD_DWARFGEN=OFF \
         -DBUILD_DWARFEXAMPLE=OFF \
         -DWALL=OFF \
         -DDO_TESTING=OFF\
+        -DHAVE_CUSTOM_LIBELF=OFF \
         -DHAVE_NONSTANDARD_PRINTF_64_FORMAT=OFF \
         -DHAVE_WINDOWS_PATH=OFF \
         -DHAVE_OLD_FRAME_CFA_COL=OFF \
@@ -47,12 +47,12 @@ default build next:
         /path/to/code
     make
 
-The options after -DHAVE_WINDOWS_PATH should not normally be used,
-they are for testing old features and not relevant
-to modern usage.
+Ignore the -DHAVE_CUSTOM_LIBELF line, that option is not
+intended for you :-) .
 
-The HAVE_NONSTANDARD_PRINTF_64_FORMAT and HAVE_WINDOWS_PATH options are
-MSWindows related and should not be used with Unix/Linux.
+The options after -DHAVE_WINDOWS_PATH should not normally be
+used, they are for testing old features and not relevant to
+modern usage.
 
 The short form, doing the same as the default:
 
@@ -83,6 +83,12 @@ a few internal interfaces, not dwarfdump or libdwarf):
     make
     ctest -N
     ctest -R self
+
+In case one wishes to see the exact compilation/linking options
+passed at compile time use
+    make VERBOSE=1
+instead of plain
+    make
 
 On Unix/Linux cmake 'make install' will install to
 "/usr/local".  To set another install target set

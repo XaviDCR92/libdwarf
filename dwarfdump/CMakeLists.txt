@@ -1,6 +1,4 @@
 
-configure_file(config.h.in.cmake config.h)
-
 set_source_group(SOURCES "Source Files" addrmap.c 
         checkutil.c dwarfdump.c dwconf.c helpertree.c 
 	glflags.c command_options.c compiler_info.c
@@ -18,7 +16,8 @@ set_source_group(SOURCES "Source Files" addrmap.c
         true_section_name.c uri.c dwgetopt.c makename.c 
         naming.c common.c esb.c dwarf_tsearchbal.c)
 	
-set_source_group(HEADERS "Header Files" checkutil.h common.h dwconf.h
+set_source_group(HEADERS "Header Files" 
+  addrmap.h checkutil.h common.h dwconf.h
   command_options.h compiler_info.h
   dwarf_names.h
   dwconf_using_functions.h esb_using_functions.h
@@ -29,17 +28,17 @@ set_source_group(HEADERS "Header Files" checkutil.h common.h dwconf.h
   print_reloc.h print_reloc_decls.h section_bitmaps.h uri.h)
 
 set_source_group(CONFIGURATION_FILES "Configuration Files"
-  config.h.in.cmake 
-  ${CMAKE_CURRENT_BINARY_DIR}/config.h)
+  ${CMAKE_SOURCE_DIR}/config.h.in.cmake
+  ${CMAKE_BINARY_DIR}/config.h)
 	
 add_executable(dwarfdump ${SOURCES} ${HEADERS} ${CONFIGURATION_FILES})
 
 set_folder(dwarfdump dwarfdump)
 
-target_compile_options(dwarfdump PRIVATE ${DW_FWALL})
 
 target_compile_definitions(dwarfdump PRIVATE 
     "CONFPREFIX=${CMAKE_INSTALL_PREFIX}/lib")
+target_compile_options(dwarfdump PRIVATE ${DW_FWALL})
 
 target_link_libraries(dwarfdump PRIVATE ${dwarf-target} ${DW_FZLIB}) 
 

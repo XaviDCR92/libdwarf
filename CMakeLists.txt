@@ -3,6 +3,7 @@ cmake_minimum_required(VERSION 3.2)
 project(libdwarf C CXX)
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
+include_directories( ${CMAKE_BINARY_DIR} )
 
 # used to compile on MSVC upto 2013 where snprintf is not available
 macro(msvc_posix target)
@@ -47,7 +48,7 @@ include(CheckCSourceRuns)
 include(CheckSymbolExists)
 
 set(PACKAGE_NAME "libdwarf" )
-set(PACKAGE_VERSION "20190507"  )
+set(PACKAGE_VERSION "20190520"  )
 set(VERSION ${PACKAGE_VERSION} )
 set(PACKAGE_STRING "\"${PACKAGE_NAME} ${VERSION}\"")
 string(REGEX REPLACE "[\"]" "" tarname1 "${PACKAGE_STRING}" )
@@ -66,7 +67,7 @@ check_include_file( "string.h"        HAVE_STRING_H   )
 check_include_file( "memory.h"        HAVE_MEMORY_H   ) 
 check_include_file( "strings.h"       HAVE_STRINGS_H  ) 
 check_include_file( "inttypes.h"      HAVE_INTTYPES_H ) 
-check_include_file( "stdint.h"        HAVE_STDINT_T   )
+check_include_file( "stdint.h"        HAVE_STDINT_H   )
 check_include_file( "unistd.h"        HAVE_UNISTD_H   )
 check_include_file( "sgidefs.h"       HAVE_SGIDEFS_H  )
 check_include_file( "stdafx.h"        HAVE_STDAFX_H   )
@@ -76,10 +77,10 @@ check_include_file( "libelf.h"        HAVE_LIBELF_H   )
 check_include_file( "libelf/libelf.h" HAVE_LIBELF_LIBELF_H) 
 check_include_file( "alloca.h"        HAVE_ALLOCA_H   )
 check_include_file( "elfaccess.h"     HAVE_ELFACCESS_H)
-check_include_file( "sys/elf_386.h"   HAVE_ELF_386_H  )
+check_include_file( "sys/elf_386.h"   HAVE_SYS_ELF_386_H  )
 check_include_file( "sys/elf_amd64.h" HAVE_SYS_ELF_AMD64_H)
 check_include_file( "sys/elf_sparc.h" HAVE_SYS_ELF_SPARC_H)
-check_include_file( "sys/ia64/elf.h"  HAVE_SYS_IA64_ELF_H)
+check_include_file( "sys/ia64/elf.h"  HAVE_SYS_IA64_ELF_H )
 
 #  It's not really setting the location of libelfheader, 
 #  it is really #  either elf.h, or if that is missing 
@@ -94,14 +95,18 @@ endif()
 
 if(HAVE_LIBELF_H)
     set(JUST_LIBELF "<libelf.h>")
+    set(PLAIN_JUST_LIBELF "libelf.h")
 elseif(HAVE_LIBELF_LIBELF_H)
     set(JUST_LIBELF "<libelf/libelf.h>")
+    set(PLAIN_JUST_LIBELF "libelf/libelf.h")
 endif()
 
 if (HAVE_LIBELF_H OR HAVE_LIBELF_LIBELF_H)
   set (CMAKE_REQUIRED_LIBRARIES elf)
-  check_symbol_exists( elf64_getehdr ${JUST_LIBELF} HAVE_ELF64_GETEHDR)
-  check_symbol_exists( elf64_getshdr ${JUST_LIBELF} HAVE_ELF64_GETSHDR)
+  message(STATUS "libelf header ${PLAIN_JUST_LIBELF} checking for elf64_getehdr")
+  check_symbol_exists( elf64_getehdr ${PLAIN_JUST_LIBELF} HAVE_ELF64_GETEHDR)
+  message(STATUS "libelf header ${PLAIN_JUST_LIBELF} checking for elf64_getshdr")
+  check_symbol_exists( elf64_getshdr ${PLAIN_JUST_LIBELF} HAVE_ELF64_GETSHDR)
   set (CMAKE_REQUIRED_LIBRARIES)
 endif()
 
@@ -267,6 +272,8 @@ int main()
     return 0;
 }]=] HAVE_INTPTR_T)
 
+message(STATUS "CMAKE_SIZEOF_VOID_P ... " ${CMAKE_SIZEOF_VOID_P} )
+
 # libdwarf default-disabled shared
 option(BUILD_SHARED "build shared library libdwarf.so and use it if present" FALSE)
 option(BUILD_NON_SHARED "build archive library libdwarf.a" TRUE)
@@ -274,11 +281,14 @@ option(BUILD_NON_SHARED "build archive library libdwarf.a" TRUE)
 #  This adds compiler option -Wall (gcc compiler warnings)
 #  'set' here uses $< introducing what is called 
 #  a 'generator expression' in cmake documentation.
+#  DO NOT put quotes in the generator expression.
 option(WALL "Add -Wall" FALSE)
-set(DW_FWALL $<$<BOOL:${WALL}>:"-Wall -O0 -Wpointer-arith -Wmissing-declarations -Wmissing-prototypes -Wdeclaration-after-statement -Wextra -Wcomment -Wformat -Wpedantic -Wuninitialized -Wno-long-long -Wshadow -Werror">)
+
 if (WALL)
+  set(DW_FWALL -Wall -O0 -Wpointer-arith -Wmissing-declarations -Wmissing-prototypes -Wdeclaration-after-statement -Wextra -Wcomment -Wformat -Wpedantic -Wuninitialized -Wno-long-long -Wshadow -Werror )
   message(STATUS "Compiler warning options... YES ${DW_FWALL}")
 else()
+  unset(DW_FWALL )
   message(STATUS "Compiler warning options... NO")
 endif()
 
@@ -298,9 +308,37 @@ option(DO_TESTING "Do certain api tests (default is NO)" FALSE)
 message(STATUS "Building api tests   ... ${DOTESTS}")
 ### end what was configure.cmake
 
+#  This changes the gennames option from -s  to -t
+#  though in  2019 builds we no longer run gennames.
+option(NAMES_TABLE "string functions implemented as binary search (default is with C switch)" TRUE)
+if(NAMES_TABLE)
+    set(dwarf_namestable "-s")
+else()
+    set(dwarf_namestable "-t")
+endif()
+    
+option(HAVE_WINDOWS_PATH "Detect certain Windows paths as full paths (default is NO)" FALSE)
+message(STATUS "Checking enable windows path... ${HAVE_WINDOWS_PATH}")
+    
+option(HAVE_OLD_FRAME_CFA_COL "Use HAVE_OLD_FRAME_CFA_COL (default is to use new DW_FRAME_CFA_COL3)" FALSE)
+message(STATUS "Checking enable old frame columns... ${HAVE_OLD_FRAME_CFA_COL}")
+
+#  See pro_init(), HAVE_DWARF2_99_EXTENSION also generates
+#  32bit offset dwarf unless DW_DLC_OFFSET_SIZE_64 flag passed to
+#  pro_init.
+option(HAVE_SGI_IRIX_OFFSETS "Force producer to SGI IRIX offset dwarf" FALSE)
+message(STATUS "Checking  producer generates SGI IRIX output... ${HAVE_SGI_IRIX_OFFSETS}")
+
+option(HAVE_STRICT_DWARF2_32BIT_OFFSET "Force producer to generate only DWARF format 32bit" FALSE)
+set(HAVE_DWARF2_99_EXTENSION NOT ${HAVE_STRICT_DWARF2_32BIT_OFFSET})
+message(STATUS "Checking producer generates only 32bit... ${HAVE_STRICT_DWARF2_32BIT_OFFSET}")
+
+
 # This references cmake/FindLibElf.cmake. See cmake documentation.
 find_package(LibElf REQUIRED)
 list(APPEND CMAKE_REQUIRED_INCLUDES ${LIBELF_INCLUDE_DIRS})
+
+configure_file(config.h.in.cmake config.h)
 
 if(BUILD_NON_SHARED)
 	set(DWARF_TARGETS dwarf-static)

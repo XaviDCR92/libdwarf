@@ -1,139 +1,139 @@
 /* config.h.in.  Generated from configure.ac by autoheader.  */
 
 /* Define if building universal (internal helper macro) */
-#undef AC_APPLE_UNIVERSAL_BUILD
+#cmakedefine AC_APPLE_UNIVERSAL_BUILD 1
 
 /* Define to one of `_getb67', `GETB67', `getb67' for Cray-2 and Cray-YMP
    systems. This function is required for `alloca.c' support on those systems.
    */
-#undef CRAY_STACKSEG_END
+#cmakedefine CRAY_STACKSEG_END 1
 
 /* Define to 1 if using `alloca.c'. */
-#undef C_ALLOCA
+#cmakedefine C_ALLOCA 1
 
-/* Define to 1 as we are building with libelf. */
-#undef DWARF_WITH_LIBELF
+/* Set to 1 as we are building with libelf */
+#cmakedefine DWARF_WITH_LIBELF
 
 /* Define to 1 if you have `alloca', as a function or macro. */
-#undef HAVE_ALLOCA
+#cmakedefine HAVE_ALLOCA 1
 
 /* Define to 1 if you have <alloca.h> and it should be used (not on Ultrix).
    */
-#undef HAVE_ALLOCA_H
+#cmakedefine HAVE_ALLOCA_H 1
 
 /* Define 1 if including a custom libelf library */
-#undef HAVE_CUSTOM_LIBELF
+#cmakedefine HAVE_CUSTOM_LIBELF 1
 
 /* Define to 1 if you have the <dlfcn.h> header file. */
-#undef HAVE_DLFCN_H
+#cmakedefine HAVE_DLFCN_H 1
 
 /* Set to 1 if the elf64_getehdr function is in libelf. */
-#undef HAVE_ELF64_GETEHDR
+#cmakedefine HAVE_ELF64_GETEHDR 1
 
 /* Set to 1 if the elf64_getshdr function is in libelf. */
-#undef HAVE_ELF64_GETSHDR
+#cmakedefine HAVE_ELF64_GETSHDR 1
 
 /* Set to 1 if Elf64_Rela defined in elf.h. */
-#undef HAVE_ELF64_RELA
+#cmakedefine HAVE_ELF64_RELA 1
 
 /* Set to 1 if Elf64_Rel structure as r_info field. */
-#undef HAVE_ELF64_R_INFO
+#cmakedefine HAVE_ELF64_R_INFO 1
 
 /* Set to 1 if Elf64_Sym defined in elf.h. */
-#undef HAVE_ELF64_SYM
+#cmakedefine HAVE_ELF64_SYM 1
 
 /* Define to 1 if you have the <elfaccess.h> header file. */
-#undef HAVE_ELFACCESS_H
+#cmakedefine HAVE_ELFACCESS_H 1
 
 /* Define to 1 if you have the <elf.h> header file. */
-#undef HAVE_ELF_H
+#cmakedefine HAVE_ELF_H 1
 
 /* Define to 1 if you have the <inttypes.h> header file. */
-#undef HAVE_INTTYPES_H
+#cmakedefine HAVE_INTTYPES_H 1
 
 /* Define to 1 if you have the <libelf.h> header file. */
-#undef HAVE_LIBELF_H
+#cmakedefine HAVE_LIBELF_H 1
 
 /* Define to 1 if you have the <libelf/libelf.h> header file. */
-#undef HAVE_LIBELF_LIBELF_H
+#cmakedefine HAVE_LIBELF_LIBELF_H 1
 
 /* Define to 1 if you have the <malloc.h> header file. */
-#undef HAVE_MALLOC_H
+#cmakedefine HAVE_MALLOC_H 1
 
 /* Define to 1 if you have the <memory.h> header file. */
-#undef HAVE_MEMORY_H
+#cmakedefine HAVE_MEMORY_H 1
 
 /* Define 1 if need nonstandard printf format for 64bit */
-#undef HAVE_NONSTANDARD_PRINTF_64_FORMAT
+#cmakedefine HAVE_NONSTANDARD_PRINTF_64_FORMAT 1
 
 /* Set to 1 if old frame columns are enabled. */
-#undef HAVE_OLD_FRAME_CFA_COL
+#cmakedefine HAVE_OLD_FRAME_CFA_COL 1
 
 /* Set to 1 if regex is usable. */
-#undef HAVE_REGEX
+#cmakedefine HAVE_REGEX 1
 
 /* Define to 1 if you have the <regex.h> header file. */
-#undef HAVE_REGEX_H
+#cmakedefine HAVE_REGEX_H 1
 
 /* Define to 1 if you have the <sgidefs.h> header file. */
-#undef HAVE_SGIDEFS_H
+#cmakedefine HAVE_SGIDEFS_H 1
 
 /* Define to 1 if you have the <stdint.h> header file. */
-#undef HAVE_STDINT_H
+#cmakedefine HAVE_STDINT_H 1
 
 /* Define to 1 if you have the <stdlib.h> header file. */
-#undef HAVE_STDLIB_H
+#cmakedefine HAVE_STDLIB_H 1
 
 /* Define to 1 if you have the <strings.h> header file. */
-#undef HAVE_STRINGS_H
+#cmakedefine HAVE_STRINGS_H 1
 
 /* Define to 1 if you have the <string.h> header file. */
-#undef HAVE_STRING_H
+#cmakedefine HAVE_STRING_H 1
 
 /* Define to 1 if you have the <sys/elf_386.h> header file. */
-#undef HAVE_SYS_ELF_386_H
+#cmakedefine HAVE_SYS_ELF_386_H 1
 
 /* Define to 1 if you have the <sys/elf_amd64.h> header file. */
-#undef HAVE_SYS_ELF_AMD64_H
+#cmakedefine HAVE_SYS_ELF_AMD64_H 1
 
 /* Define to 1 if you have the <sys/elf_SPARC.h> header file. */
-#undef HAVE_SYS_ELF_SPARC_H
+#cmakedefine HAVE_SYS_ELF_SPARC_H 1
 
 /* Define to 1 if you have the <sys/ia64/elf.h> header file. */
-#undef HAVE_SYS_IA64_ELF_H
+#cmakedefine HAVE_SYS_IA64_ELF_H 1
 
 /* Define to 1 if you have the <sys/stat.h> header file. */
-#undef HAVE_SYS_STAT_H
+#cmakedefine HAVE_SYS_STAT_H 1
 
 /* Define to 1 if you have the <sys/types.h> header file. */
-#undef HAVE_SYS_TYPES_H
+#cmakedefine HAVE_SYS_TYPES_H 1
 
 /* Define to 1 if the system has the type `uintptr_t'. */
-#undef HAVE_UINTPTR_T
+#cmakedefine HAVE_UINTPTR_T 1
 
 /* Define to 1 if you have the <unistd.h> header file. */
-#undef HAVE_UNISTD_H
+#cmakedefine HAVE_UNISTD_H 1
 
 /* Set to 1 if __attribute__ ((unused)) is available. */
-#undef HAVE_UNUSED_ATTRIBUTE
+#cmakedefine HAVE_UNUSED_ATTRIBUTE
 
 /* Define to 1 if you have the <windows.h> header file. */
-#undef HAVE_WINDOWS_H
+#cmakedefine HAVE_WINDOWS_H
 
 /* Define 1 if want to allow Windows full path detection */
-#undef HAVE_WINDOWS_PATH
+#cmakedefine HAVE_WINDOWS_PATH
 
 /* Set to 1 if zlib decompression is available. */
-#undef HAVE_ZLIB
+#cmakedefine HAVE_ZLIB
 
 /* Define to 1 if you have the <zlib.h> header file. */
-#undef HAVE_ZLIB_H
+#cmakedefine HAVE_ZLIB_H
 
 /* Define to the sub-directory where libtool stores uninstalled libraries. */
 #undef LT_OBJDIR
 
 /* Define to 1 if your C compiler doesn't accept -c and -o together. */
-#undef NO_MINUS_C_MINUS_O
+#cmakedefine NO_MINUS_C_MINUS_O 1
 
 /* Name of package */
 #undef PACKAGE
@@ -174,7 +174,7 @@
    significant byte first (like Motorola and SPARC, unlike Intel). */
 #if defined AC_APPLE_UNIVERSAL_BUILD
 # if defined __BIG_ENDIAN__
-#  define WORDS_BIGENDIAN 1
+#  cmakedefine WORDS_BIGENDIAN 1
 # endif
 #else
 # ifndef WORDS_BIGENDIAN
