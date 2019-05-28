@@ -1,3 +1,28 @@
+2019-05-26 David Anderson
+     * addrmap.c, makename.c: Include stdint.h for tsearch.
+     * checkutil.c: Delete include inttypes.h. Fix
+       trailing whitespace, reformat comments for
+       line length.
+     * dwarf_tsearch.h: Make include idempotent with
+       #ifndef DWARF_TSEARCH_H.
+       DW_TSHASHTYPE is now uintptr_t.
+       Turn double-blank-lines to a single blank line.
+       Use DW_TSHASHTYPE.
+     * dwarf_tsearchbal.c:  Delete include inttypes.h. Fix
+       trailing whitespace.  Define DW_PR_DUx  and use
+       DW_PR_DUx so printf formats properly.
+       Remove const from keyptr: it's really wrong as
+       the user may actually free what it points to.
+       Use DW_TSHASHTYPE.  Correctly arrange const
+       in casts.
+     * helpertree.c,macrocheck.c,print_die.c: Include 
+       stdint.h for tsearch.
+2019-05-24 David Anderson
+     * checkutil.c: Change %lx to instead use "%" DW_PR_DUx
+       so it adapts without compiler warnings.
+2019-05-24 David Anderson
+     * Makefile.am: Delete mention of config.h.in.cmake.
+     * Makefile.in: Regenerate.
 2019-05-20 David Anderson
      * dwarf_tsearchbal.c: Add windows-only #define intended
        to suppress warnings from particular compilers.

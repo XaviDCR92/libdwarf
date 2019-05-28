@@ -68,12 +68,18 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdio.h>  /* for printf() */
 #include <inttypes.h> /* for PRIxPTR macros */
 #ifdef HAVE_STDINT_H
-#include <stdint.h> /* For uintptr_t */
+#include <stdint.h> /* for uintptr_t */
 #endif /* HAVE_STDINT_H */
-#ifdef HAVE_INTTYPES_H
-#include <inttypes.h> /* For uintptr_t */
-#endif /* HAVE_INTTYPES_H */
-
+/*  This must match the types and print options
+    found in libdwarf.h.  */
+#define Dwarf_Unsigned unsigned long long
+#if defined(_WIN32) && defined(HAVE_NONSTANDARD_PRINTF_64_FORMAT)
+#define DW_PR_DUx "I64x"
+#define DW_PR_DUu "I64u"
+#else
+#define DW_PR_DUx "llx"
+#define DW_PR_DUu "llu"
+#endif /* DW_PR defines */
 #include "dwarf_tsearch.h"
 
 /*  A table of primes used to size  and resize the hash table.
@@ -182,7 +188,7 @@ dwarf_initialize_search_hash( void **treeptr,
     DW_TSHASHTYPE(*hashfunc)(const void *key),
     unsigned long size_estimate)
 {
-    unsigned long prime_to_use = 0;
+    unsigned long prime_to_use = primes[0];
     unsigned entry_index = 0;
     unsigned k = 0;
     struct hs_base *base = 0;
@@ -231,7 +237,8 @@ dwarf_initialize_search_hash( void **treeptr,
 }
 
 
-/* For debugging */
+/*  We don't really care whether hashpos or chainpos
+    are 32 or 64 bits. 32 suffices. */
 static void print_entry(struct ts_entry *t,const char *descr,
     char *(* keyprint)(const void *),
     unsigned long hashpos,
@@ -243,10 +250,12 @@ static void print_entry(struct ts_entry *t,const char *descr,
     }
     v = keyprint(t->keyptr);
     printf(
-        "[%4lu.%02lu] 0x%08" PRIxPTR " <keyptr 0x%08" PRIxPTR "> <key %s> %s\n",
+        "[%4lu.%02lu] 0x%08" DW_PR_DUx
+        " <keyptr 0x%08" DW_PR_DUx
+        "> <key %s> %s\n",
         hashpos,chainpos,
-        (uintptr_t)t,
-        (uintptr_t)t->keyptr,
+        (Dwarf_Unsigned)(uintptr_t)t,
+        (Dwarf_Unsigned)(uintptr_t)t->keyptr,
         v,
         descr);
 }
@@ -263,13 +272,14 @@ dumptree_inner(const struct hs_base *h,
     unsigned long hashused = 0;
     unsigned long maxchainlength = 0;
     unsigned long chainsgt1 = 0;
-    printf(
-        "dumptree head ptr : "
-        "0x%08" PRIxPTR " size %lu entries %lu allowed %lu %s\n",
-        (uintptr_t)h,
-        (unsigned long)h->tablesize_,
-        (unsigned long)h->record_count_,
-        (unsigned long)h->allowed_fill_,
+    printf("dumptree head ptr : 0x%08" DW_PR_DUx
+        " size %"    DW_PR_DUu
+        " entries %" DW_PR_DUu
+        " allowed %" DW_PR_DUu " %s\n",
+        (Dwarf_Unsigned)(uintptr_t)h,
+        (Dwarf_Unsigned)h->tablesize_,
+        (Dwarf_Unsigned)h->record_count_,
+        (Dwarf_Unsigned)h->allowed_fill_,
         descr);
     for(  ; ix < tsize; ix++,p++) {
         unsigned long chainlength = 0;

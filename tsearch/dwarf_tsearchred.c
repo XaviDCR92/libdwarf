@@ -1,4 +1,4 @@
-/* Copyright (c) 2013-2014, David Anderson
+/* Copyright (c) 2013-2019, David Anderson
 All rights reserved.
 
 Redistribution and use in source and binary forms, with
@@ -80,11 +80,17 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 #include "stdlib.h" /* for free() */
 #include <stdio.h> /* for printf */
-
-#if defined(_WIN32) && defined(HAVE_INTTYPES_H)
-#include <inttypes.h> /* for PRIxPTR macros */
-#endif  /* _WIN32 && HAVE_INTTYPES_H */
-
+#ifdef HAVE_STDINT_H
+#include <stdint.h> /* for uintptr_t */
+#endif /* HAVE_STDINT_H */
+/*  This must match the types and print options
+    found in libdwarf.h.  */
+#define Dwarf_Unsigned unsigned long long
+#if defined(_WIN32) && defined(HAVE_NONSTANDARD_PRINTF_64_FORMAT)
+#define DW_PR_DUx "I64x"
+#else
+#define DW_PR_DUx "llx"
+#endif /* DW_PR defines */
 #include "dwarf_tsearch.h"
 
 #define TRUE 1
@@ -121,8 +127,8 @@ struct ts_entry {
 /* Not needed for this set of functions. */
 void *
 dwarf_initialize_search_hash( void **treeptr,
-    DW_TSHASHTYPE (*hashfunc)(const void *key),
-    unsigned long size_estimate)
+    UNUSEDARG DW_TSHASHTYPE (  * hashfunc)(const void *key),
+    UNUSEDARG unsigned long size_estimate)
 {
     return *treeptr;
 }
@@ -179,7 +185,8 @@ v_keyprint(const void *l)
     unsigned long v = (unsigned long)l;
     static char buf [50];
 
-    snprintf(buf,sizeof(buf),"0x%08lx",v);
+    snprintf(buf,sizeof(buf),"0x%08" DW_PR_DUx,
+        (Dwarf_Unsigned)(uintptr_t)v);
     return buf;
 }
 #endif /* DEBUG ONLY */
@@ -206,7 +213,7 @@ dumptree_inner(const struct ts_entry *t,
     char *(* keyprint)(const void *),
     const char *descr, int level)
 {
-    char *v = "";
+    const char *v = "";
     if(!t) {
         return;
     }
@@ -215,17 +222,17 @@ dumptree_inner(const struct ts_entry *t,
         v = keyprint(t->keyptr);
     }
     printlevel(level);
-    printf("0x%08" PRIxPTR " <keyptr 0x%08" PRIxPTR "> "
-           "<%s %s> <2-node %d red %u> "
-           "<l 0x%08" PRIxPTR "> <r 0x%08" PRIxPTR "> "
-           "%s\n",
-        (uintptr_t)t,
-        (uintptr_t)t->keyptr,
+    printf("0x%08" DW_PR_DUx " <keyptr 0x%08" DW_PR_DUx
+        "> <%s %s> <2-node %d red %u> <l 0x%08" DW_PR_DUx
+        "> <r 0x%08" DW_PR_DUx "> %s\n",
+        (Dwarf_Unsigned)(uintptr_t)t,
+        (Dwarf_Unsigned)(uintptr_t)t->keyptr,
         t->keyptr?"key ":"null",
         v,
         is_twonode(t),
         t->color,
-        (uintptr_t)t->llink,(uintptr_t)t->rlink,
+        (Dwarf_Unsigned)(uintptr_t)t->llink,
+        (Dwarf_Unsigned)(uintptr_t)t->rlink,
         descr);
     dumptree_inner(t->llink,keyprint,"left ",level+1);
 }
@@ -247,8 +254,10 @@ dwarf_tdump(const void*rootin,
         printf("dwarf_tdump empty tree : %s\n",msg);
         return;
     }
-    printf("dwarf_tdump tree head : 0x%08" PRIxPTR " %s\n",(uintptr_t)head,msg);
-    printf("dwarf_tdump tree root : 0x%08" PRIxPTR " %s\n",(uintptr_t)root,msg);
+    printf("dwarf_tdump tree head : 0x%08" DW_PR_DUx " %s\n",
+        (Dwarf_Unsigned)(uintptr_t)head,msg);
+    printf("dwarf_tdump tree root : 0x%08" DW_PR_DUx " %s\n",
+        (Dwarf_Unsigned)(uintptr_t)root,msg);
     dumptree_inner(root,keyprint,"top",0);
     fflush(stdout);
 }
@@ -286,11 +295,13 @@ check_or_set(struct ts_entry*t,
     if(balcount->blackcount_ == linkcount) {
         return;
     }
-    printf("%s Black link count does not match: node 0x%lx %d vs 0x%lx %d\n",
+    printf("%s Black link count does not match: node 0x%" DW_PR_DUx
+        " %d vs 0x%" DW_PR_DUx
+        " %d\n",
         prefix,
-        (unsigned long)t,
+        Dwarf_Unsigned(uintptr_t)t,
         linkcount,
-        (unsigned long)balcount->firstcount_,
+        (Dwarf_Unsignedbalcount->firstcount_,
         balcount->blackcount_);
     ++(*errcount);
 }
@@ -316,13 +327,18 @@ dwarf_check_balance_inner(struct ts_entry *t,
     }
     redcount = isred(t) + isred(t->llink) + isred(t->rlink);
     if (redcount > 1) {
-        printf("%s red count error error at node 0x%lx: %d\n",
-            prefix,(unsigned long)t,redcount);
+        printf("%s red count error error at node 0x%" DW_PR_DUx
+            ": %d\n",
+            prefix,
+            (Dwarf_Unsigned)(uintptr_t)t,
+            redcount);
         (*founderror)++;
     }
     if(isred(t->rlink)) {
-        printf("%s red right link an error at node 0x%lx\n",
-            prefix,(unsigned long)t);
+        printf("%s red right link an error at node 0x%" DW_PR_DUx
+        "\n",
+            prefix,
+            (Dwarf_Unsigned)(uintptr_t)t)
         (*founderror)++;
     }
     if(t->llink) {
@@ -699,7 +715,8 @@ tdelete_inner(const void *key,
         kc = compar(key,h->keyptr);
         if (!kc && !h->rlink) {
             struct ts_entry *l = h->llink;
-            /*  This is a case where h is deleted (it matches our key value)
+            /*  This is a case where h is deleted
+                (it matches our key value)
                 and no rlink means it is end of chain at right,
                 so it is replaced with left (corrected
                 by davea). */

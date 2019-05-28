@@ -1,4 +1,4 @@
-/* Copyright (c) 2013-2017, David Anderson
+/* Copyright (c) 2013-2019, David Anderson
 All rights reserved.
 
 Redistribution and use in source and binary forms, with
@@ -30,7 +30,6 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-
 /*  The interfaces follow tsearch (See the Single
     Unix Specification) but the implementation is
     written without reference to the source of any
@@ -55,7 +54,9 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-
+#ifdef _WIN32
+#define _CRT_SECURE_NO_WARNINGS
+#endif /* _WIN32 */
 
 #include "config.h"
 #ifdef HAVE_UNUSED_ATTRIBUTE
@@ -64,11 +65,19 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define  UNUSEDARG
 #endif
 #include "stdlib.h" /* for free() */
+#ifdef HAVE_STDINT_H
+#include <stdint.h> /* For uintptr_t */
+#endif /* HAVE_STDINT_H */
 #include <stdio.h> /* for printf */
 
-#if defined(_WIN32) && defined(HAVE_INTTYPES_H)
-#include <inttypes.h> /* for PRIxPTR macros */
-#endif  /* _WIN32 && HAVE_INTTYPES_H */
+/*  This must match the types and print options
+    found in libdwarf.h.  */
+#define Dwarf_Unsigned unsigned long long
+#if defined(_WIN32) && defined(HAVE_NONSTANDARD_PRINTF_64_FORMAT)
+#define DW_PR_DUx "I64x"
+#else
+#define DW_PR_DUx "llx"
+#endif /* DW_PR defines */
 
 #include "dwarf_tsearch.h"
 
@@ -91,8 +100,9 @@ void dwarf_check_balance(struct ts_entry *head,int finalprefix);
 struct ts_entry {
     /*  Keyptr points to a pointer to a record the user saved, the
         user record contains the user's key itself
-        and perhaps more.  */
-    const void *keyptr;
+        and perhaps more. We will request free,
+        so const void * is not quite right.  */
+    void *keyptr;
     int         balance; /* Knuth 6.2.3 algorithm A */
     struct ts_entry * llink;
     struct ts_entry * rlink;
@@ -141,7 +151,7 @@ tdump_inner(struct ts_entry *t,
     char *(keyprint)(const void *),
     const char *descr, int level)
 {
-    char * keyv = "";
+    const char * keyv = "";
     if(!t) {
         return;
     }
@@ -151,16 +161,17 @@ tdump_inner(struct ts_entry *t,
     if(t->keyptr) {
         keyv = keyprint(t->keyptr);
     }
-    printf("0x%08" PRIxPTR " <keyptr 0x%08" PRIxPTR "> "
-           "<%s %s> <bal %3d> "
-           "<l 0x%08" PRIxPTR "> <r 0x%08" PRIxPTR "> "
-           "%s\n",
-        (uintptr_t)t,
-        (uintptr_t)t->keyptr,
+    printf("0x%08" DW_PR_DUx " <keyptr 0x%08" DW_PR_DUx "> "
+        "<%s %s> <bal %3d> "
+        "<l 0x%08" DW_PR_DUx "> <r 0x%08" DW_PR_DUx "> "
+        "%s\n",
+        (Dwarf_Unsigned)(uintptr_t)t,
+        (Dwarf_Unsigned)(uintptr_t)t->keyptr,
         t->keyptr?"key ":"null",
         keyv,
         t->balance,
-        (uintptr_t)t->llink,(uintptr_t)t->rlink,
+        (Dwarf_Unsigned)(uintptr_t)t->llink,
+        (Dwarf_Unsigned)(uintptr_t)t->rlink,
         descr);
     tdump_inner(t->llink,keyprint,"left ",level+1);
 }
@@ -185,8 +196,11 @@ dwarf_check_balance_inner(struct ts_entry *t,int level,int maxdepth,
     }
     if(!t->llink && !t->rlink) {
         if (t->balance != 0) {
-            printf("%s: Balance at 0x%lx should be 0 is %d.\n",
-                prefix,(unsigned long)t,t->balance);
+            printf("%s: Balance at 0x%" DW_PR_DUx
+                " should be 0 is %d.\n",
+                prefix,
+                (Dwarf_Unsigned)(uintptr_t)t,
+                t->balance);
             (*founderror)++;
         }
         return 1;
@@ -196,39 +210,57 @@ dwarf_check_balance_inner(struct ts_entry *t,int level,int maxdepth,
     r = dwarf_check_balance_inner(t->rlink,level+1,maxdepth,
         founderror,prefix);
     if (l ==r && t->balance != 0) {
-        printf("%s Balance at 0x%lx d should be 0 is %d.\n",
-            prefix,(unsigned long)t,t->balance);
+        printf("%s Balance at 0x%" DW_PR_DUx
+            " d should be 0 is %d.\n",
+            prefix,
+            (Dwarf_Unsigned)(uintptr_t)t,
+            t->balance);
         (*founderror)++;
         return l+1;
     }
     if(l > r) {
         if(  (l-r) != 1) {
-            printf("%s depth mismatch at 0x%lx  l %d r %d.\n",
-                prefix,(unsigned long)t,l,r);
+            printf("%s depth mismatch at 0x%" DW_PR_DUx
+                "  l %d r %d.\n",
+                prefix,
+                (Dwarf_Unsigned)(uintptr_t)t,
+                l,r);
             (*founderror)++;
         }
         if (t->balance != -1) {
-            printf("%s Balance at 0x%lx  should be -1 is %d.\n",
-                prefix,(unsigned long)t,t->balance);
+            printf("%s Balance at 0x%" DW_PR_DUx
+                " should be -1 is %d.\n",
+                prefix,
+                (Dwarf_Unsigned)(uintptr_t)t,
+                t->balance);
             (*founderror)++;
         }
         return l+1;
     }
     if(r != l) {
         if(  (r-l) != 1) {
-            printf("%s depth mismatch at 0x%lx r %d l %d.\n",
-                prefix,(unsigned long)t,r,l);
+            printf("%s depth mismatch at 0x%" DW_PR_DUx
+                " r %d l %d.\n",
+                prefix,
+                (Dwarf_Unsigned)(uintptr_t)t,
+                r,l);
             (*founderror)++;
         }
         if (t->balance != 1) {
-            printf("%s Balance at 0x%lx should be 1 is %d.\n",
-                prefix,(unsigned long)t,t->balance);
+            printf("%s Balance at 0x%" DW_PR_DUx
+                " should be 1 is %d.\n",
+                prefix,
+                (Dwarf_Unsigned)(uintptr_t)t,
+                t->balance);
             (*founderror)++;
         }
     } else {
         if (t->balance != 0) {
-            printf("%s Balance at 0x%lx should be 0 is %d.\n",
-                prefix,(unsigned long)t,t->balance);
+            printf("%s Balance at 0x%" DW_PR_DUx
+                " should be 0 is %d.\n",
+                prefix,
+                (Dwarf_Unsigned)(uintptr_t)t,
+                t->balance);
             (*founderror)++;
         }
     }
@@ -268,7 +300,8 @@ dwarf_check_balance(struct ts_entry *head,int finalprefix)
     if (depth != headdepth) {
         printf("%s Head node says depth %lu, it is really %d\n",
             prefix,
-            (unsigned long)headdepth,depth);
+            (unsigned long)headdepth,
+            depth);
         ++errcount;
     }
     if(errcount) {
@@ -284,7 +317,7 @@ dwarf_tdump(const void*headp_in,
     char *(*keyprint)(const void *),
     const char *msg)
 {
-    struct ts_entry *head = (struct ts_entry *)headp_in;
+    const struct ts_entry *head = (const struct ts_entry *)headp_in;
     struct ts_entry *root = 0;
     size_t headdepth = 0;
     if(!head) {
@@ -292,8 +325,9 @@ dwarf_tdump(const void*headp_in,
         return;
     }
     headdepth = head->llink - (struct ts_entry *)0;
-    printf("dumptree head ptr : 0x%08" PRIxPTR " tree-depth %d: %s\n",
-        (uintptr_t)head,
+    printf("dumptree head ptr : 0x%08" DW_PR_DUx
+        " tree-depth %d: %s\n",
+        (Dwarf_Unsigned)(uintptr_t)head,
         (int)headdepth,
         msg);
     root = head->rlink;
@@ -329,7 +363,9 @@ allocate_ts_entry(const void *key)
     if(!e) {
         return NULL;
     }
-    e->keyptr = key;
+    /*  We will eventually ask it be freed, so
+        being const void * in is not quite right. */
+    e->keyptr = (void *)key;
     e->balance = 0;
     e->llink = 0;
     e->rlink = 0;
@@ -560,7 +596,7 @@ void *
 dwarf_tfind(const void *key, void *const*rootp,
     int (*compar)(const void *, const void *))
 {
-    struct ts_entry **phead = (struct ts_entry **)rootp;
+    struct ts_entry * const *phead = (struct ts_entry * const*)rootp;
     struct ts_entry *head = 0;
     struct ts_entry *p = 0;
     if (!phead) {
@@ -963,7 +999,7 @@ void
 dwarf_twalk(const void *rootp,
     void (*action)(const void *nodep, const DW_VISIT which, const int depth))
 {
-    struct ts_entry *head = (struct ts_entry *)rootp;
+    const struct ts_entry *head = (const struct ts_entry *)rootp;
     struct ts_entry *root = 0;
     if(!head) {
         return;

@@ -1,4 +1,4 @@
-/* Copyright (c) 2013-2017, David Anderson
+/* Copyright (c) 2013-2019, David Anderson
 All rights reserved.
 
 Redistribution and use in source and binary forms, with
@@ -56,11 +56,15 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 #include "stdlib.h" /* for free() */
 #include <stdio.h> /* for printf */
-
-#if defined(_WIN32) && defined(HAVE_INTTYPES_H)
-#include <inttypes.h> /* for PRIxPTR macros */
-#endif  /* _WIN32 && HAVE_INTTYPES_H */
-
+#ifdef HAVE_STDINT_H
+#include <stdint.h>
+#endif /* HAVE_STDINT_H */
+#define Dwarf_Unsigned unsigned long long
+#if defined(_WIN32) && defined(HAVE_NONSTANDARD_PRINTF_64_FORMAT)
+#define DW_PR_DUx "I64x"
+#else
+#define DW_PR_DUx "llx"
+#endif /* DW_PR defines */
 #include "dwarf_tsearch.h"
 
 
@@ -91,8 +95,8 @@ struct ts_entry {
 /* Not needed for this set of functions. */
 void *
 dwarf_initialize_search_hash( void **treeptr,
-    DW_TSHASHTYPE(*hashfunc)(const void *key),
-    unsigned long size_estimate)
+    UNUSEDARG DW_TSHASHTYPE(*hashfunc)(const void *key),
+    UNUSEDARG unsigned long size_estimate)
 {
     return *treeptr;
 }
@@ -121,7 +125,7 @@ dumptree_inner(const struct ts_entry *t,
     char *(* keyprint)(const void *),
     const char *descr, int level)
 {
-    char *v = "";
+    const char *v = "";
     if(!t) {
         return;
     }
@@ -130,15 +134,13 @@ dumptree_inner(const struct ts_entry *t,
         v = keyprint(t->keyptr);
     }
     printlevel(level);
-    printf("0x%08" PRIxPTR " <keyptr 0x%08" PRIxPTR "> "
-           "<%s %s> "
-           "<l 0x%08" PRIxPTR "> <r 0x%08" PRIxPTR "> "
-           "%s\n",
-        (uintptr_t)t,
-        (uintptr_t)t->keyptr,
+    printf("0x%08" DW_PR_DUx " <keyptr 0x%08" DW_PR_DUx "> <%s %s> <l 0x%08" DW_PR_DUx "> <r 0x%08" DW_PR_DUx "> %s\n",
+        (Dwarf_Unsigned)(uintptr_t)t,
+        (Dwarf_Unsigned)(uintptr_t)t->keyptr,
         t->keyptr?"key ":"null",
         v,
-        (uintptr_t)t->llink,(uintptr_t)t->rlink,
+        (Dwarf_Unsigned)(uintptr_t)t->llink,
+        (Dwarf_Unsigned)(uintptr_t)t->rlink,
         descr);
     dumptree_inner(t->llink,keyprint,"right",level+1);
 }
@@ -170,8 +172,14 @@ dwarf_tdump(const void*rootin,
         printf("dwarf_tdump empty tree : %s\n",msg);
         return;
     }
-    printf("dwarf_tdump tree head : 0x%08" PRIxPTR " %s\n",(uintptr_t)head,msg);
-    printf("dwarf_tdump tree root : 0x%08" PRIxPTR " %s\n",(uintptr_t)root,msg);
+    printf("dwarf_tdump tree head : 0x%08" DW_PR_DUx
+        " %s\n",
+        (Dwarf_Unsigned)(uintptr_t)head,
+        msg);
+    printf("dwarf_tdump tree root : 0x%08" DW_PR_DUx
+        " %s\n",
+        (Dwarf_Unsigned)(uintptr_t)root,
+        msg);
     dumptree_inner(root,keyprint,"top",0);
 }
 
