@@ -66,7 +66,9 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 #include "stdlib.h" /* for free() etc */
 #include <stdio.h>  /* for printf() */
-#include <inttypes.h> /* for PRIxPTR macros */
+#ifdef HAVE_INTTYPES_H
+#include <inttypes.h>
+#endif /* HAVE_INTTYPES_H */
 #ifdef HAVE_STDINT_H
 #include <stdint.h> /* for uintptr_t */
 #endif /* HAVE_STDINT_H */
